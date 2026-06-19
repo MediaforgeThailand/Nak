@@ -1,0 +1,5 @@
+[mcp_servers.supabase_nak]
+url = "https://mcp.supabase.com/mcp?project_ref=euvzhzhwlcuyrmnxvzdx&read_only=true&features=database,docs,debugging,development"
+bearer_token_env_var = "SUPABASE_ACCESS_TOKEN"
+enabled = true
+default_tools_approval_mode = "prompt"
