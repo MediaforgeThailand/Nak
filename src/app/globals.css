@@ -79,6 +79,115 @@ input[type="file"] {
   background: color-mix(in srgb, var(--accent) 24%, transparent);
 }
 
+.motion-page {
+  animation: page-enter 320ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.motion-surface {
+  transform: translateZ(0);
+  transition-property: transform, box-shadow, background-color, border-color, color, opacity;
+  will-change: transform;
+}
+
+.motion-surface:hover {
+  transform: translateY(-1px);
+}
+
+.motion-surface:active {
+  transform: translateY(0) scale(0.985);
+}
+
+.motion-surface:disabled,
+.motion-surface[aria-disabled="true"],
+.motion-surface:disabled:hover,
+.motion-surface[aria-disabled="true"]:hover,
+.motion-surface:disabled:active,
+.motion-surface[aria-disabled="true"]:active {
+  transform: none;
+}
+
+.route-progress-bar {
+  animation: route-progress 1.05s cubic-bezier(0.45, 0, 0.2, 1) infinite;
+}
+
+.loading-card {
+  overflow: hidden;
+  border-radius: 0.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  background: rgba(255, 255, 255, 0.82);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    0 18px 46px rgba(31, 65, 58, 0.11);
+  backdrop-filter: blur(24px);
+  position: relative;
+}
+
+.loading-card::after,
+.loading-shimmer {
+  background: linear-gradient(
+    110deg,
+    rgba(255, 255, 255, 0.44) 0%,
+    rgba(15, 118, 110, 0.08) 38%,
+    rgba(255, 255, 255, 0.76) 52%,
+    rgba(255, 255, 255, 0.44) 100%
+  );
+  background-size: 220% 100%;
+  animation: shimmer 1.35s ease-in-out infinite;
+}
+
+.loading-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+}
+
+.cart-added-pulse {
+  animation: cart-pop 420ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes page-enter {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.995);
+    filter: blur(5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0);
+  }
+}
+
+@keyframes route-progress {
+  from {
+    transform: translateX(-130%);
+  }
+  to {
+    transform: translateX(330%);
+  }
+}
+
+@keyframes shimmer {
+  from {
+    background-position: 140% 0;
+  }
+  to {
+    background-position: -80% 0;
+  }
+}
+
+@keyframes cart-pop {
+  0% {
+    transform: scale(1);
+  }
+  44% {
+    transform: scale(1.025);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -87,5 +196,19 @@ input[type="file"] {
     animation-iteration-count: 1 !important;
     scroll-behavior: auto !important;
     transition-duration: 0.01ms !important;
+  }
+
+  .motion-page,
+  .route-progress-bar,
+  .loading-card::after,
+  .loading-shimmer,
+  .cart-added-pulse {
+    animation: none !important;
+  }
+
+  .motion-surface,
+  .motion-surface:hover,
+  .motion-surface:active {
+    transform: none !important;
   }
 }

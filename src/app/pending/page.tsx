@@ -17,7 +17,7 @@ export default async function PendingPage({
   const signOutAction = scope === "admin" ? signOutAdminAction : signOutCustomerAction;
 
   return (
-    <main className="grid min-h-screen place-items-center bg-background px-4 py-8">
+    <main className="motion-page grid min-h-screen place-items-center bg-background px-4 py-8">
       <Card className="w-full max-w-lg p-6">
         <div className="mx-auto grid h-14 w-14 place-items-center rounded-lg border border-amber-200 bg-amber-50 text-warning">
           <Clock3 className="h-7 w-7" />

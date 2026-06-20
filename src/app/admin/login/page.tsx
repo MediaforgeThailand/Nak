@@ -15,7 +15,7 @@ export default async function AdminLoginPage({
   const params = await searchParams;
 
   return (
-    <main className="min-h-screen bg-background px-4 py-6 sm:py-10">
+    <main className="motion-page min-h-screen bg-background px-4 py-6 sm:py-10">
       <div className="mx-auto grid min-h-[calc(100vh-3rem)] w-full max-w-5xl items-center gap-5 lg:grid-cols-[1fr_0.9fr]">
         <section className="grid gap-5">
           <div>
@@ -31,17 +31,17 @@ export default async function AdminLoginPage({
           </div>
 
           <div className="grid gap-3 sm:grid-cols-3">
-            <div className="rounded-lg border border-white/70 bg-white/78 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.9)] backdrop-blur-xl">
+            <div className="motion-surface rounded-lg border border-white/70 bg-white/78 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.9)] backdrop-blur-xl">
               <ClipboardCheck className="h-5 w-5 text-accent" />
               <p className="mt-3 font-semibold">อนุมัติออเดอร์</p>
               <p className="mt-1 text-xs leading-5 text-muted">ตรวจรายการก่อนบันทึกยอดค้าง</p>
             </div>
-            <div className="rounded-lg border border-white/70 bg-white/78 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.9)] backdrop-blur-xl">
+            <div className="motion-surface rounded-lg border border-white/70 bg-white/78 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.9)] backdrop-blur-xl">
               <Store className="h-5 w-5 text-accent" />
               <p className="mt-3 font-semibold">ดูแลสินค้า</p>
               <p className="mt-1 text-xs leading-5 text-muted">เพิ่มรูป หมวดหมู่ ราคา และสต็อก</p>
             </div>
-            <div className="rounded-lg border border-white/70 bg-white/78 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.9)] backdrop-blur-xl">
+            <div className="motion-surface rounded-lg border border-white/70 bg-white/78 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.9)] backdrop-blur-xl">
               <ShieldCheck className="h-5 w-5 text-accent" />
               <p className="mt-3 font-semibold">สิทธิ์เฉพาะทีม</p>
               <p className="mt-1 text-xs leading-5 text-muted">จำกัดการเข้าถึงตามบทบาท</p>

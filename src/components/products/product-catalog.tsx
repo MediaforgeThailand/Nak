@@ -113,7 +113,7 @@ export function ProductCatalog({
     const finalPrice = discountedUnitPrice(selectedProduct.price, discountPerItem);
 
     return (
-      <div className="grid gap-4">
+      <div className="motion-page grid gap-4">
         <Button
           type="button"
           variant="secondary"
@@ -321,7 +321,7 @@ export function ProductCatalog({
                 key={product.id}
                 type="button"
                 onClick={() => setSelectedProductId(product.id)}
-                className="group grid min-w-0 cursor-pointer overflow-hidden rounded-lg border border-white/70 bg-white/84 text-left shadow-[0_16px_34px_rgba(31,65,58,0.1)] transition-all duration-200 hover:border-accent/60 hover:bg-white/95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+                className="motion-surface group grid min-w-0 cursor-pointer overflow-hidden rounded-lg border border-white/70 bg-white/84 text-left shadow-[0_16px_34px_rgba(31,65,58,0.1)] transition-all duration-200 hover:border-accent/60 hover:bg-white/95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
               >
                 <div className="relative grid aspect-[3/4] place-items-center overflow-hidden bg-[#edf2ef] text-muted">
                   {product.imageUrl ? (

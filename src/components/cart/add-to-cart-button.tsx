@@ -1,5 +1,6 @@
 "use client";
 
+import { clsx } from "clsx";
 import { useState } from "react";
 import { ShoppingCart } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -42,7 +43,7 @@ export function AddToCartButton({
         setAdded(true);
         window.setTimeout(() => setAdded(false), 1200);
       }}
-      className="w-full"
+      className={clsx("w-full", added && "cart-added-pulse")}
       variant={isSoldOut ? "secondary" : "primary"}
     >
       <ShoppingCart className="h-4 w-4" />

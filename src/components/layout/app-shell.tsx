@@ -4,6 +4,7 @@ import { LogOut } from "lucide-react";
 import type { ComponentType, ReactNode } from "react";
 import { signOutCustomerAction } from "@/app/actions/auth";
 import { NavCurrentMarker } from "@/components/layout/nav-current-marker";
+import { RouteContentFrame } from "@/components/layout/route-content-frame";
 import { SubmitButton } from "@/components/ui/submit-button";
 import type { Profile } from "@/lib/types";
 
@@ -64,7 +65,7 @@ export function AppShell({
                 key={item.href}
                 href={item.href}
                 data-nav-href={item.href}
-                className="flex min-h-11 items-center gap-2 rounded-lg border border-transparent px-3 text-sm font-medium text-muted transition-all duration-200 hover:border-white/70 hover:bg-white/72 hover:text-foreground hover:shadow-[0_12px_28px_rgba(31,65,58,0.1)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+                className="motion-surface flex min-h-11 items-center gap-2 rounded-lg border border-transparent px-3 text-sm font-medium text-muted transition-all duration-200 hover:border-white/70 hover:bg-white/72 hover:text-foreground hover:shadow-[0_12px_28px_rgba(31,65,58,0.1)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
               >
                 <item.icon className="h-4 w-4" />
                 {item.label}
@@ -73,7 +74,7 @@ export function AppShell({
           </nav>
         </aside>
         <main id="main-content" className="min-w-0" tabIndex={-1}>
-          {children}
+          <RouteContentFrame>{children}</RouteContentFrame>
         </main>
       </div>
 
@@ -87,7 +88,7 @@ export function AppShell({
             href={item.href}
             data-nav-href={item.href}
             className={clsx(
-              "flex min-h-16 min-w-0 flex-col items-center justify-center gap-1 px-1 text-[11px] font-semibold leading-tight text-muted transition-all duration-200 hover:bg-white/70 hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-accent",
+              "motion-surface flex min-h-16 min-w-0 flex-col items-center justify-center gap-1 px-1 text-[11px] font-semibold leading-tight text-muted transition-all duration-200 hover:bg-white/70 hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-accent",
             )}
           >
             <item.icon className="h-5 w-5" />

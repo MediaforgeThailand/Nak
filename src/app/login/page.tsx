@@ -16,7 +16,7 @@ export default async function LoginPage({
   const isSignup = params.mode === "signup";
 
   return (
-    <main className="min-h-screen bg-background px-4 py-6 sm:py-10">
+    <main className="motion-page min-h-screen bg-background px-4 py-6 sm:py-10">
       <div className="mx-auto grid min-h-[calc(100vh-3rem)] w-full max-w-5xl items-center gap-5 lg:grid-cols-[1.05fr_0.95fr]">
         <section className="grid gap-5">
           <div>
@@ -32,17 +32,17 @@ export default async function LoginPage({
           </div>
 
           <div className="grid gap-3 sm:grid-cols-3">
-            <div className="rounded-lg border border-white/70 bg-white/78 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.9)] backdrop-blur-xl">
+            <div className="motion-surface rounded-lg border border-white/70 bg-white/78 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.9)] backdrop-blur-xl">
               <ShoppingBag className="h-5 w-5 text-accent" />
               <p className="mt-3 font-semibold">Catalog สด</p>
               <p className="mt-1 text-xs leading-5 text-muted">เห็นสต็อกและราคาในฐานข้อมูลจริง</p>
             </div>
-            <div className="rounded-lg border border-white/70 bg-white/78 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.9)] backdrop-blur-xl">
+            <div className="motion-surface rounded-lg border border-white/70 bg-white/78 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.9)] backdrop-blur-xl">
               <ShieldCheck className="h-5 w-5 text-accent" />
               <p className="mt-3 font-semibold">อนุมัติเป็นขั้นตอน</p>
               <p className="mt-1 text-xs leading-5 text-muted">ออเดอร์และสลิปผ่านทีมงานก่อนบันทึกยอด</p>
             </div>
-            <div className="rounded-lg border border-white/70 bg-white/78 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.9)] backdrop-blur-xl">
+            <div className="motion-surface rounded-lg border border-white/70 bg-white/78 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.9)] backdrop-blur-xl">
               <Store className="h-5 w-5 text-accent" />
               <p className="mt-3 font-semibold">เหมาะกับร้านค้า</p>
               <p className="mt-1 text-xs leading-5 text-muted">ดูยอดค้างและรายการย้อนหลังได้ชัดเจน</p>
