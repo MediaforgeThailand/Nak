@@ -17,9 +17,15 @@ function readCart(): Record<string, number> {
 export function AddToCartButton({
   productId,
   disabled,
+  label = "เพิ่มลงตะกร้า",
+  addedLabel = "เพิ่มแล้ว",
+  soldOutLabel = "สินค้าหมด",
 }: {
   productId: string;
   disabled?: boolean;
+  label?: string;
+  addedLabel?: string;
+  soldOutLabel?: string;
 }) {
   const [added, setAdded] = useState(false);
   const isSoldOut = Boolean(disabled);
@@ -40,7 +46,7 @@ export function AddToCartButton({
       variant={isSoldOut ? "secondary" : "primary"}
     >
       <ShoppingCart className="h-4 w-4" />
-      {isSoldOut ? "สินค้าหมด" : added ? "เพิ่มแล้ว" : "เพิ่มลงตะกร้า"}
+      {isSoldOut ? soldOutLabel : added ? addedLabel : label}
     </Button>
   );
 }

@@ -1,75 +1,70 @@
-import Link from "next/link";
+import { ShoppingCart } from "lucide-react";
+import { CartView } from "@/components/cart/cart-view";
+import { ProductCatalog } from "@/components/products/product-catalog";
 import { ButtonLink } from "@/components/ui/button";
-import { Card, StatCard } from "@/components/ui/card";
-import { money, orderStatusLabel, paymentStatusLabel } from "@/lib/format";
-import { requireCustomer } from "@/lib/auth";
-import { getCustomerOrders, getPayments, getTransactions } from "@/lib/data/queries";
+import { Card } from "@/components/ui/card";
+import {
+  getCustomerAddresses,
+  getProductCategories,
+  getProductsWithInventory,
+} from "@/lib/data/queries";
+import { signedUrls } from "@/lib/storage";
 
 export const dynamic = "force-dynamic";
 
-export default async function DashboardPage() {
-  const { profile } = await requireCustomer();
-  const [orders, payments, transactions] = await Promise.all([
-    getCustomerOrders(),
-    getPayments(),
-    getTransactions(),
+export default async function HomePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string }>;
+}) {
+  const params = await searchParams;
+  const [products, categories, addresses] = await Promise.all([
+    getProductsWithInventory(false),
+    getProductCategories(),
+    getCustomerAddresses(),
   ]);
-  const pendingOrders = orders.filter((order) => order.status === "pending_admin").length;
-  const pendingPayments = payments.filter((payment) => payment.status === "pending").length;
+  const productImageUrls = await signedUrls(
+    "product-images",
+    products
+      .map((product) => product.image_path)
+      .filter((path): path is string => Boolean(path)),
+  );
 
   return (
-    <div className="grid gap-4">
-      <div className="grid gap-3 sm:grid-cols-3">
-        <StatCard label="ยอดหนี้คงเหลือ" value={money(profile.debt_balance)} tone="warning" />
-        <StatCard label="ออเดอร์รออนุมัติ" value={String(pendingOrders)} />
-        <StatCard label="สลิปรอตรวจ" value={String(pendingPayments)} />
-      </div>
+    <div className="grid gap-5">
+      <Card className="overflow-hidden">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <p className="text-sm font-semibold text-accent">หน้าหลัก</p>
+            <h2 className="mt-1 text-2xl font-semibold">เลือกสินค้าและส่งออเดอร์</h2>
+            <p className="mt-1 max-w-2xl text-sm leading-6 text-muted">
+              ดูรายละเอียดสินค้า เพิ่มลงตะกร้า แล้วกดยืนยันออเดอร์ให้แอดมินอนุมัติจากหน้านี้ได้เลย
+            </p>
+          </div>
+          <ButtonLink href="#checkout" variant="secondary" className="shrink-0">
+            <ShoppingCart className="h-4 w-4" />
+            ไปยืนยันออเดอร์
+          </ButtonLink>
+        </div>
+      </Card>
 
-      <div className="grid gap-4 lg:grid-cols-2">
-        <Card>
-          <div className="flex items-center justify-between gap-3">
-            <h2 className="font-semibold">ออเดอร์ล่าสุด</h2>
-            <ButtonLink href="/products" variant="secondary">สั่งสินค้า</ButtonLink>
-          </div>
-          <div className="mt-4 grid gap-3">
-            {orders.slice(0, 5).map((order) => (
-              <Link
-                key={order.id}
-                href={`/orders/${order.id}`}
-                className="flex items-center justify-between gap-3 rounded-md border border-border p-3 transition-colors duration-200 hover:bg-surface-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-              >
-                <div>
-                  <p className="font-medium">{order.order_number}</p>
-                  <p className="text-sm text-muted">{orderStatusLabel(order.status)}</p>
-                </div>
-                <p className="font-semibold">{money(order.subtotal)}</p>
-              </Link>
-            ))}
-            {orders.length === 0 ? <p className="text-sm text-muted">ยังไม่มีออเดอร์</p> : null}
-          </div>
-        </Card>
+      <ProductCatalog
+        categories={categories}
+        products={products.map((product) => ({
+          ...product,
+          imageUrl: product.image_path ? productImageUrls.get(product.image_path) ?? null : null,
+        }))}
+      />
 
-        <Card>
-          <div className="flex items-center justify-between gap-3">
-            <h2 className="font-semibold">การชำระเงินล่าสุด</h2>
-            <ButtonLink href="/payments/new" variant="secondary">แจ้งชำระ</ButtonLink>
-          </div>
-          <div className="mt-4 grid gap-3">
-            {payments.slice(0, 5).map((payment) => (
-              <div key={payment.id} className="rounded-md border border-border p-3">
-                <div className="flex items-center justify-between">
-                  <p className="font-medium">{payment.payment_number}</p>
-                  <p className="font-semibold">{money(payment.amount)}</p>
-                </div>
-                <p className="text-sm text-muted">{paymentStatusLabel(payment.status)}</p>
-              </div>
-            ))}
-            {transactions.length === 0 && payments.length === 0 ? (
-              <p className="text-sm text-muted">ยังไม่มีประวัติการชำระเงิน</p>
-            ) : null}
-          </div>
-        </Card>
-      </div>
+      <section id="checkout" className="scroll-mt-24">
+        <div className="mb-3">
+          <h2 className="text-xl font-semibold">ยืนยันออเดอร์</h2>
+          <p className="text-sm text-muted">
+            ตรวจรายการสินค้า เลือกที่อยู่จัดส่ง และส่งให้แอดมินอนุมัติ
+          </p>
+        </div>
+        <CartView products={products} addresses={addresses} error={params.error} />
+      </section>
     </div>
   );
 }

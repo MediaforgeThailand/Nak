@@ -30,7 +30,7 @@ export function AppShell({
   children: ReactNode;
 }) {
   return (
-    <div className="min-h-screen bg-background pb-20 md:pb-0">
+    <div className="min-h-screen bg-transparent pb-24 md:pb-0">
       <NavCurrentMarker />
       <a
         href="#main-content"
@@ -38,7 +38,7 @@ export function AppShell({
       >
         ข้ามไปยังเนื้อหา
       </a>
-      <header className="border-b border-border bg-surface">
+      <header className="sticky top-0 z-20 border-b border-white/45 bg-white/62 backdrop-blur-2xl">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-4">
           <div className="min-w-0">
             <p className="text-xs font-semibold uppercase tracking-normal text-accent">
@@ -64,7 +64,7 @@ export function AppShell({
                 key={item.href}
                 href={item.href}
                 data-nav-href={item.href}
-                className="flex min-h-10 items-center gap-2 rounded-md px-3 text-sm font-medium text-muted transition-colors duration-200 hover:bg-surface hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+                className="flex min-h-11 items-center gap-2 rounded-2xl border border-transparent px-3 text-sm font-medium text-muted transition-all duration-200 hover:border-white/50 hover:bg-white/56 hover:text-foreground hover:shadow-[0_12px_30px_rgba(36,78,128,0.1)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
               >
                 <item.icon className="h-4 w-4" />
                 {item.label}
@@ -79,7 +79,7 @@ export function AppShell({
 
       <nav
         aria-label="เมนูหลักบนมือถือ"
-        className="fixed inset-x-0 bottom-0 z-20 grid grid-flow-col auto-cols-fr border-t border-border bg-surface shadow-[0_-8px_20px_rgba(0,0,0,0.04)] md:hidden"
+        className="fixed inset-x-3 bottom-3 z-20 grid grid-flow-col auto-cols-fr overflow-hidden rounded-[28px] border border-white/55 bg-white/66 shadow-[inset_0_1px_0_rgba(255,255,255,0.86),0_18px_42px_rgba(36,78,128,0.22)] backdrop-blur-2xl md:hidden"
       >
         {navItems.map((item) => (
           <Link
@@ -87,7 +87,7 @@ export function AppShell({
             href={item.href}
             data-nav-href={item.href}
             className={clsx(
-              "flex min-h-16 min-w-0 flex-col items-center justify-center gap-1 px-1 text-[11px] font-medium leading-tight text-muted transition-colors duration-200 hover:bg-surface-muted hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-accent",
+              "flex min-h-16 min-w-0 flex-col items-center justify-center gap-1 px-1 text-[11px] font-semibold leading-tight text-muted transition-all duration-200 hover:bg-white/56 hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-accent",
             )}
           >
             <item.icon className="h-5 w-5" />

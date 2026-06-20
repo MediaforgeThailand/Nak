@@ -146,9 +146,14 @@ export function ProductCatalog({
             ) : null}
 
             <div className="grid max-w-sm gap-2">
-              <AddToCartButton productId={selectedProduct.id} disabled={soldOut} />
+              <AddToCartButton
+                productId={selectedProduct.id}
+                disabled={soldOut}
+                label="เพิ่มเพื่อสั่งซื้อ"
+                addedLabel="เพิ่มแล้ว ไปยืนยันออเดอร์"
+              />
               <p className="text-xs text-muted">
-                เพิ่มลงตะกร้าแล้วไปที่หน้าตะกร้าเพื่อส่งออเดอร์และจองสต็อก
+                เพิ่มสินค้าแล้วไปที่กล่องยืนยันออเดอร์ด้านล่างเพื่อส่งให้แอดมินอนุมัติ
               </p>
             </div>
           </div>

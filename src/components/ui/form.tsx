@@ -23,7 +23,7 @@ export function Input({ className, ...props }: InputHTMLAttributes<HTMLInputElem
   return (
     <input
       className={clsx(
-        "min-h-11 w-full min-w-0 rounded-md border border-border bg-white px-3 py-2 text-base outline-none transition-colors duration-200 placeholder:text-muted/70 focus:border-accent focus:ring-2 focus:ring-accent/20 md:text-sm",
+        "min-h-11 w-full min-w-0 rounded-xl border border-white/60 bg-white/70 px-3 py-2 text-base shadow-[inset_0_1px_0_rgba(255,255,255,0.82)] outline-none backdrop-blur-xl transition-colors duration-200 placeholder:text-muted/70 focus:border-accent focus:ring-2 focus:ring-accent/20 md:text-sm",
         className,
       )}
       {...props}
@@ -35,7 +35,7 @@ export function Textarea({ className, ...props }: TextareaHTMLAttributes<HTMLTex
   return (
     <textarea
       className={clsx(
-        "min-h-24 w-full min-w-0 rounded-md border border-border bg-white px-3 py-2 text-base outline-none transition-colors duration-200 placeholder:text-muted/70 focus:border-accent focus:ring-2 focus:ring-accent/20 md:text-sm",
+        "min-h-24 w-full min-w-0 rounded-xl border border-white/60 bg-white/70 px-3 py-2 text-base shadow-[inset_0_1px_0_rgba(255,255,255,0.82)] outline-none backdrop-blur-xl transition-colors duration-200 placeholder:text-muted/70 focus:border-accent focus:ring-2 focus:ring-accent/20 md:text-sm",
         className,
       )}
       {...props}
@@ -47,7 +47,7 @@ export function Select({ className, ...props }: SelectHTMLAttributes<HTMLSelectE
   return (
     <select
       className={clsx(
-        "min-h-11 w-full min-w-0 rounded-md border border-border bg-white px-3 py-2 text-base outline-none transition-colors duration-200 focus:border-accent focus:ring-2 focus:ring-accent/20 md:text-sm",
+        "min-h-11 w-full min-w-0 rounded-xl border border-white/60 bg-white/70 px-3 py-2 text-base shadow-[inset_0_1px_0_rgba(255,255,255,0.82)] outline-none backdrop-blur-xl transition-colors duration-200 focus:border-accent focus:ring-2 focus:ring-accent/20 md:text-sm",
         className,
       )}
       {...props}

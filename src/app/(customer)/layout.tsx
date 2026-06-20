@@ -1,22 +1,14 @@
 import {
   ClipboardList,
-  Home,
   PackageSearch,
-  ReceiptText,
-  ShoppingCart,
   UserRound,
-  WalletCards,
 } from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
 import { requireCustomer } from "@/lib/auth";
 
 const navItems = [
-  { href: "/home", label: "หน้าหลัก", icon: Home },
-  { href: "/products", label: "สินค้า", icon: PackageSearch },
-  { href: "/cart", label: "ตะกร้า", icon: ShoppingCart },
+  { href: "/home", label: "สินค้า", icon: PackageSearch },
   { href: "/orders", label: "ออเดอร์", icon: ClipboardList },
-  { href: "/payments/new", label: "ชำระ", icon: WalletCards },
-  { href: "/transactions", label: "บัญชี", icon: ReceiptText },
   { href: "/profile", label: "โปรไฟล์", icon: UserRound },
 ];
 
@@ -31,7 +23,7 @@ export default async function CustomerLayout({
 
   return (
     <AppShell
-      title="Customer Portal"
+      title="Nak Customer"
       subtitle={profile.company_name ?? profile.full_name ?? profile.email}
       navItems={navItems}
       profile={profile}

@@ -1,17 +1,20 @@
 @import "tailwindcss";
 
 :root {
-  --background: #f7f7f4;
-  --foreground: #171914;
-  --surface: #ffffff;
-  --surface-muted: #eeeeea;
-  --border: #d9d9d0;
-  --accent: #2f6f4e;
+  --background: #eef6ff;
+  --foreground: #102033;
+  --surface: rgba(255, 255, 255, 0.74);
+  --surface-muted: rgba(255, 255, 255, 0.48);
+  --border: rgba(112, 151, 185, 0.28);
+  --accent: #2563eb;
   --accent-foreground: #ffffff;
-  --warning: #a15c11;
+  --warning: #b45309;
   --danger: #b42318;
-  --success: #1f7a4d;
-  --muted: #666b60;
+  --success: #047857;
+  --muted: #516174;
+  --glass-highlight: rgba(255, 255, 255, 0.92);
+  --glass-shadow: rgba(36, 78, 128, 0.16);
+  --glass-deep-shadow: rgba(32, 72, 120, 0.26);
 }
 
 @theme inline {
@@ -26,13 +29,18 @@
   --color-danger: var(--danger);
   --color-success: var(--success);
   --color-muted: var(--muted);
+  --color-glass-highlight: var(--glass-highlight);
   --font-sans: "Geist", "Geist Fallback", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "Geist Mono", "Geist Mono Fallback", ui-monospace, monospace;
 }
 
 body {
-  background: var(--background);
+  background:
+    radial-gradient(circle at top left, rgba(96, 165, 250, 0.28), transparent 30rem),
+    radial-gradient(circle at 85% 10%, rgba(34, 197, 94, 0.14), transparent 24rem),
+    linear-gradient(145deg, #f8fbff 0%, var(--background) 48%, #f7fbff 100%);
   color: var(--foreground);
+  min-height: 100vh;
 }
 
 html {

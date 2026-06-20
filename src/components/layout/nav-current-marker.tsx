@@ -3,7 +3,12 @@
 import { useEffect } from "react";
 import { usePathname } from "next/navigation";
 
-const activeClasses = ["bg-surface-muted", "text-foreground"];
+const activeClasses = [
+  "border-white/70",
+  "bg-white/78",
+  "text-foreground",
+  "shadow-[inset_0_1px_0_rgba(255,255,255,0.86),0_12px_28px_rgba(37,99,235,0.14)]",
+];
 
 export function NavCurrentMarker() {
   const pathname = usePathname();
