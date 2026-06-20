@@ -22,11 +22,12 @@ export function AddToCartButton({
   disabled?: boolean;
 }) {
   const [added, setAdded] = useState(false);
+  const isSoldOut = Boolean(disabled);
 
   return (
     <Button
       type="button"
-      disabled={disabled}
+      disabled={isSoldOut}
       onClick={() => {
         const cart = readCart();
         cart[productId] = (cart[productId] ?? 0) + 1;
@@ -36,9 +37,10 @@ export function AddToCartButton({
         window.setTimeout(() => setAdded(false), 1200);
       }}
       className="w-full"
+      variant={isSoldOut ? "secondary" : "primary"}
     >
       <ShoppingCart className="h-4 w-4" />
-      {added ? "เพิ่มแล้ว" : "เพิ่มลงตะกร้า"}
+      {isSoldOut ? "สินค้าหมด" : added ? "เพิ่มแล้ว" : "เพิ่มลงตะกร้า"}
     </Button>
   );
 }

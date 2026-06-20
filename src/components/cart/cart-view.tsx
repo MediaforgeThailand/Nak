@@ -1,8 +1,9 @@
 "use client";
 
 import { useMemo, useSyncExternalStore } from "react";
-import { Trash2 } from "lucide-react";
+import { AlertCircle, Trash2 } from "lucide-react";
 import { createOrderAction } from "@/app/actions/customer";
+import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Field, Select, Textarea } from "@/components/ui/form";
 import { SubmitButton } from "@/components/ui/submit-button";
@@ -79,16 +80,24 @@ export function CartView({
     [cart, products],
   );
 
-  const total = rows.reduce((sum, row) => sum + row.product.price * row.quantity, 0);
-  const items = rows.map((row) => ({
+  const orderableRows = rows
+    .map((row) => {
+      const stock = qtyAvailable(row.product);
+      return stock > 0 ? { ...row, quantity: Math.min(row.quantity, stock), stock } : null;
+    })
+    .filter(Boolean) as { product: ProductRow; quantity: number; stock: number }[];
+  const hasUnavailableItems = rows.some((row) => qtyAvailable(row.product) <= 0);
+  const total = orderableRows.reduce((sum, row) => sum + row.product.price * row.quantity, 0);
+  const items = orderableRows.map((row) => ({
     product_id: row.product.id,
     quantity: row.quantity,
   }));
 
-  function updateQuantity(id: string, quantity: number) {
+  function updateQuantity(id: string, quantity: number, max?: number) {
     const next = { ...cart };
-    if (quantity <= 0) delete next[id];
-    else next[id] = quantity;
+    const safeQuantity = Number.isFinite(quantity) ? quantity : 0;
+    if (safeQuantity <= 0) delete next[id];
+    else next[id] = Math.min(safeQuantity, max ?? safeQuantity);
     writeCart(next);
   }
 
@@ -110,15 +119,26 @@ export function CartView({
       ) : null}
       <Card>
         <div className="grid gap-3">
+          {hasUnavailableItems ? (
+            <div className="flex items-start gap-2 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-danger">
+              <AlertCircle className="mt-0.5 h-4 w-4 flex-none" />
+              <span>มีสินค้าหมดในตะกร้า รายการนั้นจะกดสั่งซื้อไม่ได้ กรุณาลบออกหรือเลือกสินค้าอื่น</span>
+            </div>
+          ) : null}
           {rows.map(({ product, quantity }) => {
             const stock = qtyAvailable(product);
+            const isSoldOut = stock <= 0;
+            const displayQuantity = isSoldOut ? quantity : Math.min(quantity, stock);
             return (
               <div
                 key={product.id}
                 className="grid gap-3 border-b border-border pb-3 last:border-0 last:pb-0 sm:grid-cols-[1fr_120px_44px]"
               >
                 <div>
-                  <p className="font-semibold">{product.name}</p>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="font-semibold">{product.name}</p>
+                    {isSoldOut ? <Badge tone="danger">สินค้าหมด</Badge> : null}
+                  </div>
                   <p className="break-words text-sm text-muted">
                     {product.sku} · {money(product.price)} / {product.unit} · คงเหลือ {stock}
                   </p>
@@ -128,9 +148,10 @@ export function CartView({
                   inputMode="numeric"
                   min={1}
                   max={stock}
-                  value={quantity}
+                  value={displayQuantity}
+                  disabled={isSoldOut}
                   onChange={(event) =>
-                    updateQuantity(product.id, Number(event.currentTarget.value))
+                    updateQuantity(product.id, Number(event.currentTarget.value), stock)
                   }
                   className="min-h-10 rounded-md border border-border px-3"
                 />
@@ -168,7 +189,7 @@ export function CartView({
             <span className="font-medium">ยอดรวม</span>
             <span className="text-xl font-semibold">{money(total)}</span>
           </div>
-          <SubmitButton pendingLabel="กำลังส่งออเดอร์...">
+          <SubmitButton disabled={orderableRows.length === 0} pendingLabel="กำลังส่งออเดอร์...">
             ส่งออเดอร์และจองสต็อก
           </SubmitButton>
         </form>

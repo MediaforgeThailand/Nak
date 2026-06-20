@@ -8,13 +8,25 @@ export async function getProductsWithInventory(
   const supabase = await createSupabaseServerClient(scope);
   let query = supabase
     .from("products")
-    .select("*, inventory(quantity_available, low_stock_threshold)")
+    .select("*, category:product_categories(id, name, description, sort_order, created_at), inventory(quantity_available, low_stock_threshold)")
     .order("sort_order", { ascending: true })
     .order("name", { ascending: true });
 
   if (!includeInactive) query = query.eq("is_active", true);
 
   const { data, error } = await query;
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function getProductCategories(scope: AuthScope = "customer") {
+  const supabase = await createSupabaseServerClient(scope);
+  const { data, error } = await supabase
+    .from("product_categories")
+    .select("*")
+    .order("sort_order", { ascending: true })
+    .order("name", { ascending: true });
+
   if (error) throw error;
   return data ?? [];
 }

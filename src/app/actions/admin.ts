@@ -31,10 +31,81 @@ async function uploadImageFile(
   return path;
 }
 
+async function resolveProductCategoryId(
+  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  formData: FormData,
+) {
+  const newCategoryName = String(formData.get("new_category_name") ?? "").trim();
+  if (newCategoryName) {
+    const { data: existing, error: lookupError } = await supabase
+      .from("product_categories")
+      .select("id")
+      .eq("name", newCategoryName)
+      .maybeSingle();
+
+    if (lookupError) redirect(`/admin/products?error=${encodeURIComponent(lookupError.message)}`);
+    if (existing?.id) return existing.id as string;
+
+    const { data: created, error: createError } = await supabase
+      .from("product_categories")
+      .insert({
+        name: newCategoryName,
+        description: String(formData.get("new_category_description") ?? "").trim() || null,
+      })
+      .select("id")
+      .single();
+
+    if (createError) redirect(`/admin/products?error=${encodeURIComponent(createError.message)}`);
+    return created.id as string;
+  }
+
+  const selectedCategoryId = String(formData.get("category_id") ?? "").trim();
+  return selectedCategoryId || null;
+}
+
+export async function createCategoryAction(formData: FormData) {
+  await requireAdmin();
+  const supabase = await createSupabaseServerClient("admin");
+  const name = String(formData.get("name") ?? "").trim();
+
+  if (!name) {
+    redirect(`/admin/products?error=${encodeURIComponent("กรุณากรอกชื่อหมวดหมู่")}`);
+  }
+
+  const { error } = await supabase.from("product_categories").insert({
+    name,
+    description: String(formData.get("description") ?? "").trim() || null,
+  });
+
+  if (error) redirect(`/admin/products?error=${encodeURIComponent(error.message)}`);
+  revalidatePath("/admin/products");
+  revalidatePath("/products");
+}
+
+export async function deleteCategoryAction(formData: FormData) {
+  await requireAdmin();
+  const supabase = await createSupabaseServerClient("admin");
+  const id = String(formData.get("category_id") ?? "");
+
+  if (!id) {
+    redirect(`/admin/products?error=${encodeURIComponent("ไม่พบหมวดหมู่ที่ต้องการลบ")}`);
+  }
+
+  const { error } = await supabase
+    .from("product_categories")
+    .delete()
+    .eq("id", id);
+
+  if (error) redirect(`/admin/products?error=${encodeURIComponent(error.message)}`);
+  revalidatePath("/admin/products");
+  revalidatePath("/products");
+}
+
 export async function createProductAction(formData: FormData) {
   await requireAdmin();
   const supabase = await createSupabaseServerClient("admin");
   const sku = String(formData.get("sku") ?? "").trim();
+  const categoryId = await resolveProductCategoryId(supabase, formData);
   const imagePath = await uploadImageFile(
     supabase,
     "product-images",
@@ -51,7 +122,7 @@ export async function createProductAction(formData: FormData) {
     quantity_available: Number(formData.get("quantity_available") ?? 0),
     low_stock_threshold: Number(formData.get("low_stock_threshold") ?? 5),
     description: String(formData.get("description") ?? "").trim() || null,
-    category_id: null,
+    category_id: categoryId,
     image_path: imagePath,
   });
 
@@ -82,6 +153,7 @@ export async function updateProductAction(formData: FormData) {
     price: number;
     unit: string;
     description: string | null;
+    category_id: string | null;
     is_active: boolean;
     image_path?: string;
   } = {
@@ -90,6 +162,7 @@ export async function updateProductAction(formData: FormData) {
     price: Number(formData.get("price") ?? 0),
     unit: String(formData.get("unit") ?? "piece").trim(),
     description: String(formData.get("description") ?? "").trim() || null,
+    category_id: await resolveProductCategoryId(supabase, formData),
     is_active: formData.get("is_active") === "on",
   };
 

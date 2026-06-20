@@ -27,6 +27,7 @@ export type Profile = {
 
 export type Product = {
   id: string;
+  category_id: string | null;
   sku: string;
   name: string;
   description: string | null;
@@ -34,10 +35,21 @@ export type Product = {
   price: number;
   image_path: string | null;
   is_active: boolean;
+  sort_order: number;
+  created_at: string;
+  category?: ProductCategory | null;
   inventory?: {
     quantity_available: number;
     low_stock_threshold: number;
   } | null;
+};
+
+export type ProductCategory = {
+  id: string;
+  name: string;
+  description: string | null;
+  sort_order: number;
+  created_at: string;
 };
 
 export type CartItemInput = {
