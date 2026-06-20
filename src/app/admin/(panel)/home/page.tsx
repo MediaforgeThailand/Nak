@@ -7,8 +7,8 @@ export const dynamic = "force-dynamic";
 export default async function AdminDashboardPage() {
   const [orders, payments, products, profiles] = await Promise.all([
     getAdminOrders(),
-    getPayments(),
-    getProductsWithInventory(true),
+    getPayments("admin"),
+    getProductsWithInventory(true, "admin"),
     getProfiles(),
   ]);
 

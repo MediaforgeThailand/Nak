@@ -1,9 +1,15 @@
 import { redirect } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import type { AuthScope } from "@/lib/supabase/server";
 import type { Profile } from "@/lib/types";
 
-export async function getCurrentProfile() {
-  const supabase = await createSupabaseServerClient();
+const loginPath: Record<AuthScope, string> = {
+  customer: "/login",
+  admin: "/admin/login",
+};
+
+export async function getCurrentProfile(scope: AuthScope = "customer") {
+  const supabase = await createSupabaseServerClient(scope);
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -19,32 +25,34 @@ export async function getCurrentProfile() {
   return { user, profile };
 }
 
-export async function requireApprovedProfile() {
-  const { user, profile } = await getCurrentProfile();
+export async function requireApprovedProfile(scope: AuthScope = "customer") {
+  const { user, profile } = await getCurrentProfile(scope);
 
-  if (!user) redirect("/login");
-  if (!profile || profile.status !== "approved") redirect("/pending");
+  if (!user) redirect(loginPath[scope]);
+  if (!profile || profile.status !== "approved") redirect(`/pending?scope=${scope}`);
 
   return { user, profile };
 }
 
 export async function requireCustomer() {
-  const session = await requireApprovedProfile();
-  if (session.profile.role !== "customer") redirect("/admin/home");
+  const session = await requireApprovedProfile("customer");
+  if (session.profile.role !== "customer") {
+    redirect("/login?error=Please sign in with a customer account");
+  }
   return session;
 }
 
 export async function requireStaff() {
-  const session = await requireApprovedProfile();
+  const session = await requireApprovedProfile("admin");
   if (!["admin", "factory_staff"].includes(session.profile.role)) {
-    redirect("/home");
+    redirect("/admin/login?error=Please sign in with an admin account");
   }
   return session;
 }
 
 export async function requireAdmin() {
-  const session = await requireApprovedProfile();
-  if (session.profile.role !== "admin") redirect(landingForProfile(session.profile));
+  const session = await requireApprovedProfile("admin");
+  if (session.profile.role !== "admin") redirect("/admin/home");
   return session;
 }
 

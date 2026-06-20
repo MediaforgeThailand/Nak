@@ -2,11 +2,21 @@ import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { getSupabaseEnv } from "@/lib/env";
 
-export async function createSupabaseServerClient() {
+export type AuthScope = "customer" | "admin";
+
+const authCookieNames: Record<AuthScope, string> = {
+  customer: "nak-customer-auth-token",
+  admin: "nak-admin-auth-token",
+};
+
+export async function createSupabaseServerClient(scope: AuthScope = "customer") {
   const cookieStore = await cookies();
   const { url, key } = getSupabaseEnv();
 
   return createServerClient(url, key, {
+    cookieOptions: {
+      name: authCookieNames[scope],
+    },
     cookies: {
       getAll() {
         return cookieStore.getAll();

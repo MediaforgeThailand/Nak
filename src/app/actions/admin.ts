@@ -9,7 +9,7 @@ import type { OrderStatus, UserRole } from "@/lib/types";
 
 export async function createProductAction(formData: FormData) {
   await requireAdmin();
-  const supabase = await createSupabaseServerClient();
+  const supabase = await createSupabaseServerClient("admin");
 
   const { error } = await supabase.rpc("create_product_with_inventory", {
     sku: String(formData.get("sku") ?? "").trim(),
@@ -30,7 +30,7 @@ export async function createProductAction(formData: FormData) {
 
 export async function updateProductAction(formData: FormData) {
   await requireAdmin();
-  const supabase = await createSupabaseServerClient();
+  const supabase = await createSupabaseServerClient("admin");
   const id = String(formData.get("id") ?? "");
 
   await supabase
@@ -51,7 +51,7 @@ export async function updateProductAction(formData: FormData) {
 
 export async function adjustInventoryAction(formData: FormData) {
   await requireAdmin();
-  const supabase = await createSupabaseServerClient();
+  const supabase = await createSupabaseServerClient("admin");
   const productId = String(formData.get("product_id") ?? "");
   const delta = Number(formData.get("quantity_delta") ?? 0);
   const note = String(formData.get("note") ?? "").trim() || null;
@@ -69,7 +69,7 @@ export async function adjustInventoryAction(formData: FormData) {
 
 export async function approveOrderAction(formData: FormData) {
   await requireAdmin();
-  const supabase = await createSupabaseServerClient();
+  const supabase = await createSupabaseServerClient("admin");
   const orderId = String(formData.get("order_id") ?? "");
   const note = String(formData.get("admin_note") ?? "").trim() || null;
   const { error } = await supabase.rpc("approve_order", {
@@ -82,7 +82,7 @@ export async function approveOrderAction(formData: FormData) {
 
 export async function rejectOrderAction(formData: FormData) {
   await requireAdmin();
-  const supabase = await createSupabaseServerClient();
+  const supabase = await createSupabaseServerClient("admin");
   const orderId = String(formData.get("order_id") ?? "");
   const reason = String(formData.get("reason") ?? "").trim() || null;
   const { error } = await supabase.rpc("reject_order", {
@@ -95,7 +95,7 @@ export async function rejectOrderAction(formData: FormData) {
 
 export async function updateOrderStatusAction(formData: FormData) {
   await requireStaff();
-  const supabase = await createSupabaseServerClient();
+  const supabase = await createSupabaseServerClient("admin");
   const orderId = String(formData.get("order_id") ?? "");
   const status = String(formData.get("status") ?? "packing") as OrderStatus;
   const note = String(formData.get("note") ?? "").trim() || null;
@@ -110,7 +110,7 @@ export async function updateOrderStatusAction(formData: FormData) {
 
 export async function uploadOrderPhotoAction(formData: FormData) {
   await requireStaff();
-  const supabase = await createSupabaseServerClient();
+  const supabase = await createSupabaseServerClient("admin");
   const orderId = String(formData.get("order_id") ?? "");
   const caption = String(formData.get("caption") ?? "").trim() || null;
   const file = formData.get("photo");
@@ -144,7 +144,7 @@ export async function uploadOrderPhotoAction(formData: FormData) {
 
 export async function approvePaymentAction(formData: FormData) {
   await requireAdmin();
-  const supabase = await createSupabaseServerClient();
+  const supabase = await createSupabaseServerClient("admin");
   const paymentId = String(formData.get("payment_id") ?? "");
   const note = String(formData.get("admin_note") ?? "").trim() || null;
   const { error } = await supabase.rpc("approve_payment", {
@@ -157,7 +157,7 @@ export async function approvePaymentAction(formData: FormData) {
 
 export async function rejectPaymentAction(formData: FormData) {
   await requireAdmin();
-  const supabase = await createSupabaseServerClient();
+  const supabase = await createSupabaseServerClient("admin");
   const paymentId = String(formData.get("payment_id") ?? "");
   const note = String(formData.get("admin_note") ?? "").trim() || null;
   const { error } = await supabase.rpc("reject_payment", {
@@ -170,7 +170,7 @@ export async function rejectPaymentAction(formData: FormData) {
 
 export async function approveUserAction(formData: FormData) {
   await requireAdmin();
-  const supabase = await createSupabaseServerClient();
+  const supabase = await createSupabaseServerClient("admin");
   const userId = String(formData.get("user_id") ?? "");
   const role = String(formData.get("role") ?? "customer") as UserRole;
   const { error } = await supabase.rpc("approve_customer", {
@@ -184,7 +184,7 @@ export async function approveUserAction(formData: FormData) {
 
 export async function suspendUserAction(formData: FormData) {
   await requireAdmin();
-  const supabase = await createSupabaseServerClient();
+  const supabase = await createSupabaseServerClient("admin");
   const userId = String(formData.get("user_id") ?? "");
   const { error } = await supabase.rpc("suspend_customer", {
     target_user_id: userId,

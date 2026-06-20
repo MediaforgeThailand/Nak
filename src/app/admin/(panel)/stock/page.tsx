@@ -14,7 +14,7 @@ export default async function AdminStockPage({
 }) {
   const params = await searchParams;
   const [products, movements] = await Promise.all([
-    getProductsWithInventory(true),
+    getProductsWithInventory(true, "admin"),
     getInventoryMovements(),
   ]);
 

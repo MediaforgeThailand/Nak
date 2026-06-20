@@ -2,7 +2,7 @@ import Link from "next/link";
 import { clsx } from "clsx";
 import { LogOut } from "lucide-react";
 import type { ComponentType, ReactNode } from "react";
-import { signOutAction } from "@/app/actions/auth";
+import { signOutCustomerAction } from "@/app/actions/auth";
 import { Button } from "@/components/ui/button";
 import type { Profile } from "@/lib/types";
 
@@ -17,12 +17,14 @@ export function AppShell({
   subtitle,
   navItems,
   profile,
+  signOutAction = signOutCustomerAction,
   children,
 }: {
   title: string;
   subtitle?: string;
   navItems: NavItem[];
   profile: Profile;
+  signOutAction?: () => Promise<void>;
   children: ReactNode;
 }) {
   return (

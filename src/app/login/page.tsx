@@ -18,7 +18,7 @@ export default async function LoginPage({
       <div className="w-full max-w-md">
         <div className="mb-5">
           <p className="text-sm font-semibold uppercase tracking-normal text-accent">
-            Nak Inventory
+            Nak Customer
           </p>
           <h1 className="mt-2 text-2xl font-semibold">
             {isSignup ? "สมัครบัญชีลูกค้า" : "เข้าสู่ระบบ"}
@@ -26,7 +26,7 @@ export default async function LoginPage({
           <p className="mt-1 text-sm text-muted">
             {isSignup
               ? "หลังสมัคร แอดมินต้องอนุมัติก่อนจึงจะสั่งสินค้าได้"
-              : "ลูกค้าและทีมงานใช้หน้าล็อกอินเดียวกัน"}
+              : "สำหรับผู้ซื้อสินค้าเท่านั้น"}
           </p>
         </div>
 
@@ -74,6 +74,12 @@ export default async function LoginPage({
             className="font-semibold text-accent"
           >
             {isSignup ? "เข้าสู่ระบบ" : "สมัครใช้งาน"}
+          </a>
+        </p>
+        <p className="mt-2 text-center text-sm text-muted">
+          เป็น admin หรือทีมงาน?{" "}
+          <a href="/admin/login" className="font-semibold text-accent">
+            ไปหน้า Admin Login
           </a>
         </p>
       </div>

@@ -15,8 +15,8 @@ export default async function AdminPaymentsPage({
   searchParams: Promise<{ error?: string }>;
 }) {
   const params = await searchParams;
-  const payments = await getPayments();
-  const slipUrls = await signedUrls("payment-slips", payments.map((payment) => payment.slip_path));
+  const payments = await getPayments("admin");
+  const slipUrls = await signedUrls("payment-slips", payments.map((payment) => payment.slip_path), "admin");
 
   return (
     <div className="grid gap-4">

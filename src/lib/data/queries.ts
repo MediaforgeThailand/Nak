@@ -1,7 +1,11 @@
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import type { AuthScope } from "@/lib/supabase/server";
 
-export async function getProductsWithInventory(includeInactive = false) {
-  const supabase = await createSupabaseServerClient();
+export async function getProductsWithInventory(
+  includeInactive = false,
+  scope: AuthScope = "customer",
+) {
+  const supabase = await createSupabaseServerClient(scope);
   let query = supabase
     .from("products")
     .select("*, inventory(quantity_available, low_stock_threshold)")
@@ -16,7 +20,7 @@ export async function getProductsWithInventory(includeInactive = false) {
 }
 
 export async function getCustomerAddresses() {
-  const supabase = await createSupabaseServerClient();
+  const supabase = await createSupabaseServerClient("customer");
   const { data, error } = await supabase
     .from("customer_addresses")
     .select("*")
@@ -27,7 +31,7 @@ export async function getCustomerAddresses() {
 }
 
 export async function getCustomerOrders() {
-  const supabase = await createSupabaseServerClient();
+  const supabase = await createSupabaseServerClient("customer");
   const { data, error } = await supabase
     .from("orders")
     .select("*, order_items(*)")
@@ -37,7 +41,7 @@ export async function getCustomerOrders() {
 }
 
 export async function getOrderDetail(id: string) {
-  const supabase = await createSupabaseServerClient();
+  const supabase = await createSupabaseServerClient("customer");
   const { data, error } = await supabase
     .from("orders")
     .select("*, order_items(*), order_photos(*)")
@@ -47,8 +51,8 @@ export async function getOrderDetail(id: string) {
   return data;
 }
 
-export async function getPayments() {
-  const supabase = await createSupabaseServerClient();
+export async function getPayments(scope: AuthScope = "customer") {
+  const supabase = await createSupabaseServerClient(scope);
   const { data, error } = await supabase
     .from("payments")
     .select("*, customer:profiles!payments_customer_id_fkey(full_name, company_name, email)")
@@ -57,8 +61,8 @@ export async function getPayments() {
   return data ?? [];
 }
 
-export async function getTransactions() {
-  const supabase = await createSupabaseServerClient();
+export async function getTransactions(scope: AuthScope = "customer") {
+  const supabase = await createSupabaseServerClient(scope);
   const { data, error } = await supabase
     .from("account_transactions")
     .select("*, orders(order_number), payments(payment_number)")
@@ -68,7 +72,7 @@ export async function getTransactions() {
 }
 
 export async function getAdminOrders() {
-  const supabase = await createSupabaseServerClient();
+  const supabase = await createSupabaseServerClient("admin");
   const { data, error } = await supabase
     .from("orders")
     .select("*, customer:profiles!orders_customer_id_fkey(full_name, company_name, email), order_items(*), order_photos(*)")
@@ -78,7 +82,7 @@ export async function getAdminOrders() {
 }
 
 export async function getProfiles() {
-  const supabase = await createSupabaseServerClient();
+  const supabase = await createSupabaseServerClient("admin");
   const { data, error } = await supabase
     .from("profiles")
     .select("*")
@@ -88,7 +92,7 @@ export async function getProfiles() {
 }
 
 export async function getInventoryMovements() {
-  const supabase = await createSupabaseServerClient();
+  const supabase = await createSupabaseServerClient("admin");
   const { data, error } = await supabase
     .from("inventory_movements")
     .select("*, products(name, sku)")
@@ -99,7 +103,7 @@ export async function getInventoryMovements() {
 }
 
 export async function getSettings() {
-  const supabase = await createSupabaseServerClient();
+  const supabase = await createSupabaseServerClient("admin");
   const { data, error } = await supabase
     .from("app_settings")
     .select("*")

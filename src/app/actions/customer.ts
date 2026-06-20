@@ -14,7 +14,7 @@ const cartItemSchema = z.object({
 
 export async function createOrderAction(formData: FormData) {
   await requireCustomer();
-  const supabase = await createSupabaseServerClient();
+  const supabase = await createSupabaseServerClient("customer");
   const rawItems = String(formData.get("items") ?? "[]");
   const items = z.array(cartItemSchema).parse(JSON.parse(rawItems));
   const shippingAddress = String(formData.get("shipping_address_id") ?? "");
@@ -32,7 +32,7 @@ export async function createOrderAction(formData: FormData) {
 
 export async function updateProfileAction(formData: FormData) {
   const { profile } = await requireCustomer();
-  const supabase = await createSupabaseServerClient();
+  const supabase = await createSupabaseServerClient("customer");
 
   await supabase
     .from("profiles")
@@ -49,7 +49,7 @@ export async function updateProfileAction(formData: FormData) {
 
 export async function saveAddressAction(formData: FormData) {
   const { profile } = await requireCustomer();
-  const supabase = await createSupabaseServerClient();
+  const supabase = await createSupabaseServerClient("customer");
   const addressId = String(formData.get("address_id") ?? "");
   const payload = {
     customer_id: profile.id,
@@ -75,7 +75,7 @@ export async function saveAddressAction(formData: FormData) {
 
 export async function submitPaymentAction(formData: FormData) {
   const { profile } = await requireCustomer();
-  const supabase = await createSupabaseServerClient();
+  const supabase = await createSupabaseServerClient("customer");
   const file = formData.get("slip");
   const amount = Number(formData.get("amount") ?? 0);
   const transferDate = String(formData.get("transfer_date") ?? "") || null;

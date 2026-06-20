@@ -14,7 +14,7 @@ export default async function AdminProductsPage({
   searchParams: Promise<{ error?: string }>;
 }) {
   const params = await searchParams;
-  const products = await getProductsWithInventory(true);
+  const products = await getProductsWithInventory(true, "admin");
 
   return (
     <div className="grid gap-4">

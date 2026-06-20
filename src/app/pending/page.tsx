@@ -1,13 +1,20 @@
 import { Clock3 } from "lucide-react";
-import { signOutAction } from "@/app/actions/auth";
+import { signOutAdminAction, signOutCustomerAction } from "@/app/actions/auth";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { getCurrentProfile } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
-export default async function PendingPage() {
-  const { profile } = await getCurrentProfile();
+export default async function PendingPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ scope?: string }>;
+}) {
+  const params = await searchParams;
+  const scope = params.scope === "admin" ? "admin" : "customer";
+  const { profile } = await getCurrentProfile(scope);
+  const signOutAction = scope === "admin" ? signOutAdminAction : signOutCustomerAction;
 
   return (
     <main className="grid min-h-screen place-items-center bg-background px-4">
