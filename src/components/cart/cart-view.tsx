@@ -51,13 +51,23 @@ function qtyAvailable(product: ProductRow) {
   return product.inventory?.quantity_available ?? 0;
 }
 
+function discountPerUnit(price: number, discountPerItem: number) {
+  return Math.min(Math.max(Number(discountPerItem) || 0, 0), Number(price) || 0);
+}
+
+function discountedUnitPrice(price: number, discountPerItem: number) {
+  return Math.max((Number(price) || 0) - discountPerUnit(price, discountPerItem), 0);
+}
+
 export function CartView({
   products,
   addresses,
+  discountPerItem,
   error,
 }: {
   products: ProductRow[];
   addresses: AddressRow[];
+  discountPerItem: number;
   error?: string;
 }) {
   const snapshot = useSyncExternalStore(subscribeCart, cartSnapshot, () => "{}");
@@ -87,7 +97,16 @@ export function CartView({
     })
     .filter(Boolean) as { product: ProductRow; quantity: number; stock: number }[];
   const hasUnavailableItems = rows.some((row) => qtyAvailable(row.product) <= 0);
-  const total = orderableRows.reduce((sum, row) => sum + row.product.price * row.quantity, 0);
+  const totalBeforeDiscount = orderableRows.reduce(
+    (sum, row) => sum + row.product.price * row.quantity,
+    0,
+  );
+  const totalDiscount = orderableRows.reduce((sum, row) => {
+    return sum + discountPerUnit(row.product.price, discountPerItem) * row.quantity;
+  }, 0);
+  const total = orderableRows.reduce((sum, row) => {
+    return sum + discountedUnitPrice(row.product.price, discountPerItem) * row.quantity;
+  }, 0);
   const items = orderableRows.map((row) => ({
     product_id: row.product.id,
     quantity: row.quantity,
@@ -129,6 +148,9 @@ export function CartView({
             const stock = qtyAvailable(product);
             const isSoldOut = stock <= 0;
             const displayQuantity = isSoldOut ? quantity : Math.min(quantity, stock);
+            const unitDiscount = discountPerUnit(product.price, discountPerItem);
+            const finalPrice = discountedUnitPrice(product.price, discountPerItem);
+            const lineDiscount = unitDiscount * displayQuantity;
             return (
               <div
                 key={product.id}
@@ -140,8 +162,13 @@ export function CartView({
                     {isSoldOut ? <Badge tone="danger">สินค้าหมด</Badge> : null}
                   </div>
                   <p className="break-words text-sm text-muted">
-                    {product.sku} · {money(product.price)} / {product.unit} · คงเหลือ {stock}
+                    {product.sku} · {money(finalPrice)} / {product.unit} · คงเหลือ {stock}
                   </p>
+                  {unitDiscount > 0 ? (
+                    <p className="text-sm font-semibold text-success">
+                      ลด {money(unitDiscount)} / ชิ้น · ลดรวม {money(lineDiscount)}
+                    </p>
+                  ) : null}
                 </div>
                 <input
                   type="number"
@@ -185,9 +212,23 @@ export function CartView({
           <Field label="หมายเหตุถึงแอดมิน">
             <Textarea name="customer_note" />
           </Field>
-          <div className="flex items-center justify-between gap-3 border-t border-border pt-4">
-            <span className="font-medium">ยอดรวม</span>
-            <span className="text-xl font-semibold">{money(total)}</span>
+          <div className="grid gap-2 border-t border-border pt-4">
+            {totalDiscount > 0 ? (
+              <>
+                <div className="flex items-center justify-between gap-3 text-sm text-muted">
+                  <span>ยอดก่อนลด</span>
+                  <span>{money(totalBeforeDiscount)}</span>
+                </div>
+                <div className="flex items-center justify-between gap-3 text-sm font-semibold text-success">
+                  <span>ส่วนลดรวม</span>
+                  <span>-{money(totalDiscount)}</span>
+                </div>
+              </>
+            ) : null}
+            <div className="flex items-center justify-between gap-3">
+              <span className="font-medium">ยอดรวมสุทธิ</span>
+              <span className="text-xl font-semibold">{money(total)}</span>
+            </div>
           </div>
           <SubmitButton disabled={orderableRows.length === 0} pendingLabel="กำลังส่งออเดอร์...">
             ส่งออเดอร์และจองสต็อก

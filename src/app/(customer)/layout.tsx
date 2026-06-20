@@ -23,7 +23,7 @@ export default async function CustomerLayout({
 
   return (
     <AppShell
-      title="Nak Customer"
+      title="NAK Store"
       subtitle={profile.company_name ?? profile.full_name ?? profile.email}
       navItems={navItems}
       profile={profile}

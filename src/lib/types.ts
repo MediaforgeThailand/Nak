@@ -23,6 +23,8 @@ export type Profile = {
   role: UserRole;
   status: AccountStatus;
   debt_balance: number;
+  is_owner: boolean;
+  per_item_discount: number;
 };
 
 export type Product = {

@@ -32,14 +32,14 @@ export function FileUploadPreview({
 
   return (
     <div className="grid gap-2">
-      <div className="grid gap-3 rounded-md border border-dashed border-border bg-surface-muted p-3">
+      <div className="grid gap-3 rounded-lg border border-dashed border-border bg-white/68 p-3">
         {previewUrl ? (
           <div
-            className="h-48 rounded-md bg-cover bg-center sm:h-56"
+            className="h-48 rounded-lg bg-cover bg-center sm:h-56"
             style={{ backgroundImage: `url("${previewUrl}")` }}
           />
         ) : (
-          <div className="grid h-48 place-items-center rounded-md bg-surface text-muted sm:h-56">
+          <div className="grid h-48 place-items-center rounded-lg bg-white/70 text-muted sm:h-56">
             <FileImage className="h-8 w-8" />
           </div>
         )}
@@ -69,7 +69,7 @@ export function FileUploadPreview({
         </div>
         <label
           htmlFor={inputId}
-          className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md border border-border bg-surface px-4 py-2 text-sm font-semibold text-foreground transition-colors duration-200 hover:bg-white focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-accent"
+          className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-border bg-white/78 px-4 py-2 text-sm font-semibold text-foreground transition-colors duration-200 hover:bg-white focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-accent"
         >
           <Camera className="h-4 w-4" />
           ถ่ายหรือเลือกไฟล์

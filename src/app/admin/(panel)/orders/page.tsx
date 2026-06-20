@@ -51,15 +51,42 @@ export default async function AdminOrdersPage({
                     product_name: string;
                     quantity: number;
                     unit: string;
+                    unit_price_before_discount: number;
+                    discount_per_unit: number;
                     line_total: number;
+                    line_discount_total: number;
                   }) => (
                     <div key={item.id} className="grid grid-cols-[minmax(0,1fr)_auto] gap-3 text-sm">
-                      <span className="min-w-0 break-words">{item.product_name} × {item.quantity} {item.unit}</span>
+                      <span className="min-w-0 break-words">
+                        {item.product_name} × {item.quantity} {item.unit}
+                        {Number(item.discount_per_unit ?? 0) > 0 ? (
+                          <span className="mt-0.5 block text-xs font-semibold text-success">
+                            ลด {money(item.discount_per_unit)} / ชิ้น · ลดรวม {money(item.line_discount_total)}
+                          </span>
+                        ) : null}
+                      </span>
                       <span className="whitespace-nowrap font-medium">{money(item.line_total)}</span>
                     </div>
                   ))}
                 </div>
-                <p className="mt-3 text-lg font-semibold">{money(order.subtotal)}</p>
+                <div className="mt-3 grid gap-1 text-sm">
+                  {Number(order.total_discount ?? 0) > 0 ? (
+                    <>
+                      <div className="flex items-center justify-between gap-3 text-muted">
+                        <span>ยอดก่อนลด</span>
+                        <span>{money(order.total_before_discount)}</span>
+                      </div>
+                      <div className="flex items-center justify-between gap-3 font-semibold text-success">
+                        <span>ส่วนลดรวม</span>
+                        <span>-{money(order.total_discount)}</span>
+                      </div>
+                    </>
+                  ) : null}
+                  <div className="flex items-center justify-between gap-3 text-lg font-semibold">
+                    <span>ยอดสุทธิ</span>
+                    <span>{money(order.subtotal)}</span>
+                  </div>
+                </div>
               </div>
 
               <div className="grid gap-3">

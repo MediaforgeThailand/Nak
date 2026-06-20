@@ -10,12 +10,17 @@ export function safeFileName(name: string) {
   return clean || "upload";
 }
 
+function isDirectAssetPath(path: string) {
+  return path.startsWith("/") || path.startsWith("http://") || path.startsWith("https://");
+}
+
 export async function signedUrl(
   bucket: string,
   path: string | null | undefined,
   scope: AuthScope = "customer",
 ) {
   if (!path) return null;
+  if (isDirectAssetPath(path)) return path;
   const supabase = await createSupabaseServerClient(scope);
   const { data } = await supabase.storage.from(bucket).createSignedUrl(path, 900);
   return data?.signedUrl ?? null;
@@ -26,9 +31,20 @@ export async function signedUrls(
   paths: string[],
   scope: AuthScope = "customer",
 ) {
-  if (paths.length === 0) return new Map<string, string>();
+  const results = new Map<string, string>();
+  const storagePaths: string[] = [];
+
+  for (const path of paths) {
+    if (isDirectAssetPath(path)) results.set(path, path);
+    else storagePaths.push(path);
+  }
+
+  if (storagePaths.length === 0) return results;
 
   const supabase = await createSupabaseServerClient(scope);
-  const { data } = await supabase.storage.from(bucket).createSignedUrls(paths, 900);
-  return new Map((data ?? []).map((item) => [item.path, item.signedUrl]));
+  const { data } = await supabase.storage.from(bucket).createSignedUrls(storagePaths, 900);
+  for (const item of data ?? []) {
+    if (item.path && item.signedUrl) results.set(item.path, item.signedUrl);
+  }
+  return results;
 }

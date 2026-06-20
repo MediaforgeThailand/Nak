@@ -37,7 +37,7 @@ export async function requireApprovedProfile(scope: AuthScope = "customer") {
 export async function requireCustomer() {
   const session = await requireApprovedProfile("customer");
   if (session.profile.role !== "customer") {
-    redirect("/login?error=Please sign in with a customer account");
+    redirect("/login?error=กรุณาเข้าสู่ระบบด้วยบัญชีลูกค้า");
   }
   return session;
 }
@@ -45,7 +45,7 @@ export async function requireCustomer() {
 export async function requireStaff() {
   const session = await requireApprovedProfile("admin");
   if (!["admin", "factory_staff"].includes(session.profile.role)) {
-    redirect("/admin/login?error=Please sign in with an admin account");
+    redirect("/admin/login?error=กรุณาเข้าสู่ระบบด้วยบัญชีทีมงาน");
   }
   return session;
 }
@@ -53,6 +53,12 @@ export async function requireStaff() {
 export async function requireAdmin() {
   const session = await requireApprovedProfile("admin");
   if (session.profile.role !== "admin") redirect("/admin/home");
+  return session;
+}
+
+export async function requireOwner() {
+  const session = await requireAdmin();
+  if (!session.profile.is_owner) redirect("/admin/home");
   return session;
 }
 

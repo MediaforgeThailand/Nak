@@ -38,11 +38,11 @@ export function AppShell({
       >
         ข้ามไปยังเนื้อหา
       </a>
-      <header className="sticky top-0 z-20 border-b border-white/45 bg-white/62 backdrop-blur-2xl">
+      <header className="sticky top-0 z-20 border-b border-white/70 bg-white/82 backdrop-blur-2xl">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-4">
           <div className="min-w-0">
             <p className="text-xs font-semibold uppercase tracking-normal text-accent">
-              Nak Inventory
+              NAK Wholesale
             </p>
             <h1 className="text-lg font-semibold">{title}</h1>
             {subtitle ? <p className="break-words text-sm text-muted">{subtitle}</p> : null}
@@ -64,7 +64,7 @@ export function AppShell({
                 key={item.href}
                 href={item.href}
                 data-nav-href={item.href}
-                className="flex min-h-11 items-center gap-2 rounded-2xl border border-transparent px-3 text-sm font-medium text-muted transition-all duration-200 hover:border-white/50 hover:bg-white/56 hover:text-foreground hover:shadow-[0_12px_30px_rgba(36,78,128,0.1)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+                className="flex min-h-11 items-center gap-2 rounded-lg border border-transparent px-3 text-sm font-medium text-muted transition-all duration-200 hover:border-white/70 hover:bg-white/72 hover:text-foreground hover:shadow-[0_12px_28px_rgba(31,65,58,0.1)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
               >
                 <item.icon className="h-4 w-4" />
                 {item.label}
@@ -79,7 +79,7 @@ export function AppShell({
 
       <nav
         aria-label="เมนูหลักบนมือถือ"
-        className="fixed inset-x-3 bottom-3 z-20 grid grid-flow-col auto-cols-fr overflow-hidden rounded-[28px] border border-white/55 bg-white/66 shadow-[inset_0_1px_0_rgba(255,255,255,0.86),0_18px_42px_rgba(36,78,128,0.22)] backdrop-blur-2xl md:hidden"
+        className="fixed inset-x-3 bottom-3 z-20 grid grid-flow-col auto-cols-fr overflow-hidden rounded-2xl border border-white/70 bg-white/84 shadow-[inset_0_1px_0_rgba(255,255,255,0.9),0_18px_42px_rgba(31,65,58,0.2)] backdrop-blur-2xl md:hidden"
       >
         {navItems.map((item) => (
           <Link
@@ -87,7 +87,7 @@ export function AppShell({
             href={item.href}
             data-nav-href={item.href}
             className={clsx(
-              "flex min-h-16 min-w-0 flex-col items-center justify-center gap-1 px-1 text-[11px] font-semibold leading-tight text-muted transition-all duration-200 hover:bg-white/56 hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-accent",
+              "flex min-h-16 min-w-0 flex-col items-center justify-center gap-1 px-1 text-[11px] font-semibold leading-tight text-muted transition-all duration-200 hover:bg-white/70 hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-accent",
             )}
           >
             <item.icon className="h-5 w-5" />

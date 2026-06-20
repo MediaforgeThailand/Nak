@@ -4,6 +4,7 @@ import {
   createCategoryAction,
   createProductAction,
   deleteCategoryAction,
+  deleteProductAction,
   updateProductAction,
 } from "@/app/actions/admin";
 import { Badge } from "@/components/ui/badge";
@@ -181,6 +182,13 @@ export default async function AdminProductsPage({
                   </div>
                   <SubmitButton variant="secondary" pendingLabel="กำลังบันทึก...">
                     บันทึก
+                  </SubmitButton>
+                  <SubmitButton
+                    variant="danger"
+                    formAction={deleteProductAction}
+                    pendingLabel="กำลังลบ..."
+                  >
+                    ลบออกจากหน้าลูกค้า
                   </SubmitButton>
                 </div>
               </form>

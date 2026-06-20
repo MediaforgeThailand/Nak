@@ -32,7 +32,7 @@ export async function signInAction(formData: FormData) {
   if (!profile || profile.status !== "approved") redirect("/pending?scope=customer");
   if (profile.role !== "customer") {
     await supabase.auth.signOut();
-    redirect("/login?error=This login is for customer accounts only");
+    redirect("/login?error=บัญชีนี้ไม่ใช่บัญชีลูกค้า กรุณาเข้าสู่ระบบผ่านหน้า Admin");
   }
 
   redirect("/home");
@@ -50,7 +50,7 @@ export async function signInAdminAction(formData: FormData) {
   if (!profile || profile.status !== "approved") redirect("/pending?scope=admin");
   if (!["admin", "factory_staff"].includes(profile.role)) {
     await supabase.auth.signOut();
-    redirect("/admin/login?error=This login is for admin accounts only");
+    redirect("/admin/login?error=บัญชีนี้ไม่ใช่บัญชีทีมงาน กรุณาเข้าสู่ระบบผ่านหน้าลูกค้า");
   }
 
   redirect("/admin/home");

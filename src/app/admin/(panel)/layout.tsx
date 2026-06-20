@@ -30,8 +30,8 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
   return (
     <AppShell
-      title="Admin Operations"
-      subtitle={`${profile.role} · ${profile.email}`}
+      title="NAK Admin"
+      subtitle={`${profile.role} | ${profile.email}`}
       navItems={navItems}
       profile={profile}
       signOutAction={signOutAdminAction}

@@ -99,7 +99,10 @@ export default async function OrderDetailPage({
                 quantity: number;
                 unit: string;
                 unit_price: number;
+                unit_price_before_discount: number;
+                discount_per_unit: number;
                 line_total: number;
+                line_discount_total: number;
               }) => (
                 <div
                   key={item.id}
@@ -110,6 +113,11 @@ export default async function OrderDetailPage({
                     <p className="text-sm text-muted">
                       {item.sku} · {item.quantity} {item.unit} · {money(item.unit_price)} / {item.unit}
                     </p>
+                    {Number(item.discount_per_unit ?? 0) > 0 ? (
+                      <p className="text-sm font-semibold text-success">
+                        จาก {money(item.unit_price_before_discount)} ลด {money(item.discount_per_unit)} / ชิ้น · ลดรวม {money(item.line_discount_total)}
+                      </p>
+                    ) : null}
                   </div>
                   <p className="whitespace-nowrap font-semibold">{money(item.line_total)}</p>
                 </div>
@@ -152,8 +160,20 @@ export default async function OrderDetailPage({
               <h3 className="font-semibold">ยอดเงิน</h3>
             </div>
             <div className="mt-4 grid gap-3">
+              {Number(order.total_discount ?? 0) > 0 ? (
+                <>
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-sm text-muted">ยอดก่อนลด</span>
+                    <span className="font-semibold">{money(order.total_before_discount)}</span>
+                  </div>
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-sm text-muted">ส่วนลดรวม</span>
+                    <span className="font-semibold text-success">-{money(order.total_discount)}</span>
+                  </div>
+                </>
+              ) : null}
               <div className="flex items-center justify-between gap-3">
-                <span className="text-sm text-muted">ยอดออเดอร์</span>
+                <span className="text-sm text-muted">ยอดออเดอร์สุทธิ</span>
                 <span className="font-semibold">{money(order.subtotal)}</span>
               </div>
               <div className="flex items-center justify-between gap-3">

@@ -44,6 +44,11 @@ export default async function OrdersPage() {
                 </div>
                 <div className="text-right">
                   <p className="text-lg font-semibold">{money(order.subtotal)}</p>
+                  {Number(order.total_discount ?? 0) > 0 ? (
+                    <p className="text-xs font-semibold text-success">
+                      ประหยัด {money(order.total_discount)}
+                    </p>
+                  ) : null}
                   <p className="mt-1 inline-flex items-center gap-1 text-sm font-semibold text-accent">
                     ดูรายละเอียด
                     <ArrowRight className="h-4 w-4" />

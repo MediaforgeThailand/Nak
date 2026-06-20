@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { requireAdmin, requireStaff } from "@/lib/auth";
+import { requireAdmin, requireOwner, requireStaff } from "@/lib/auth";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { safeFileName } from "@/lib/storage";
 import type { OrderStatus, UserRole } from "@/lib/types";
@@ -23,6 +23,33 @@ async function uploadImageFile(
   const path = `${folder}/${Date.now()}-${safeFileName(file.name)}`;
   const buffer = Buffer.from(await file.arrayBuffer());
   const { error } = await supabase.storage.from(bucket).upload(path, buffer, {
+    contentType: file.type || "application/octet-stream",
+    upsert: false,
+  });
+
+  if (error) redirect(`${errorPath}?error=${encodeURIComponent(error.message)}`);
+  return path;
+}
+
+async function uploadPaymentSlipFile(
+  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  folder: string,
+  file: FormDataEntryValue | null,
+  errorPath: string,
+) {
+  if (!(file instanceof File) || file.size === 0) return null;
+
+  const isAllowed =
+    file.type.startsWith("image/") ||
+    file.type === "application/pdf";
+
+  if (!isAllowed) {
+    redirect(`${errorPath}?error=${encodeURIComponent("Please upload an image or PDF slip")}`);
+  }
+
+  const path = `${folder}/${Date.now()}-${safeFileName(file.name)}`;
+  const buffer = Buffer.from(await file.arrayBuffer());
+  const { error } = await supabase.storage.from("payment-slips").upload(path, buffer, {
     contentType: file.type || "application/octet-stream",
     upsert: false,
   });
@@ -181,6 +208,26 @@ export async function updateProductAction(formData: FormData) {
   revalidatePath("/products");
 }
 
+export async function deleteProductAction(formData: FormData) {
+  await requireAdmin();
+  const supabase = await createSupabaseServerClient("admin");
+  const id = String(formData.get("id") ?? "");
+
+  if (!id) {
+    redirect(`/admin/products?error=${encodeURIComponent("Product is required")}`);
+  }
+
+  const { error } = await supabase
+    .from("products")
+    .update({ is_active: false })
+    .eq("id", id);
+
+  if (error) redirect(`/admin/products?error=${encodeURIComponent(error.message)}`);
+  revalidatePath("/admin/products");
+  revalidatePath("/products");
+  revalidatePath("/home");
+}
+
 export async function adjustInventoryAction(formData: FormData) {
   await requireAdmin();
   const supabase = await createSupabaseServerClient("admin");
@@ -301,6 +348,91 @@ export async function rejectPaymentAction(formData: FormData) {
   });
   if (error) redirect(`/admin/payments?error=${encodeURIComponent(error.message)}`);
   revalidatePath("/admin/payments");
+}
+
+export async function updateCustomerDiscountAction(formData: FormData) {
+  await requireOwner();
+  const supabase = await createSupabaseServerClient("admin");
+  const userId = String(formData.get("user_id") ?? "");
+  const discount = Number(formData.get("per_item_discount") ?? 0);
+
+  if (!Number.isFinite(discount) || discount < 0) {
+    redirect(`/admin/customers?error=${encodeURIComponent("Discount must be zero or greater")}`);
+  }
+
+  const { error } = await supabase.rpc("owner_update_customer_discount", {
+    target_customer_id: userId,
+    discount_per_item: discount,
+  });
+
+  if (error) redirect(`/admin/customers?error=${encodeURIComponent(error.message)}`);
+  revalidatePath("/admin/customers");
+  revalidatePath("/home");
+}
+
+export async function adjustCustomerDebtAction(formData: FormData) {
+  await requireOwner();
+  const supabase = await createSupabaseServerClient("admin");
+  const userId = String(formData.get("user_id") ?? "");
+  const amountDelta = Number(formData.get("amount_delta") ?? 0);
+  const note = String(formData.get("note") ?? "").trim() || null;
+
+  if (!Number.isFinite(amountDelta) || amountDelta === 0) {
+    redirect(`/admin/customers?error=${encodeURIComponent("Manual adjustment amount cannot be zero")}`);
+  }
+
+  const { error } = await supabase.rpc("owner_adjust_customer_debt", {
+    target_customer_id: userId,
+    amount_delta: amountDelta,
+    note,
+  });
+
+  if (error) redirect(`/admin/customers?error=${encodeURIComponent(error.message)}`);
+  revalidatePath("/admin/customers");
+  revalidatePath("/profile");
+  revalidatePath("/transactions");
+}
+
+export async function recordManualPaymentAction(formData: FormData) {
+  await requireAdmin();
+  const supabase = await createSupabaseServerClient("admin");
+  const customerId = String(formData.get("customer_id") ?? "");
+  const amount = Number(formData.get("amount") ?? 0);
+  const transferDate = String(formData.get("transfer_date") ?? "") || null;
+  const adminNote = String(formData.get("admin_note") ?? "").trim() || null;
+
+  if (!customerId) {
+    redirect(`/admin/payments?error=${encodeURIComponent("Please select a customer")}`);
+  }
+
+  if (!Number.isFinite(amount) || amount <= 0) {
+    redirect(`/admin/payments?error=${encodeURIComponent("Payment amount must be greater than zero")}`);
+  }
+
+  const slipPath = await uploadPaymentSlipFile(
+    supabase,
+    `admin-manual/${safeFileName(customerId)}`,
+    formData.get("slip"),
+    "/admin/payments",
+  );
+
+  const { error } = await supabase.rpc("admin_record_manual_payment", {
+    target_customer_id: customerId,
+    amount,
+    slip_path: slipPath,
+    transfer_date: transferDate,
+    admin_note: adminNote,
+  });
+
+  if (error) {
+    if (slipPath) await supabase.storage.from("payment-slips").remove([slipPath]);
+    redirect(`/admin/payments?error=${encodeURIComponent(error.message)}`);
+  }
+
+  revalidatePath("/admin/payments");
+  revalidatePath("/admin/customers");
+  revalidatePath("/profile");
+  revalidatePath("/transactions");
 }
 
 export async function approveUserAction(formData: FormData) {
