@@ -7,12 +7,44 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { safeFileName } from "@/lib/storage";
 import type { OrderStatus, UserRole } from "@/lib/types";
 
+async function uploadImageFile(
+  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  bucket: string,
+  folder: string,
+  file: FormDataEntryValue | null,
+  errorPath: string,
+) {
+  if (!(file instanceof File) || file.size === 0) return null;
+
+  if (!file.type.startsWith("image/")) {
+    redirect(`${errorPath}?error=${encodeURIComponent("Please upload an image file")}`);
+  }
+
+  const path = `${folder}/${Date.now()}-${safeFileName(file.name)}`;
+  const buffer = Buffer.from(await file.arrayBuffer());
+  const { error } = await supabase.storage.from(bucket).upload(path, buffer, {
+    contentType: file.type || "application/octet-stream",
+    upsert: false,
+  });
+
+  if (error) redirect(`${errorPath}?error=${encodeURIComponent(error.message)}`);
+  return path;
+}
+
 export async function createProductAction(formData: FormData) {
   await requireAdmin();
   const supabase = await createSupabaseServerClient("admin");
+  const sku = String(formData.get("sku") ?? "").trim();
+  const imagePath = await uploadImageFile(
+    supabase,
+    "product-images",
+    `products/${safeFileName(sku || "product")}`,
+    formData.get("image"),
+    "/admin/products",
+  );
 
   const { error } = await supabase.rpc("create_product_with_inventory", {
-    sku: String(formData.get("sku") ?? "").trim(),
+    sku,
     name: String(formData.get("name") ?? "").trim(),
     price: Number(formData.get("price") ?? 0),
     unit: String(formData.get("unit") ?? "piece").trim(),
@@ -20,10 +52,13 @@ export async function createProductAction(formData: FormData) {
     low_stock_threshold: Number(formData.get("low_stock_threshold") ?? 5),
     description: String(formData.get("description") ?? "").trim() || null,
     category_id: null,
-    image_path: null,
+    image_path: imagePath,
   });
 
-  if (error) redirect(`/admin/products?error=${encodeURIComponent(error.message)}`);
+  if (error) {
+    if (imagePath) await supabase.storage.from("product-images").remove([imagePath]);
+    redirect(`/admin/products?error=${encodeURIComponent(error.message)}`);
+  }
   revalidatePath("/admin/products");
   revalidatePath("/products");
 }
@@ -32,19 +67,43 @@ export async function updateProductAction(formData: FormData) {
   await requireAdmin();
   const supabase = await createSupabaseServerClient("admin");
   const id = String(formData.get("id") ?? "");
+  const sku = String(formData.get("sku") ?? "").trim();
+  const imagePath = await uploadImageFile(
+    supabase,
+    "product-images",
+    `products/${safeFileName(sku || id || "product")}`,
+    formData.get("image"),
+    "/admin/products",
+  );
 
-  await supabase
+  const payload: {
+    sku: string;
+    name: string;
+    price: number;
+    unit: string;
+    description: string | null;
+    is_active: boolean;
+    image_path?: string;
+  } = {
+    sku,
+    name: String(formData.get("name") ?? "").trim(),
+    price: Number(formData.get("price") ?? 0),
+    unit: String(formData.get("unit") ?? "piece").trim(),
+    description: String(formData.get("description") ?? "").trim() || null,
+    is_active: formData.get("is_active") === "on",
+  };
+
+  if (imagePath) payload.image_path = imagePath;
+
+  const { error } = await supabase
     .from("products")
-    .update({
-      sku: String(formData.get("sku") ?? "").trim(),
-      name: String(formData.get("name") ?? "").trim(),
-      price: Number(formData.get("price") ?? 0),
-      unit: String(formData.get("unit") ?? "piece").trim(),
-      description: String(formData.get("description") ?? "").trim() || null,
-      is_active: formData.get("is_active") === "on",
-    })
+    .update(payload)
     .eq("id", id);
 
+  if (error) {
+    if (imagePath) await supabase.storage.from("product-images").remove([imagePath]);
+    redirect(`/admin/products?error=${encodeURIComponent(error.message)}`);
+  }
   revalidatePath("/admin/products");
   revalidatePath("/products");
 }
@@ -138,7 +197,10 @@ export async function uploadOrderPhotoAction(formData: FormData) {
     caption,
   });
 
-  if (error) redirect(`/admin/orders?error=${encodeURIComponent(error.message)}`);
+  if (error) {
+    await supabase.storage.from("order-photos").remove([path]);
+    redirect(`/admin/orders?error=${encodeURIComponent(error.message)}`);
+  }
   revalidatePath("/admin/orders");
 }
 

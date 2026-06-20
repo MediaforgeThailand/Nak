@@ -1,6 +1,7 @@
 import { submitPaymentAction } from "@/app/actions/customer";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { FileUploadPreview } from "@/components/ui/file-upload-preview";
 import { Field, Input, Textarea } from "@/components/ui/form";
 
 export const dynamic = "force-dynamic";
@@ -23,7 +24,21 @@ export default async function NewPaymentPage({
         </div>
       ) : null}
       <Card>
-        <form action={submitPaymentAction} className="grid gap-4">
+        <div className="grid gap-4 sm:grid-cols-[140px_1fr]">
+          <div className="grid aspect-square place-items-center rounded-md border border-border bg-surface-muted text-center">
+            <div>
+              <p className="text-lg font-semibold">DEMO QR</p>
+              <p className="mt-1 text-xs text-muted">แทนที่ด้วย QR จริงก่อนส่งให้ลูกค้า</p>
+            </div>
+          </div>
+          <div className="text-sm leading-6">
+            <p className="font-semibold">วิธีชำระเงินสำหรับ prototype</p>
+            <p className="text-muted">สแกน QR โรงงานหรือโอนตามข้อมูลที่ทีมงานให้ไว้ แล้วถ่ายหรืออัปโหลดสลิปในฟอร์มด้านล่าง</p>
+          </div>
+        </div>
+      </Card>
+      <Card>
+        <form action={submitPaymentAction} encType="multipart/form-data" className="grid gap-4">
           <Field label="ยอดโอน">
             <Input name="amount" type="number" min="1" step="0.01" required />
           </Field>
@@ -31,7 +46,13 @@ export default async function NewPaymentPage({
             <Input name="transfer_date" type="date" />
           </Field>
           <Field label="สลิปโอนเงิน">
-            <Input name="slip" type="file" accept="image/*,.pdf" required />
+            <FileUploadPreview
+              name="slip"
+              accept="image/*,.pdf"
+              capture="environment"
+              required
+              hint="แนะนำให้ถ่ายรูปสลิปจากกล้องมือถือ"
+            />
           </Field>
           <Field label="หมายเหตุ">
             <Textarea name="customer_note" />

@@ -26,6 +26,8 @@ export async function signedUrls(
   paths: string[],
   scope: AuthScope = "customer",
 ) {
+  if (paths.length === 0) return new Map<string, string>();
+
   const supabase = await createSupabaseServerClient(scope);
   const { data } = await supabase.storage.from(bucket).createSignedUrls(paths, 900);
   return new Map((data ?? []).map((item) => [item.path, item.signedUrl]));

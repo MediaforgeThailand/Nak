@@ -7,6 +7,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { FileUploadPreview } from "@/components/ui/file-upload-preview";
 import { Field, Input, Select } from "@/components/ui/form";
 import { dateTime, money, orderStatusLabel } from "@/lib/format";
 import { getAdminOrders } from "@/lib/data/queries";
@@ -77,10 +78,16 @@ export default async function AdminOrdersPage({
                 ) : null}
 
                 {["approved", "packing", "ready_to_ship"].includes(order.status) ? (
-                  <form action={uploadOrderPhotoAction} className="grid gap-2">
+                  <form action={uploadOrderPhotoAction} encType="multipart/form-data" className="grid gap-2">
                     <input type="hidden" name="order_id" value={order.id} />
                     <Field label="รูปสินค้าที่แพ็คแล้ว">
-                      <Input name="photo" type="file" accept="image/*" required />
+                      <FileUploadPreview
+                        name="photo"
+                        accept="image/*"
+                        capture="environment"
+                        required
+                        hint="ถ่ายให้เห็นสินค้าที่แพ็คพร้อมส่ง"
+                      />
                     </Field>
                     <Input name="caption" placeholder="คำอธิบายรูป" />
                     <Button type="submit" variant="secondary">อัปโหลดรูป</Button>

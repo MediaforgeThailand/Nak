@@ -66,14 +66,14 @@ export function AppShell({
         <main className="min-w-0">{children}</main>
       </div>
 
-      <nav className="fixed inset-x-0 bottom-0 z-20 grid grid-cols-4 border-t border-border bg-surface md:hidden">
-        {navItems.slice(0, 4).map((item) => (
+      <nav className="fixed inset-x-0 bottom-0 z-20 flex overflow-x-auto border-t border-border bg-surface md:hidden">
+        {navItems.map((item) => (
           <Link
             key={item.href}
             href={item.href}
             prefetch={false}
             className={clsx(
-              "flex min-h-16 flex-col items-center justify-center gap-1 text-xs font-medium text-muted",
+              "flex min-h-16 min-w-[72px] flex-1 flex-col items-center justify-center gap-1 px-2 text-xs font-medium text-muted",
             )}
           >
             <item.icon className="h-5 w-5" />

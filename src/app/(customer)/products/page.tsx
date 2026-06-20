@@ -1,8 +1,11 @@
+import Image from "next/image";
+import { PackageSearch } from "lucide-react";
 import { AddToCartButton } from "@/components/cart/add-to-cart-button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { money } from "@/lib/format";
 import { getProductsWithInventory } from "@/lib/data/queries";
+import { signedUrls } from "@/lib/storage";
 
 export const dynamic = "force-dynamic";
 
@@ -13,6 +16,12 @@ function stock(product: { inventory: { quantity_available: number } | { quantity
 
 export default async function ProductsPage() {
   const products = await getProductsWithInventory(false);
+  const productImageUrls = await signedUrls(
+    "product-images",
+    products
+      .map((product) => product.image_path)
+      .filter((path): path is string => Boolean(path)),
+  );
 
   return (
     <div className="grid gap-4">
@@ -23,9 +32,22 @@ export default async function ProductsPage() {
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
         {products.map((product) => {
           const qty = stock(product);
+          const imageUrl = product.image_path ? productImageUrls.get(product.image_path) : null;
           return (
             <Card key={product.id} className="flex flex-col gap-3">
-              <div className="aspect-[4/3] rounded-md bg-surface-muted" />
+              <div className="relative grid aspect-[4/3] place-items-center overflow-hidden rounded-md bg-surface-muted text-muted">
+                {imageUrl ? (
+                  <Image
+                    src={imageUrl}
+                    alt={product.name}
+                    fill
+                    sizes="(min-width: 1280px) 33vw, (min-width: 640px) 50vw, 100vw"
+                    className="object-cover"
+                  />
+                ) : (
+                  <PackageSearch className="h-9 w-9" />
+                )}
+              </div>
               <div className="flex-1">
                 <div className="flex items-start justify-between gap-3">
                   <div>

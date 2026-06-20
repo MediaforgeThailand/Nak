@@ -105,6 +105,9 @@ export async function submitPaymentAction(formData: FormData) {
     customer_note: note,
   });
 
-  if (error) redirect(`/payments/new?error=${encodeURIComponent(error.message)}`);
+  if (error) {
+    await supabase.storage.from("payment-slips").remove([path]);
+    redirect(`/payments/new?error=${encodeURIComponent(error.message)}`);
+  }
   redirect("/transactions");
 }

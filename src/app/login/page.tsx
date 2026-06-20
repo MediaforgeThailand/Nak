@@ -36,6 +36,10 @@ export default async function LoginPage({
           </div>
         ) : null}
 
+        <div className="mb-4 rounded-md border border-border bg-surface-muted p-3 text-sm leading-6 text-muted">
+          Prototype นี้ยังใช้ email/password ชั่วคราว ก่อนเชื่อม LINE Login จริง
+        </div>
+
         <Card>
           <form action={isSignup ? signUpAction : signInAction} className="grid gap-4">
             {isSignup ? (
