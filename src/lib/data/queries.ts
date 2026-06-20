@@ -51,7 +51,7 @@ export async function getPayments() {
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase
     .from("payments")
-    .select("*, profiles(full_name, company_name, email)")
+    .select("*, customer:profiles!payments_customer_id_fkey(full_name, company_name, email)")
     .order("created_at", { ascending: false });
   if (error) throw error;
   return data ?? [];
@@ -71,7 +71,7 @@ export async function getAdminOrders() {
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase
     .from("orders")
-    .select("*, profiles(full_name, company_name, email), order_items(*), order_photos(*)")
+    .select("*, customer:profiles!orders_customer_id_fkey(full_name, company_name, email), order_items(*), order_photos(*)")
     .order("created_at", { ascending: false });
   if (error) throw error;
   return data ?? [];

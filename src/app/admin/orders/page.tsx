@@ -40,7 +40,7 @@ export default async function AdminOrdersPage({
                   </Badge>
                 </div>
                 <p className="mt-1 text-sm text-muted">
-                  {order.profiles?.company_name ?? order.profiles?.full_name ?? order.profiles?.email}
+                  {order.customer?.company_name ?? order.customer?.full_name ?? order.customer?.email}
                   {" · "}
                   {dateTime(order.created_at)}
                 </p>

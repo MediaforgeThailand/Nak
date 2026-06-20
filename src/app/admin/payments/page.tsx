@@ -36,7 +36,7 @@ export default async function AdminPaymentsPage({
                   </Badge>
                 </div>
                 <p className="mt-1 text-sm text-muted">
-                  {payment.profiles?.company_name ?? payment.profiles?.full_name ?? payment.profiles?.email}
+                  {payment.customer?.company_name ?? payment.customer?.full_name ?? payment.customer?.email}
                   {" · "}
                   {dateTime(payment.created_at)}
                 </p>

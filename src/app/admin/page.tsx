@@ -37,7 +37,7 @@ export default async function AdminDashboardPage() {
               <div>
                 <p className="font-semibold">{order.order_number}</p>
                 <p className="text-sm text-muted">
-                  {order.profiles?.company_name ?? order.profiles?.full_name ?? order.profiles?.email}
+                  {order.customer?.company_name ?? order.customer?.full_name ?? order.customer?.email}
                   {" · "}
                   {orderStatusLabel(order.status)}
                 </p>
