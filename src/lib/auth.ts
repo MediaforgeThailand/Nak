@@ -30,28 +30,28 @@ export async function requireApprovedProfile() {
 
 export async function requireCustomer() {
   const session = await requireApprovedProfile();
-  if (session.profile.role !== "customer") redirect("/admin");
+  if (session.profile.role !== "customer") redirect("/admin/home");
   return session;
 }
 
 export async function requireStaff() {
   const session = await requireApprovedProfile();
   if (!["admin", "factory_staff"].includes(session.profile.role)) {
-    redirect("/dashboard");
+    redirect("/home");
   }
   return session;
 }
 
 export async function requireAdmin() {
   const session = await requireApprovedProfile();
-  if (session.profile.role !== "admin") redirect("/admin");
+  if (session.profile.role !== "admin") redirect(landingForProfile(session.profile));
   return session;
 }
 
 export function landingForProfile(profile: Profile | null) {
   if (!profile || profile.status !== "approved") return "/pending";
   if (profile.role === "admin" || profile.role === "factory_staff") {
-    return "/admin";
+    return "/admin/home";
   }
-  return "/dashboard";
+  return "/home";
 }

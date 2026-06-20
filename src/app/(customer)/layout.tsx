@@ -8,7 +8,7 @@ import { AppShell } from "@/components/layout/app-shell";
 import { requireCustomer } from "@/lib/auth";
 
 const navItems = [
-  { href: "/dashboard", label: "หน้าหลัก", icon: Home },
+  { href: "/home", label: "หน้าหลัก", icon: Home },
   { href: "/products", label: "สินค้า", icon: PackageSearch },
   { href: "/orders", label: "ออเดอร์", icon: ClipboardList },
   { href: "/transactions", label: "บัญชี", icon: ReceiptText },
