@@ -36,6 +36,7 @@ export function ButtonLink({
   className,
   variant = "primary",
   children,
+  prefetch = false,
   ...props
 }: ComponentProps<typeof Link> & {
   variant?: keyof typeof variants;
@@ -43,6 +44,7 @@ export function ButtonLink({
 }) {
   return (
     <Link
+      prefetch={prefetch}
       className={clsx(
         "inline-flex min-h-10 items-center justify-center gap-2 rounded-md px-4 py-2 text-sm font-semibold transition",
         variants[variant],

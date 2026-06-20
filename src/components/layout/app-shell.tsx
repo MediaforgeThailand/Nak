@@ -54,6 +54,7 @@ export function AppShell({
               <Link
                 key={item.href}
                 href={item.href}
+                prefetch={false}
                 className="flex min-h-10 items-center gap-2 rounded-md px-3 text-sm font-medium text-muted hover:bg-surface hover:text-foreground"
               >
                 <item.icon className="h-4 w-4" />
@@ -70,6 +71,7 @@ export function AppShell({
           <Link
             key={item.href}
             href={item.href}
+            prefetch={false}
             className={clsx(
               "flex min-h-16 flex-col items-center justify-center gap-1 text-xs font-medium text-muted",
             )}
