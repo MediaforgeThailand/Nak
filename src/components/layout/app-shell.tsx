@@ -9,6 +9,7 @@ import type { Profile } from "@/lib/types";
 export type NavItem = {
   href: string;
   label: string;
+  mobileLabel?: string;
   icon: ComponentType<{ className?: string }>;
 };
 
@@ -77,7 +78,9 @@ export function AppShell({
             )}
           >
             <item.icon className="h-5 w-5" />
-            <span className="max-w-full truncate">{item.label}</span>
+            <span className="max-w-full truncate">
+              {item.mobileLabel ?? item.label}
+            </span>
           </Link>
         ))}
       </nav>

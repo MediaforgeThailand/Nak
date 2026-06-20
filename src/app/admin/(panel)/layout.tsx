@@ -13,7 +13,7 @@ import { signOutAdminAction } from "@/app/actions/auth";
 import { requireStaff } from "@/lib/auth";
 
 const navItems = [
-  { href: "/admin/home", label: "แดชบอร์ด", icon: Home },
+  { href: "/admin/home", label: "แดชบอร์ด", mobileLabel: "แดช", icon: Home },
   { href: "/admin/products", label: "สินค้า", icon: Package },
   { href: "/admin/stock", label: "สต็อก", icon: Warehouse },
   { href: "/admin/orders", label: "ออเดอร์", icon: ClipboardList },
