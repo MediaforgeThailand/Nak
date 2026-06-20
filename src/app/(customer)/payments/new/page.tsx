@@ -1,8 +1,8 @@
 import { submitPaymentAction } from "@/app/actions/customer";
-import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { FileUploadPreview } from "@/components/ui/file-upload-preview";
 import { Field, Input, Textarea } from "@/components/ui/form";
+import { SubmitButton } from "@/components/ui/submit-button";
 
 export const dynamic = "force-dynamic";
 
@@ -40,7 +40,7 @@ export default async function NewPaymentPage({
       <Card>
         <form action={submitPaymentAction} encType="multipart/form-data" className="grid gap-4">
           <Field label="ยอดโอน">
-            <Input name="amount" type="number" min="1" step="0.01" required />
+            <Input name="amount" type="number" inputMode="decimal" min="1" step="0.01" required />
           </Field>
           <Field label="วันที่โอน">
             <Input name="transfer_date" type="date" />
@@ -57,7 +57,9 @@ export default async function NewPaymentPage({
           <Field label="หมายเหตุ">
             <Textarea name="customer_note" />
           </Field>
-          <Button type="submit">ส่งสลิปให้แอดมินตรวจ</Button>
+          <SubmitButton pendingLabel="กำลังส่งสลิป...">
+            ส่งสลิปให้แอดมินตรวจ
+          </SubmitButton>
         </form>
       </Card>
     </div>

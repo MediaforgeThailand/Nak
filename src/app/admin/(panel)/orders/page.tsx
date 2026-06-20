@@ -5,10 +5,10 @@ import {
   uploadOrderPhotoAction,
 } from "@/app/actions/admin";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { FileUploadPreview } from "@/components/ui/file-upload-preview";
 import { Field, Input, Select } from "@/components/ui/form";
+import { SubmitButton } from "@/components/ui/submit-button";
 import { dateTime, money, orderStatusLabel } from "@/lib/format";
 import { getAdminOrders } from "@/lib/data/queries";
 
@@ -26,7 +26,7 @@ export default async function AdminOrdersPage({
 
   return (
     <div className="grid gap-4">
-      <h2 className="text-2xl font-semibold">Order management</h2>
+      <h2 className="text-2xl font-semibold">จัดการออเดอร์</h2>
       {params.error ? <div className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-danger">{params.error}</div> : null}
 
       <div className="grid gap-3">
@@ -53,9 +53,9 @@ export default async function AdminOrdersPage({
                     unit: string;
                     line_total: number;
                   }) => (
-                    <div key={item.id} className="flex justify-between text-sm">
-                      <span>{item.product_name} × {item.quantity} {item.unit}</span>
-                      <span>{money(item.line_total)}</span>
+                    <div key={item.id} className="grid grid-cols-[minmax(0,1fr)_auto] gap-3 text-sm">
+                      <span className="min-w-0 break-words">{item.product_name} × {item.quantity} {item.unit}</span>
+                      <span className="whitespace-nowrap font-medium">{money(item.line_total)}</span>
                     </div>
                   ))}
                 </div>
@@ -67,12 +67,16 @@ export default async function AdminOrdersPage({
                   <div className="grid gap-2 sm:grid-cols-2">
                     <form action={approveOrderAction}>
                       <input type="hidden" name="order_id" value={order.id} />
-                      <Button type="submit" className="w-full">อนุมัติ</Button>
+                      <SubmitButton pendingLabel="กำลังอนุมัติ..." className="w-full">
+                        อนุมัติ
+                      </SubmitButton>
                     </form>
                     <form action={rejectOrderAction} className="grid gap-2">
                       <input type="hidden" name="order_id" value={order.id} />
                       <Input name="reason" placeholder="เหตุผล" />
-                      <Button type="submit" variant="danger" className="w-full">ปฏิเสธ</Button>
+                      <SubmitButton variant="danger" pendingLabel="กำลังปฏิเสธ..." className="w-full">
+                        ปฏิเสธ
+                      </SubmitButton>
                     </form>
                   </div>
                 ) : null}
@@ -90,7 +94,9 @@ export default async function AdminOrdersPage({
                       />
                     </Field>
                     <Input name="caption" placeholder="คำอธิบายรูป" />
-                    <Button type="submit" variant="secondary">อัปโหลดรูป</Button>
+                    <SubmitButton variant="secondary" pendingLabel="กำลังอัปโหลด...">
+                      อัปโหลดรูป
+                    </SubmitButton>
                   </form>
                 ) : null}
 
@@ -105,7 +111,9 @@ export default async function AdminOrdersPage({
                       </Select>
                     </Field>
                     <Input name="note" placeholder="หมายเหตุ" />
-                    <Button type="submit" variant="secondary">อัปเดต</Button>
+                    <SubmitButton variant="secondary" pendingLabel="กำลังอัปเดต...">
+                      อัปเดต
+                    </SubmitButton>
                   </form>
                 ) : null}
 

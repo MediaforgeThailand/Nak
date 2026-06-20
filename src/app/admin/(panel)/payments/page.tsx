@@ -1,8 +1,8 @@
 import { approvePaymentAction, rejectPaymentAction } from "@/app/actions/admin";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/form";
+import { SubmitButton } from "@/components/ui/submit-button";
 import { dateTime, money, paymentStatusLabel } from "@/lib/format";
 import { getPayments } from "@/lib/data/queries";
 import { signedUrls } from "@/lib/storage";
@@ -20,7 +20,7 @@ export default async function AdminPaymentsPage({
 
   return (
     <div className="grid gap-4">
-      <h2 className="text-2xl font-semibold">Payment verification</h2>
+      <h2 className="text-2xl font-semibold">ตรวจสลิปชำระเงิน</h2>
       {params.error ? <div className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-danger">{params.error}</div> : null}
       <div className="grid gap-3">
         {payments.map((payment) => {
@@ -45,6 +45,7 @@ export default async function AdminPaymentsPage({
                   <a
                     href={slipUrl}
                     target="_blank"
+                    rel="noreferrer"
                     className="mt-2 inline-flex font-semibold text-accent"
                   >
                     เปิดสลิป
@@ -57,12 +58,16 @@ export default async function AdminPaymentsPage({
                   <form action={approvePaymentAction} className="grid gap-2">
                     <input type="hidden" name="payment_id" value={payment.id} />
                     <Input name="admin_note" placeholder="หมายเหตุ" />
-                    <Button type="submit">อนุมัติสลิป</Button>
+                    <SubmitButton pendingLabel="กำลังอนุมัติ...">
+                      อนุมัติสลิป
+                    </SubmitButton>
                   </form>
                   <form action={rejectPaymentAction} className="grid gap-2">
                     <input type="hidden" name="payment_id" value={payment.id} />
                     <Input name="admin_note" placeholder="เหตุผลที่ปฏิเสธ" />
-                    <Button type="submit" variant="danger">ปฏิเสธ</Button>
+                    <SubmitButton variant="danger" pendingLabel="กำลังปฏิเสธ...">
+                      ปฏิเสธ
+                    </SubmitButton>
                   </form>
                 </div>
               ) : null}

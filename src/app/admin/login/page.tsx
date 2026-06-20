@@ -1,7 +1,8 @@
+import Link from "next/link";
 import { signInAdminAction } from "@/app/actions/auth";
-import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Field, Input } from "@/components/ui/form";
+import { SubmitButton } from "@/components/ui/submit-button";
 
 export const dynamic = "force-dynamic";
 
@@ -45,15 +46,17 @@ export default async function AdminLoginPage({
                 required
               />
             </Field>
-            <Button type="submit">เข้าสู่ระบบหลังบ้าน</Button>
+            <SubmitButton pendingLabel="กำลังเข้าสู่ระบบ...">
+              เข้าสู่ระบบหลังบ้าน
+            </SubmitButton>
           </form>
         </Card>
 
         <p className="mt-4 text-center text-sm text-muted">
           เป็นผู้ซื้อสินค้า?{" "}
-          <a href="/login" className="font-semibold text-accent">
+          <Link href="/login" className="font-semibold text-accent">
             ไปหน้า login ลูกค้า
-          </a>
+          </Link>
         </p>
       </div>
     </main>

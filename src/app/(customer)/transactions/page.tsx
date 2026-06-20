@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { compactDate, money } from "@/lib/format";
@@ -15,11 +16,11 @@ export default async function TransactionsPage() {
           <h2 className="text-2xl font-semibold">ประวัติบัญชี</h2>
           <p className="text-sm text-muted">รายการหนี้จากออเดอร์และเครดิตจากสลิปที่อนุมัติแล้ว</p>
         </div>
-        <a className="font-semibold text-accent" href="/payments/new">แจ้งชำระเงิน</a>
+        <Link className="font-semibold text-accent" href="/payments/new">แจ้งชำระเงิน</Link>
       </div>
 
       <Card>
-        <h3 className="font-semibold">Transactions</h3>
+        <h3 className="font-semibold">รายการบัญชี</h3>
         <div className="mt-3 grid gap-3">
           {transactions.map((tx) => (
             <div key={tx.id} className="flex items-center justify-between border-b border-border pb-3 last:border-0 last:pb-0">
@@ -35,12 +36,12 @@ export default async function TransactionsPage() {
               </div>
             </div>
           ))}
-          {transactions.length === 0 ? <p className="text-sm text-muted">ยังไม่มี transaction</p> : null}
+          {transactions.length === 0 ? <p className="text-sm text-muted">ยังไม่มีรายการบัญชี</p> : null}
         </div>
       </Card>
 
       <Card>
-        <h3 className="font-semibold">Payment history</h3>
+        <h3 className="font-semibold">ประวัติการแจ้งชำระ</h3>
         <div className="mt-3 grid gap-3">
           {payments.map((payment) => (
             <div key={payment.id} className="flex items-center justify-between border-b border-border pb-3 last:border-0 last:pb-0">

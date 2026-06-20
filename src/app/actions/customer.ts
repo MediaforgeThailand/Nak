@@ -33,15 +33,24 @@ export async function createOrderAction(formData: FormData) {
 export async function updateProfileAction(formData: FormData) {
   const { profile } = await requireCustomer();
   const supabase = await createSupabaseServerClient("customer");
+  const payload: {
+    full_name: string;
+    company_name: string;
+    phone: string;
+    line_user_id?: string | null;
+  } = {
+    full_name: String(formData.get("full_name") ?? "").trim(),
+    company_name: String(formData.get("company_name") ?? "").trim(),
+    phone: String(formData.get("phone") ?? "").trim(),
+  };
+
+  if (formData.has("line_user_id")) {
+    payload.line_user_id = String(formData.get("line_user_id") ?? "").trim() || null;
+  }
 
   await supabase
     .from("profiles")
-    .update({
-      full_name: String(formData.get("full_name") ?? "").trim(),
-      company_name: String(formData.get("company_name") ?? "").trim(),
-      phone: String(formData.get("phone") ?? "").trim(),
-      line_user_id: String(formData.get("line_user_id") ?? "").trim() || null,
-    })
+    .update(payload)
     .eq("id", profile.id);
 
   revalidatePath("/profile");

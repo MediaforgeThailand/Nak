@@ -13,6 +13,8 @@ type ButtonProps = ComponentProps<"button"> & {
   variant?: keyof typeof variants;
 };
 
+export type { ButtonProps };
+
 export function Button({
   className,
   variant = "primary",
@@ -23,7 +25,7 @@ export function Button({
     <button
       type={type}
       className={clsx(
-        "inline-flex min-h-10 items-center justify-center gap-2 rounded-md px-4 py-2 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50",
+        "inline-flex min-h-10 cursor-pointer items-center justify-center gap-2 rounded-md px-4 py-2 text-center text-sm font-semibold transition-colors duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-50",
         variants[variant],
         className,
       )}
@@ -46,7 +48,7 @@ export function ButtonLink({
     <Link
       prefetch={prefetch}
       className={clsx(
-        "inline-flex min-h-10 items-center justify-center gap-2 rounded-md px-4 py-2 text-sm font-semibold transition",
+        "inline-flex min-h-10 cursor-pointer items-center justify-center gap-2 rounded-md px-4 py-2 text-center text-sm font-semibold transition-colors duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent",
         variants[variant],
         className,
       )}

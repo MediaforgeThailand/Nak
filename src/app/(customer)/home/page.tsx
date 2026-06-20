@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { ButtonLink } from "@/components/ui/button";
 import { Card, StatCard } from "@/components/ui/card";
 import { money, orderStatusLabel, paymentStatusLabel } from "@/lib/format";
@@ -32,17 +33,17 @@ export default async function DashboardPage() {
           </div>
           <div className="mt-4 grid gap-3">
             {orders.slice(0, 5).map((order) => (
-              <a
+              <Link
                 key={order.id}
                 href={`/orders/${order.id}`}
-                className="flex items-center justify-between rounded-md border border-border p-3"
+                className="flex items-center justify-between gap-3 rounded-md border border-border p-3 transition-colors duration-200 hover:bg-surface-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
               >
                 <div>
                   <p className="font-medium">{order.order_number}</p>
                   <p className="text-sm text-muted">{orderStatusLabel(order.status)}</p>
                 </div>
                 <p className="font-semibold">{money(order.subtotal)}</p>
-              </a>
+              </Link>
             ))}
             {orders.length === 0 ? <p className="text-sm text-muted">ยังไม่มีออเดอร์</p> : null}
           </div>

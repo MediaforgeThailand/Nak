@@ -3,9 +3,9 @@
 import { useMemo, useSyncExternalStore } from "react";
 import { Trash2 } from "lucide-react";
 import { createOrderAction } from "@/app/actions/customer";
-import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Field, Select, Textarea } from "@/components/ui/form";
+import { SubmitButton } from "@/components/ui/submit-button";
 import { money } from "@/lib/format";
 
 const CART_KEY = "nak_cart";
@@ -119,12 +119,13 @@ export function CartView({
               >
                 <div>
                   <p className="font-semibold">{product.name}</p>
-                  <p className="text-sm text-muted">
+                  <p className="break-words text-sm text-muted">
                     {product.sku} · {money(product.price)} / {product.unit} · คงเหลือ {stock}
                   </p>
                 </div>
                 <input
                   type="number"
+                  inputMode="numeric"
                   min={1}
                   max={stock}
                   value={quantity}
@@ -163,11 +164,13 @@ export function CartView({
           <Field label="หมายเหตุถึงแอดมิน">
             <Textarea name="customer_note" />
           </Field>
-          <div className="flex items-center justify-between border-t border-border pt-4">
+          <div className="flex items-center justify-between gap-3 border-t border-border pt-4">
             <span className="font-medium">ยอดรวม</span>
             <span className="text-xl font-semibold">{money(total)}</span>
           </div>
-          <Button type="submit">ส่งออเดอร์และจองสต็อก</Button>
+          <SubmitButton pendingLabel="กำลังส่งออเดอร์...">
+            ส่งออเดอร์และจองสต็อก
+          </SubmitButton>
         </form>
       </Card>
     </div>

@@ -14,9 +14,9 @@ export default async function AdminUsersPage() {
 
   return (
     <div className="grid gap-4">
-      <h2 className="text-2xl font-semibold">User / role permissions</h2>
+      <h2 className="text-2xl font-semibold">สิทธิ์ผู้ใช้งาน</h2>
       <Card>
-        <h3 className="font-semibold">MVP permission matrix</h3>
+        <h3 className="font-semibold">ตารางสิทธิ์ใน prototype</h3>
         <div className="mt-3 grid gap-3">
           {permissions.map(([role, copy]) => (
             <div key={role} className="rounded-md border border-border p-3">
@@ -27,7 +27,7 @@ export default async function AdminUsersPage() {
         </div>
       </Card>
       <Card>
-        <h3 className="font-semibold">Users</h3>
+        <h3 className="font-semibold">ผู้ใช้งาน</h3>
         <div className="mt-3 grid gap-2">
           {profiles.map((profile) => (
             <div key={profile.id} className="flex flex-wrap items-center justify-between gap-2 border-b border-border pb-2 last:border-0 last:pb-0">

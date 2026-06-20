@@ -1,7 +1,7 @@
 import { adjustInventoryAction } from "@/app/actions/admin";
-import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Field, Input, Select } from "@/components/ui/form";
+import { SubmitButton } from "@/components/ui/submit-button";
 import { dateTime } from "@/lib/format";
 import { getInventoryMovements, getProductsWithInventory } from "@/lib/data/queries";
 
@@ -20,7 +20,7 @@ export default async function AdminStockPage({
 
   return (
     <div className="grid gap-4">
-      <h2 className="text-2xl font-semibold">Stock management</h2>
+      <h2 className="text-2xl font-semibold">จัดการสต็อก</h2>
       {params.error ? <div className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-danger">{params.error}</div> : null}
 
       <Card>
@@ -33,17 +33,19 @@ export default async function AdminStockPage({
             </Select>
           </Field>
           <Field label="เพิ่ม/ลด">
-            <Input name="quantity_delta" type="number" required />
+            <Input name="quantity_delta" type="number" inputMode="numeric" required />
           </Field>
           <Field label="หมายเหตุ">
             <Input name="note" />
           </Field>
-          <Button type="submit" className="self-end">ปรับสต็อก</Button>
+          <SubmitButton pendingLabel="กำลังปรับ..." className="self-end">
+            ปรับสต็อก
+          </SubmitButton>
         </form>
       </Card>
 
       <Card>
-        <h3 className="font-semibold">Stock movement ล่าสุด</h3>
+        <h3 className="font-semibold">รายการเคลื่อนไหวสต็อกล่าสุด</h3>
         <div className="mt-3 grid gap-2">
           {movements.map((movement) => (
             <div key={movement.id} className="grid gap-2 rounded-md border border-border p-3 sm:grid-cols-[1fr_auto_auto]">

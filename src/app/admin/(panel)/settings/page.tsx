@@ -8,9 +8,9 @@ export default async function AdminSettingsPage() {
 
   return (
     <div className="grid gap-4">
-      <h2 className="text-2xl font-semibold">Settings</h2>
+      <h2 className="text-2xl font-semibold">ตั้งค่าระบบ</h2>
       <Card>
-        <h3 className="font-semibold">System settings</h3>
+        <h3 className="font-semibold">การตั้งค่าระบบ</h3>
         <div className="mt-3 grid gap-3">
           {settings.map((setting) => (
             <div key={setting.key} className="rounded-md border border-border p-3">
@@ -24,7 +24,7 @@ export default async function AdminSettingsPage() {
         </div>
       </Card>
       <Card>
-        <h3 className="font-semibold">LINE OA integration notes</h3>
+        <h3 className="font-semibold">หมายเหตุ LINE OA</h3>
         <p className="mt-2 text-sm leading-6 text-muted">
           MVP stores notification events in <code>line_notification_outbox</code>. Future work:
           connect LINE Login, map <code>line_user_id</code>, add an Edge Function worker, and send

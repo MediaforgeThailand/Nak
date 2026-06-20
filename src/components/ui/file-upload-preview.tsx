@@ -1,9 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { Camera, FileImage, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/form";
 
 type FileUploadPreviewProps = {
   name: string;
@@ -20,6 +19,7 @@ export function FileUploadPreview({
   required,
   hint,
 }: FileUploadPreviewProps) {
+  const inputId = useId();
   const [fileName, setFileName] = useState("");
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [inputKey, setInputKey] = useState(0);
@@ -35,18 +35,18 @@ export function FileUploadPreview({
       <div className="grid gap-3 rounded-md border border-dashed border-border bg-surface-muted p-3">
         {previewUrl ? (
           <div
-            className="aspect-[4/3] rounded-md bg-cover bg-center"
+            className="h-48 rounded-md bg-cover bg-center sm:h-56"
             style={{ backgroundImage: `url("${previewUrl}")` }}
           />
         ) : (
-          <div className="grid aspect-[4/3] place-items-center rounded-md bg-surface text-muted">
+          <div className="grid h-48 place-items-center rounded-md bg-surface text-muted sm:h-56">
             <FileImage className="h-8 w-8" />
           </div>
         )}
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="min-w-0">
             <p className="truncate text-sm font-medium">
-              {fileName || "ยังไม่ได้เลือกรูป"}
+              {fileName || "ยังไม่ได้เลือกไฟล์"}
             </p>
             {hint ? <p className="text-xs text-muted">{hint}</p> : null}
           </div>
@@ -67,14 +67,23 @@ export function FileUploadPreview({
             </Button>
           ) : null}
         </div>
+        <label
+          htmlFor={inputId}
+          className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md border border-border bg-surface px-4 py-2 text-sm font-semibold text-foreground transition-colors duration-200 hover:bg-white focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-accent"
+        >
+          <Camera className="h-4 w-4" />
+          ถ่ายหรือเลือกไฟล์
+        </label>
       </div>
-      <Input
+      <input
         key={inputKey}
+        id={inputId}
         name={name}
         type="file"
         accept={accept}
         capture={capture}
         required={required}
+        className="sr-only"
         onChange={(event) => {
           const file = event.currentTarget.files?.[0];
           if (previewUrl) URL.revokeObjectURL(previewUrl);

@@ -2,10 +2,10 @@ import Image from "next/image";
 import { PackageSearch } from "lucide-react";
 import { createProductAction, updateProductAction } from "@/app/actions/admin";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { FileUploadPreview } from "@/components/ui/file-upload-preview";
 import { Field, Input, Textarea } from "@/components/ui/form";
+import { SubmitButton } from "@/components/ui/submit-button";
 import { money } from "@/lib/format";
 import { getProductsWithInventory } from "@/lib/data/queries";
 import { signedUrls } from "@/lib/storage";
@@ -30,8 +30,8 @@ export default async function AdminProductsPage({
   return (
     <div className="grid gap-4">
       <div>
-        <h2 className="text-2xl font-semibold">Product management</h2>
-        <p className="text-sm text-muted">MVP ใช้ฟอร์มเร็วสำหรับเพิ่มสินค้าและแก้ข้อมูลหลัก</p>
+        <h2 className="text-2xl font-semibold">จัดการสินค้า</h2>
+        <p className="text-sm text-muted">เพิ่มสินค้า แก้ข้อมูลหลัก และอัปเดตรูปสำหรับลูกค้า</p>
       </div>
       {params.error ? <div className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-danger">{params.error}</div> : null}
 
@@ -40,10 +40,10 @@ export default async function AdminProductsPage({
         <form action={createProductAction} encType="multipart/form-data" className="mt-4 grid gap-3 sm:grid-cols-2">
           <Field label="SKU"><Input name="sku" required /></Field>
           <Field label="ชื่อสินค้า"><Input name="name" required /></Field>
-          <Field label="ราคา"><Input name="price" type="number" min="0" step="0.01" required /></Field>
-          <Field label="หน่วย"><Input name="unit" defaultValue="piece" required /></Field>
-          <Field label="สต็อกตั้งต้น"><Input name="quantity_available" type="number" min="0" defaultValue="0" /></Field>
-          <Field label="เตือนเมื่อเหลือ"><Input name="low_stock_threshold" type="number" min="0" defaultValue="5" /></Field>
+          <Field label="ราคา"><Input name="price" type="number" inputMode="decimal" min="0" step="0.01" required /></Field>
+          <Field label="หน่วย"><Input name="unit" defaultValue="ชิ้น" required /></Field>
+          <Field label="สต็อกตั้งต้น"><Input name="quantity_available" type="number" inputMode="numeric" min="0" defaultValue="0" /></Field>
+          <Field label="เตือนเมื่อเหลือ"><Input name="low_stock_threshold" type="number" inputMode="numeric" min="0" defaultValue="5" /></Field>
           <div className="sm:col-span-2">
             <Field label="รูปสินค้า">
               <FileUploadPreview
@@ -54,8 +54,12 @@ export default async function AdminProductsPage({
               />
             </Field>
           </div>
-          <Field label="รายละเอียด"><Textarea name="description" className="sm:col-span-2" /></Field>
-          <Button type="submit" className="sm:col-span-2">เพิ่มสินค้า</Button>
+          <div className="sm:col-span-2">
+            <Field label="รายละเอียด"><Textarea name="description" /></Field>
+          </div>
+          <SubmitButton pendingLabel="กำลังเพิ่มสินค้า..." className="sm:col-span-2">
+            เพิ่มสินค้า
+          </SubmitButton>
         </form>
       </Card>
 
@@ -82,7 +86,7 @@ export default async function AdminProductsPage({
                 </div>
                 <Field label="ชื่อ"><Input name="name" defaultValue={product.name} /></Field>
                 <Field label="SKU"><Input name="sku" defaultValue={product.sku} /></Field>
-                <Field label="ราคา"><Input name="price" type="number" step="0.01" defaultValue={product.price} /></Field>
+                <Field label="ราคา"><Input name="price" type="number" inputMode="decimal" step="0.01" defaultValue={product.price} /></Field>
                 <Field label="หน่วย"><Input name="unit" defaultValue={product.unit} /></Field>
                 <div className="flex items-end gap-2">
                   <label className="flex min-h-11 items-center gap-2 text-sm">
@@ -109,7 +113,9 @@ export default async function AdminProductsPage({
                     <span>Stock {inv?.quantity_available ?? 0}</span>
                     <span>{money(product.price)}</span>
                   </div>
-                  <Button type="submit" variant="secondary">บันทึก</Button>
+                  <SubmitButton variant="secondary" pendingLabel="กำลังบันทึก...">
+                    บันทึก
+                  </SubmitButton>
                 </div>
               </form>
             </Card>

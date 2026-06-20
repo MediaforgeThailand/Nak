@@ -1,7 +1,7 @@
 import { Clock3 } from "lucide-react";
 import { signOutAdminAction, signOutCustomerAction } from "@/app/actions/auth";
-import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { SubmitButton } from "@/components/ui/submit-button";
 import { getCurrentProfile } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
@@ -31,9 +31,9 @@ export default async function PendingPage({
           </div>
         ) : null}
         <form action={signOutAction} className="mt-5">
-          <Button type="submit" variant="secondary">
+          <SubmitButton variant="secondary" pendingLabel="กำลังออก...">
             ออกจากระบบ
-          </Button>
+          </SubmitButton>
         </form>
       </Card>
     </main>

@@ -1,7 +1,7 @@
 import { saveAddressAction, updateProfileAction } from "@/app/actions/customer";
-import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Field, Input, Textarea } from "@/components/ui/form";
+import { SubmitButton } from "@/components/ui/submit-button";
 import { requireCustomer } from "@/lib/auth";
 import { getCustomerAddresses } from "@/lib/data/queries";
 
@@ -23,12 +23,11 @@ export default async function ProfilePage() {
             <Input name="company_name" defaultValue={profile.company_name ?? ""} />
           </Field>
           <Field label="เบอร์โทร">
-            <Input name="phone" defaultValue={profile.phone ?? ""} />
+            <Input name="phone" type="tel" inputMode="tel" autoComplete="tel" defaultValue={profile.phone ?? ""} />
           </Field>
-          <Field label="LINE User ID (เตรียมไว้สำหรับ LINE Login/OA)">
-            <Input name="line_user_id" defaultValue={profile.line_user_id ?? ""} />
-          </Field>
-          <Button type="submit">บันทึกโปรไฟล์</Button>
+          <SubmitButton pendingLabel="กำลังบันทึกโปรไฟล์...">
+            บันทึกโปรไฟล์
+          </SubmitButton>
         </form>
       </Card>
 
@@ -42,7 +41,7 @@ export default async function ProfilePage() {
             <Input name="recipient_name" required />
           </Field>
           <Field label="เบอร์โทร">
-            <Input name="phone" />
+            <Input name="phone" type="tel" inputMode="tel" autoComplete="tel" />
           </Field>
           <Field label="ที่อยู่">
             <Textarea name="address_line1" required />
@@ -54,13 +53,15 @@ export default async function ProfilePage() {
             <Input name="province" />
           </Field>
           <Field label="รหัสไปรษณีย์">
-            <Input name="postal_code" />
+            <Input name="postal_code" inputMode="numeric" autoComplete="postal-code" />
           </Field>
           <label className="flex items-center gap-2 text-sm">
             <input name="is_default" type="checkbox" />
             ตั้งเป็นที่อยู่หลัก
           </label>
-          <Button type="submit">เพิ่มที่อยู่</Button>
+          <SubmitButton pendingLabel="กำลังบันทึกที่อยู่...">
+            เพิ่มที่อยู่
+          </SubmitButton>
         </form>
 
         <div className="mt-5 grid gap-2">

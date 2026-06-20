@@ -1,7 +1,8 @@
+import Link from "next/link";
 import { signInAction, signUpAction } from "@/app/actions/auth";
-import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Field, Input } from "@/components/ui/form";
+import { SubmitButton } from "@/components/ui/submit-button";
 
 export const dynamic = "force-dynamic";
 
@@ -51,7 +52,7 @@ export default async function LoginPage({
                   <Input name="company_name" required />
                 </Field>
                 <Field label="เบอร์โทร">
-                  <Input name="phone" required />
+                  <Input name="phone" type="tel" inputMode="tel" autoComplete="tel" required />
                 </Field>
               </>
             ) : null}
@@ -67,24 +68,26 @@ export default async function LoginPage({
                 required
               />
             </Field>
-            <Button type="submit">{isSignup ? "ส่งคำขอสมัคร" : "เข้าสู่ระบบ"}</Button>
+            <SubmitButton pendingLabel={isSignup ? "กำลังส่งคำขอ..." : "กำลังเข้าสู่ระบบ..."}>
+              {isSignup ? "ส่งคำขอสมัคร" : "เข้าสู่ระบบ"}
+            </SubmitButton>
           </form>
         </Card>
 
         <p className="mt-4 text-center text-sm text-muted">
           {isSignup ? "มีบัญชีแล้ว?" : "ยังไม่มีบัญชี?"}{" "}
-          <a
+          <Link
             href={isSignup ? "/login" : "/login?mode=signup"}
             className="font-semibold text-accent"
           >
             {isSignup ? "เข้าสู่ระบบ" : "สมัครใช้งาน"}
-          </a>
+          </Link>
         </p>
         <p className="mt-2 text-center text-sm text-muted">
           เป็น admin หรือทีมงาน?{" "}
-          <a href="/admin/login" className="font-semibold text-accent">
+          <Link href="/admin/login" className="font-semibold text-accent">
             ไปหน้า Admin Login
-          </a>
+          </Link>
         </p>
       </div>
     </main>

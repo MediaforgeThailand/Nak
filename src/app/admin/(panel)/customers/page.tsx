@@ -1,8 +1,9 @@
 import { approveUserAction, suspendUserAction } from "@/app/actions/admin";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Select } from "@/components/ui/form";
+import { SubmitButton } from "@/components/ui/submit-button";
+import { requireAdmin } from "@/lib/auth";
 import { money } from "@/lib/format";
 import { getProfiles } from "@/lib/data/queries";
 
@@ -14,14 +15,18 @@ export default async function AdminCustomersPage({
   searchParams: Promise<{ error?: string }>;
 }) {
   const params = await searchParams;
+  const { profile: currentProfile } = await requireAdmin();
   const profiles = await getProfiles();
 
   return (
     <div className="grid gap-4">
-      <h2 className="text-2xl font-semibold">Customer management</h2>
+      <h2 className="text-2xl font-semibold">จัดการลูกค้า</h2>
       {params.error ? <div className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-danger">{params.error}</div> : null}
       <div className="grid gap-3">
-        {profiles.map((profile) => (
+        {profiles.map((profile) => {
+          const isCurrentUser = profile.id === currentProfile.id;
+
+          return (
           <Card key={profile.id}>
             <div className="grid gap-3 lg:grid-cols-[1fr_320px]">
               <div>
@@ -31,6 +36,7 @@ export default async function AdminCustomersPage({
                     {profile.status}
                   </Badge>
                   <Badge>{profile.role}</Badge>
+                  {isCurrentUser ? <Badge tone="accent">กำลังใช้งาน</Badge> : null}
                 </div>
                 <p className="mt-1 text-sm text-muted">{profile.email} · {profile.phone}</p>
                 <p className="mt-2 font-semibold">ยอดหนี้ {money(profile.debt_balance)}</p>
@@ -38,21 +44,26 @@ export default async function AdminCustomersPage({
               <div className="grid gap-2 sm:grid-cols-2">
                 <form action={approveUserAction} className="grid gap-2">
                   <input type="hidden" name="user_id" value={profile.id} />
-                  <Select name="role" defaultValue={profile.role}>
+                  <Select name="role" defaultValue={profile.role} disabled={isCurrentUser}>
                     <option value="customer">customer</option>
                     <option value="factory_staff">factory_staff</option>
                     <option value="admin">admin</option>
                   </Select>
-                  <Button type="submit" variant="secondary">อนุมัติ/เปลี่ยนสิทธิ์</Button>
+                  <SubmitButton variant="secondary" pendingLabel="กำลังบันทึก..." disabled={isCurrentUser}>
+                    อนุมัติ/เปลี่ยนสิทธิ์
+                  </SubmitButton>
                 </form>
                 <form action={suspendUserAction}>
                   <input type="hidden" name="user_id" value={profile.id} />
-                  <Button type="submit" variant="danger" className="w-full">ระงับ</Button>
+                  <SubmitButton variant="danger" pendingLabel="กำลังระงับ..." className="w-full" disabled={isCurrentUser}>
+                    ระงับ
+                  </SubmitButton>
                 </form>
               </div>
             </div>
           </Card>
-        ))}
+        );
+        })}
       </div>
     </div>
   );

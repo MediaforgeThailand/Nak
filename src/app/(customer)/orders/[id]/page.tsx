@@ -42,12 +42,15 @@ export default async function OrderDetailPage({
             unit: string;
             line_total: number;
           }) => (
-            <div key={item.id} className="flex items-center justify-between border-b border-border pb-3 last:border-0 last:pb-0">
-              <div>
+            <div
+              key={item.id}
+              className="grid grid-cols-[minmax(0,1fr)_auto] gap-3 border-b border-border pb-3 last:border-0 last:pb-0"
+            >
+              <div className="min-w-0">
                 <p className="font-medium">{item.product_name}</p>
                 <p className="text-sm text-muted">{item.sku} · {item.quantity} {item.unit}</p>
               </div>
-              <p className="font-semibold">{money(item.line_total)}</p>
+              <p className="whitespace-nowrap font-semibold">{money(item.line_total)}</p>
             </div>
           ))}
         </div>
