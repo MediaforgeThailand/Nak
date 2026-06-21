@@ -10,7 +10,7 @@ import { Field, Input, Select, Textarea } from "@/components/ui/form";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { requireAdmin } from "@/lib/auth";
 import { getProfiles } from "@/lib/data/queries";
-import { money } from "@/lib/format";
+import { accountStatusLabel, money, roleLabel } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 
@@ -28,7 +28,7 @@ export default async function AdminCustomersPage({
       <div>
         <h2 className="text-2xl font-semibold">จัดการลูกค้า</h2>
         <p className="mt-1 text-sm text-muted">
-          Owner สามารถตั้งส่วนลดต่อชิ้นและปรับยอดหนี้ manual ได้จากหน้านี้
+          เจ้าของระบบสามารถตั้งส่วนลดต่อชิ้นและปรับยอดหนี้ด้วยมือได้จากหน้านี้
         </p>
       </div>
 
@@ -60,10 +60,10 @@ export default async function AdminCustomersPage({
                             : "warning"
                       }
                     >
-                      {profile.status}
+                      {accountStatusLabel(profile.status)}
                     </Badge>
-                    <Badge>{profile.role}</Badge>
-                    {profile.is_owner ? <Badge tone="accent">owner</Badge> : null}
+                    <Badge>{roleLabel(profile.role)}</Badge>
+                    {profile.is_owner ? <Badge tone="accent">เจ้าของระบบ</Badge> : null}
                     {isCurrentUser ? <Badge tone="accent">กำลังใช้งาน</Badge> : null}
                   </div>
                   <p className="mt-1 text-sm text-muted">
@@ -81,9 +81,9 @@ export default async function AdminCustomersPage({
                   <form action={approveUserAction} className="grid gap-2">
                     <input type="hidden" name="user_id" value={profile.id} />
                     <Select name="role" defaultValue={profile.role} disabled={isCurrentUser}>
-                      <option value="customer">customer</option>
-                      <option value="factory_staff">factory_staff</option>
-                      <option value="admin">admin</option>
+                      <option value="customer">ลูกค้า</option>
+                      <option value="factory_staff">ทีมจัดสินค้า</option>
+                      <option value="admin">ผู้ดูแลระบบ</option>
                     </Select>
                     <SubmitButton
                       variant="secondary"
@@ -138,7 +138,7 @@ export default async function AdminCustomersPage({
                   >
                     <input type="hidden" name="user_id" value={profile.id} />
                     <Field
-                      label="ปรับยอดหนี้ manual"
+                      label="ปรับยอดหนี้ด้วยมือ"
                       hint="ใส่บวกเพื่อเพิ่มหนี้ ใส่ลบเพื่อลดหนี้ เช่น 500 หรือ -500"
                     >
                       <Input

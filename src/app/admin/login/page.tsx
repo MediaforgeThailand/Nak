@@ -56,7 +56,7 @@ export default async function AdminLoginPage({
                 <LockKeyhole className="h-6 w-6" />
               </div>
               <h2 className="mt-4 text-2xl font-semibold">เข้าสู่ระบบหลังบ้าน</h2>
-              <p className="mt-1 text-sm text-muted">สำหรับ admin และทีมงานที่ได้รับอนุมัติแล้ว</p>
+              <p className="mt-1 text-sm text-muted">สำหรับผู้ดูแลระบบและทีมงานที่ได้รับอนุมัติแล้ว</p>
             </div>
 
             {params.error ? (

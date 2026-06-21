@@ -115,7 +115,7 @@ export default async function LoginPage({
                 </Link>
               </p>
               <p>
-                เป็น admin หรือทีมงาน?{" "}
+                เป็นผู้ดูแลระบบหรือทีมงาน?{" "}
                 <Link href="/admin/login" className="font-semibold text-accent">
                   ไปหน้า Admin Login
                 </Link>

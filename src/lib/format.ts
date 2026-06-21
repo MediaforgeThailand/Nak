@@ -1,3 +1,5 @@
+import type { AccountStatus, UserRole } from "@/lib/types";
+
 export function money(value: number | string | null | undefined) {
   const amount = Number(value ?? 0);
   return new Intl.NumberFormat("th-TH", {
@@ -43,4 +45,22 @@ export function paymentStatusLabel(status: string) {
     rejected: "ถูกปฏิเสธ",
   };
   return labels[status] ?? status;
+}
+
+export function roleLabel(role: UserRole | string | null | undefined) {
+  const labels: Record<UserRole, string> = {
+    admin: "ผู้ดูแลระบบ",
+    factory_staff: "ทีมจัดสินค้า",
+    customer: "ลูกค้า",
+  };
+  return role && role in labels ? labels[role as UserRole] : "ไม่ระบุสิทธิ์";
+}
+
+export function accountStatusLabel(status: AccountStatus | string | null | undefined) {
+  const labels: Record<AccountStatus, string> = {
+    pending: "รออนุมัติ",
+    approved: "ใช้งานได้",
+    suspended: "ระงับการใช้งาน",
+  };
+  return status && status in labels ? labels[status as AccountStatus] : "ไม่ระบุสถานะ";
 }

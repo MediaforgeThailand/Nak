@@ -11,6 +11,7 @@ import {
 import { AppShell } from "@/components/layout/app-shell";
 import { signOutAdminAction } from "@/app/actions/auth";
 import { requireStaff } from "@/lib/auth";
+import { roleLabel } from "@/lib/format";
 
 const navItems = [
   { href: "/admin/home", label: "แดชบอร์ด", mobileLabel: "แดช", icon: Home },
@@ -31,10 +32,11 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   return (
     <AppShell
       title="NAK Admin"
-      subtitle={`${profile.role} | ${profile.email}`}
+      subtitle={`${roleLabel(profile.role)} | ${profile.email}`}
       navItems={navItems}
       profile={profile}
       signOutAction={signOutAdminAction}
+      mobileNavMode="drawer"
     >
       {children}
     </AppShell>

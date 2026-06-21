@@ -37,7 +37,7 @@ export default async function AdminPaymentsPage({
       <div>
         <h2 className="text-2xl font-semibold">ตรวจสลิปชำระเงิน</h2>
         <p className="mt-1 text-sm text-muted">
-          อนุมัติสลิปจากลูกค้า หรือบันทึกยอดชำระ manual จากฝั่ง admin
+          อนุมัติสลิปจากลูกค้า หรือบันทึกยอดชำระเองจากฝั่งทีมงาน
         </p>
       </div>
 
@@ -48,7 +48,7 @@ export default async function AdminPaymentsPage({
       ) : null}
 
       <Card>
-        <h3 className="font-semibold">บันทึกชำระเงิน manual</h3>
+        <h3 className="font-semibold">บันทึกชำระเงินโดยทีมงาน</h3>
         <form action={recordManualPaymentAction} encType="multipart/form-data" className="mt-4 grid gap-4">
           <div className="grid gap-3 md:grid-cols-3">
             <Field label="ลูกค้า">
@@ -77,12 +77,12 @@ export default async function AdminPaymentsPage({
             />
           </Field>
 
-          <Field label="หมายเหตุ admin">
+          <Field label="หมายเหตุทีมงาน">
             <Textarea name="admin_note" />
           </Field>
 
           <SubmitButton pendingLabel="กำลังบันทึกยอดชำระ...">
-            บันทึกชำระเงิน manual
+            บันทึกชำระเงิน
           </SubmitButton>
         </form>
       </Card>
@@ -111,7 +111,7 @@ export default async function AdminPaymentsPage({
                     >
                       {paymentStatusLabel(payment.status)}
                     </Badge>
-                    {payment.source === "admin_manual" ? <Badge tone="accent">manual</Badge> : null}
+                    {payment.source === "admin_manual" ? <Badge tone="accent">บันทึกโดยทีมงาน</Badge> : null}
                   </div>
                   <p className="mt-1 text-sm text-muted">
                     {payment.customer?.company_name ?? payment.customer?.full_name ?? payment.customer?.email}

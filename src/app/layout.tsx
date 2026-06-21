@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Suspense } from "react";
+import { FloatingBackButton } from "@/components/layout/floating-back-button";
 import { NavigationMotion } from "@/components/layout/navigation-motion";
 import "./globals.css";
 
@@ -32,6 +33,7 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col">
         <Suspense fallback={null}>
           <NavigationMotion />
+          <FloatingBackButton />
         </Suspense>
         {children}
       </body>

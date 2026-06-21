@@ -27,12 +27,12 @@ export default async function NewPaymentPage({
         <div className="grid gap-4 sm:grid-cols-[140px_1fr]">
           <div className="grid aspect-square place-items-center rounded-md border border-border bg-surface-muted text-center">
             <div>
-              <p className="text-lg font-semibold">DEMO QR</p>
-              <p className="mt-1 text-xs text-muted">แทนที่ด้วย QR จริงก่อนส่งให้ลูกค้า</p>
+              <p className="text-lg font-semibold">QR ชำระเงิน</p>
+              <p className="mt-1 text-xs text-muted">สแกนหรือโอนตามข้อมูลที่ทีมงานแจ้งไว้</p>
             </div>
           </div>
           <div className="text-sm leading-6">
-            <p className="font-semibold">วิธีชำระเงินสำหรับ prototype</p>
+            <p className="font-semibold">วิธีชำระเงิน</p>
             <p className="text-muted">สแกน QR โรงงานหรือโอนตามข้อมูลที่ทีมงานให้ไว้ แล้วถ่ายหรืออัปโหลดสลิปในฟอร์มด้านล่าง</p>
           </div>
         </div>

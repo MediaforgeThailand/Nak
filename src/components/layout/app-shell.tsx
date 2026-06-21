@@ -3,6 +3,7 @@ import { clsx } from "clsx";
 import { LogOut } from "lucide-react";
 import type { ComponentType, ReactNode } from "react";
 import { signOutCustomerAction } from "@/app/actions/auth";
+import { MobileDrawerShell } from "@/components/layout/mobile-drawer-shell";
 import { NavCurrentMarker } from "@/components/layout/nav-current-marker";
 import { RouteContentFrame } from "@/components/layout/route-content-frame";
 import { SubmitButton } from "@/components/ui/submit-button";
@@ -15,12 +16,62 @@ export type NavItem = {
   icon: ComponentType<{ className?: string }>;
 };
 
+function MobileTabNav({ navItems }: { navItems: NavItem[] }) {
+  return (
+    <nav
+      aria-label="เมนูหลักบนมือถือ"
+      className="mobile-tab-nav fixed inset-x-3 bottom-3 z-20 grid grid-flow-col auto-cols-fr overflow-hidden rounded-2xl border border-white/70 bg-white/84 shadow-[inset_0_1px_0_rgba(255,255,255,0.9),0_18px_42px_rgba(31,65,58,0.2)] backdrop-blur-2xl md:hidden"
+    >
+      {navItems.map((item) => (
+        <Link
+          key={item.href}
+          href={item.href}
+          data-nav-href={item.href}
+          className={clsx(
+            "motion-surface flex min-h-16 min-w-0 flex-col items-center justify-center gap-1 px-1 text-[11px] font-semibold leading-tight text-muted transition-all duration-200 hover:bg-white/70 hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-accent",
+          )}
+        >
+          <item.icon className="h-5 w-5" />
+          <span className="max-w-full truncate">{item.mobileLabel ?? item.label}</span>
+        </Link>
+      ))}
+    </nav>
+  );
+}
+
+function MobileDrawerNav({
+  navItems,
+  profile,
+}: {
+  navItems: NavItem[];
+  profile: Profile;
+}) {
+  return (
+    <MobileDrawerShell profileEmail={profile.email}>
+      {navItems.map((item) => (
+        <Link
+          key={item.href}
+          href={item.href}
+          data-nav-href={item.href}
+          className="motion-surface flex min-h-12 items-center gap-3 rounded-lg border border-transparent px-3 text-sm font-semibold text-muted transition-all duration-200 hover:border-white/70 hover:bg-white/76 hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+        >
+          <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg border border-white/70 bg-white/72 text-accent">
+            <item.icon className="h-4 w-4" />
+          </span>
+          <span className="truncate">{item.label}</span>
+        </Link>
+      ))}
+    </MobileDrawerShell>
+  );
+}
+
 export function AppShell({
   title,
   subtitle,
   navItems,
   profile,
   signOutAction = signOutCustomerAction,
+  mobileNavMode = "tabs",
   children,
 }: {
   title: string;
@@ -28,10 +79,16 @@ export function AppShell({
   navItems: NavItem[];
   profile: Profile;
   signOutAction?: () => Promise<void>;
+  mobileNavMode?: "tabs" | "drawer";
   children: ReactNode;
 }) {
   return (
-    <div className="min-h-screen bg-transparent pb-24 md:pb-0">
+    <div
+      className={clsx(
+        "min-h-screen bg-transparent md:pb-0",
+        mobileNavMode === "drawer" ? "pb-20" : "pb-24",
+      )}
+    >
       <NavCurrentMarker />
       <a
         href="#main-content"
@@ -78,26 +135,11 @@ export function AppShell({
         </main>
       </div>
 
-      <nav
-        aria-label="เมนูหลักบนมือถือ"
-        className="fixed inset-x-3 bottom-3 z-20 grid grid-flow-col auto-cols-fr overflow-hidden rounded-2xl border border-white/70 bg-white/84 shadow-[inset_0_1px_0_rgba(255,255,255,0.9),0_18px_42px_rgba(31,65,58,0.2)] backdrop-blur-2xl md:hidden"
-      >
-        {navItems.map((item) => (
-          <Link
-            key={item.href}
-            href={item.href}
-            data-nav-href={item.href}
-            className={clsx(
-              "motion-surface flex min-h-16 min-w-0 flex-col items-center justify-center gap-1 px-1 text-[11px] font-semibold leading-tight text-muted transition-all duration-200 hover:bg-white/70 hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-accent",
-            )}
-          >
-            <item.icon className="h-5 w-5" />
-            <span className="max-w-full truncate">
-              {item.mobileLabel ?? item.label}
-            </span>
-          </Link>
-        ))}
-      </nav>
+      {mobileNavMode === "drawer" ? (
+        <MobileDrawerNav navItems={navItems} profile={profile} />
+      ) : (
+        <MobileTabNav navItems={navItems} />
+      )}
 
       <div className="sr-only">Signed in as {profile.email}</div>
     </div>
