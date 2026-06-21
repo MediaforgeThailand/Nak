@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { CreditCard, MapPin, ReceiptText, UserRound } from "lucide-react";
+import { BadgePercent, CreditCard, LogOut, MapPin, ReceiptText, UserRound } from "lucide-react";
+import { signOutCustomerAction } from "@/app/actions/auth";
 import { saveAddressAction, updateProfileAction } from "@/app/actions/customer";
 import { Badge } from "@/components/ui/badge";
 import { ButtonLink } from "@/components/ui/button";
@@ -13,7 +14,7 @@ import {
   getPayments,
   getTransactions,
 } from "@/lib/data/queries";
-import { compactDate, money, paymentStatusLabel } from "@/lib/format";
+import { accountStatusLabel, compactDate, money, paymentStatusLabel } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 
@@ -29,6 +30,7 @@ export default async function ProfilePage() {
     .filter((order) => !["rejected", "cancelled"].includes(order.status))
     .reduce((sum, order) => sum + Number(order.subtotal ?? 0), 0);
   const defaultAddress = addresses.find((address) => address.is_default) ?? addresses[0];
+  const discountPerItem = Math.max(Number(profile.per_item_discount ?? 0), 0);
 
   return (
     <div className="grid gap-4">
@@ -47,7 +49,7 @@ export default async function ProfilePage() {
             </div>
           </div>
           <Badge tone={profile.status === "approved" ? "success" : profile.status === "suspended" ? "danger" : "warning"}>
-            {profile.status}
+            {accountStatusLabel(profile.status)}
           </Badge>
         </div>
       </Card>
@@ -57,6 +59,30 @@ export default async function ProfilePage() {
         <StatCard label="ซื้อไปทั้งหมด" value={money(totalPurchased)} tone="success" />
         <StatCard label="จำนวนออเดอร์" value={String(orders.length)} />
       </div>
+
+      <Card>
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div className="flex min-w-0 items-start gap-3">
+            <div className="grid h-11 w-11 shrink-0 place-items-center rounded-lg border border-emerald-200 bg-emerald-50 text-success shadow-[inset_0_1px_0_rgba(255,255,255,0.86)]">
+              <BadgePercent className="h-5 w-5" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-xs font-semibold uppercase tracking-normal text-muted">Membership Discount</p>
+              <h3 className="mt-1 text-lg font-semibold">
+                {discountPerItem > 0 ? `ลด ${money(discountPerItem)} / ชิ้น` : "ยังไม่มีส่วนลดสมาชิก"}
+              </h3>
+              <p className="mt-1 text-sm leading-6 text-muted">
+                {discountPerItem > 0
+                  ? "ส่วนลดนี้ตั้งจากฝั่งแอดมิน และจะถูกคำนวณอัตโนมัติเมื่อสั่งซื้อ"
+                  : "ถ้าแอดมินตั้งส่วนลดให้ บัญชีนี้จะแสดงยอดลดต่อชิ้นตรงนี้"}
+              </p>
+            </div>
+          </div>
+          <Badge tone={discountPerItem > 0 ? "success" : "neutral"}>
+            {discountPerItem > 0 ? "เปิดใช้งาน" : "ไม่มีส่วนลด"}
+          </Badge>
+        </div>
+      </Card>
 
       <Card>
         <div className="flex flex-wrap items-center justify-between gap-3">
@@ -199,6 +225,23 @@ export default async function ProfilePage() {
             </div>
           ))}
           {payments.length === 0 ? <p className="text-sm text-muted">ยังไม่มีประวัติแจ้งชำระ</p> : null}
+        </div>
+      </Card>
+
+      <Card className="mb-2">
+        <div className="grid gap-3">
+          <div>
+            <h3 className="font-semibold">ออกจากระบบ</h3>
+            <p className="mt-1 text-sm leading-6 text-muted">
+              ปุ่มนี้ถูกย้ายมาไว้ท้ายหน้าโปรไฟล์เพื่อป้องกันการกดออกจากระบบโดยไม่ตั้งใจ
+            </p>
+          </div>
+          <form action={signOutCustomerAction}>
+            <SubmitButton variant="secondary" pendingLabel="กำลังออกจากระบบ..." className="w-full">
+              <LogOut className="h-4 w-4" />
+              ออกจากระบบ
+            </SubmitButton>
+          </form>
         </div>
       </Card>
     </div>

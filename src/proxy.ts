@@ -27,6 +27,10 @@ function startsWithRoute(pathname: string, routes: string[]) {
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
+  if (pathname === "/") {
+    return NextResponse.redirect(new URL("/login", request.url));
+  }
+
   if (startsWithRoute(pathname, customerRoutes) && !hasScopedCookie(request, customerAuthCookie)) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
@@ -44,6 +48,7 @@ export function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
+    "/",
     "/cart/:path*",
     "/dashboard/:path*",
     "/home/:path*",

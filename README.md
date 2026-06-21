@@ -115,7 +115,7 @@ Admin / staff:
 ## Assumptions
 
 - The attached `codex_inventory_credit_system_brief.md` was not present in the workspace or Codex attachments during implementation. The MVP follows the requirements supplied in the active goal text.
-- MVP uses email/password Supabase Auth. LINE Login is prepared in the data model but not connected yet.
+- MVP uses email/password Supabase Auth, with a customer LINE Login button wired to Supabase Custom OAuth (`custom:line`). Production still needs the LINE provider credentials configured in Supabase.
 - Payment slip verification is manual; no OCR or bank API is included.
 - Debt balance is reduced to zero if an approved payment exceeds the current debt. Overpayment carry-forward is a future enhancement.
 - Product images are modeled through Supabase Storage, but the MVP product UI can operate without uploaded images.

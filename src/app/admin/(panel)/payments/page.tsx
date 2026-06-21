@@ -1,3 +1,5 @@
+import Link from "next/link";
+import { ClipboardCheck, History, PlusCircle } from "lucide-react";
 import {
   approvePaymentAction,
   recordManualPaymentAction,
@@ -14,12 +16,29 @@ import { signedUrls } from "@/lib/storage";
 
 export const dynamic = "force-dynamic";
 
+type PaymentStage = "pending" | "history" | "manual";
+
+const stageTabs: {
+  key: PaymentStage;
+  label: string;
+  Icon: typeof ClipboardCheck;
+}[] = [
+  { key: "pending", label: "รอตรวจสลิป", Icon: ClipboardCheck },
+  { key: "history", label: "ประวัติ", Icon: History },
+  { key: "manual", label: "บันทึกเอง", Icon: PlusCircle },
+];
+
+function normalizeStage(value: string | undefined): PaymentStage {
+  return value === "history" || value === "manual" ? value : "pending";
+}
+
 export default async function AdminPaymentsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; stage?: string }>;
 }) {
   const params = await searchParams;
+  const activeStage = normalizeStage(params.stage);
   const [payments, profiles] = await Promise.all([
     getPayments("admin"),
     getProfiles(),
@@ -31,6 +50,14 @@ export default async function AdminPaymentsPage({
     .map((payment) => payment.slip_path)
     .filter((path): path is string => typeof path === "string" && path.length > 0);
   const slipUrls = await signedUrls("payment-slips", slipPaths, "admin");
+  const pendingPayments = payments.filter((payment) => payment.status === "pending");
+  const historyPayments = payments.filter((payment) => payment.status !== "pending");
+  const visiblePayments = activeStage === "history" ? historyPayments : pendingPayments;
+  const counts: Record<PaymentStage, number> = {
+    pending: pendingPayments.length,
+    history: historyPayments.length,
+    manual: approvedCustomers.length,
+  };
 
   return (
     <div className="grid gap-4">
@@ -47,9 +74,40 @@ export default async function AdminPaymentsPage({
         </div>
       ) : null}
 
+      <Card className="p-3">
+        <div className="grid grid-cols-3 gap-2">
+          {stageTabs.map(({ key, label, Icon }) => {
+            const active = key === activeStage;
+            return (
+              <Link
+                key={key}
+                href={`/admin/payments?stage=${key}`}
+                className={[
+                  "motion-surface relative grid min-h-[82px] place-items-center gap-1 rounded-lg border px-2 py-3 text-center transition-all duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent",
+                  active
+                    ? "border-accent bg-accent text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.32),0_12px_28px_rgba(15,118,110,0.22)]"
+                    : "border-white/70 bg-white/72 text-foreground hover:bg-white/92",
+                ].join(" ")}
+              >
+                <span className="relative">
+                  <Icon className="h-7 w-7" />
+                  {counts[key] > 0 ? (
+                    <span className="absolute -right-3 -top-3 grid h-5 min-w-5 place-items-center rounded-full bg-danger px-1 text-[11px] font-semibold text-white">
+                      {counts[key]}
+                    </span>
+                  ) : null}
+                </span>
+                <span className="text-[12px] font-semibold leading-snug">{label}</span>
+              </Link>
+            );
+          })}
+        </div>
+      </Card>
+
+      {activeStage === "manual" ? (
       <Card>
         <h3 className="font-semibold">บันทึกชำระเงินโดยทีมงาน</h3>
-        <form action={recordManualPaymentAction} encType="multipart/form-data" className="mt-4 grid gap-4">
+        <form action={recordManualPaymentAction} className="mt-4 grid gap-4">
           <div className="grid gap-3 md:grid-cols-3">
             <Field label="ลูกค้า">
               <Select name="customer_id" required>
@@ -86,9 +144,28 @@ export default async function AdminPaymentsPage({
           </SubmitButton>
         </form>
       </Card>
+      ) : null}
 
+      {activeStage !== "manual" ? (
       <div className="grid gap-3">
-        {payments.map((payment) => {
+        <div className="flex items-center justify-between gap-3">
+          <h3 className="font-semibold">
+            {activeStage === "pending" ? "สลิปที่รอตรวจ" : "ประวัติการตรวจสลิป"}
+          </h3>
+          <Badge tone={visiblePayments.length > 0 ? "accent" : "neutral"}>
+            {visiblePayments.length} รายการ
+          </Badge>
+        </div>
+
+        {visiblePayments.length === 0 ? (
+          <Card>
+            <h3 className="font-semibold">
+              {activeStage === "pending" ? "ไม่มีสลิปรอตรวจ" : "ยังไม่มีประวัติในหมวดนี้"}
+            </h3>
+          </Card>
+        ) : null}
+
+        {visiblePayments.map((payment) => {
           const slipUrl =
             typeof payment.slip_path === "string"
               ? slipUrls.get(payment.slip_path) ?? undefined
@@ -159,6 +236,7 @@ export default async function AdminPaymentsPage({
           );
         })}
       </div>
+      ) : null}
     </div>
   );
 }

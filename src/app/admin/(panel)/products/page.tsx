@@ -1,5 +1,5 @@
 import Image from "next/image";
-import { PackageSearch, Trash2 } from "lucide-react";
+import { ChevronDown, PackageSearch, Search, Trash2 } from "lucide-react";
 import {
   createCategoryAction,
   createProductAction,
@@ -21,16 +21,33 @@ export const dynamic = "force-dynamic";
 export default async function AdminProductsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; q?: string }>;
 }) {
   const params = await searchParams;
+  const query = (params.q ?? "").trim();
+  const normalizedQuery = query.toLowerCase();
   const [products, categories] = await Promise.all([
     getProductsWithInventory(true, "admin"),
     getProductCategories("admin"),
   ]);
+  const filteredProducts = normalizedQuery
+    ? products.filter((product) => {
+        const searchable = [
+          product.name,
+          product.sku,
+          product.category?.name,
+          product.description,
+        ]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase();
+
+        return searchable.includes(normalizedQuery);
+      })
+    : products;
   const productImageUrls = await signedUrls(
     "product-images",
-    products
+    filteredProducts
       .map((product) => product.image_path)
       .filter((path): path is string => Boolean(path)),
     "admin",
@@ -84,7 +101,7 @@ export default async function AdminProductsPage({
 
       <Card>
         <h3 className="font-semibold">เพิ่มสินค้าใหม่</h3>
-        <form action={createProductAction} encType="multipart/form-data" className="mt-4 grid gap-3 sm:grid-cols-2">
+        <form action={createProductAction} className="mt-4 grid gap-3 sm:grid-cols-2">
           <Field label="SKU"><Input name="sku" required /></Field>
           <Field label="ชื่อสินค้า"><Input name="name" required /></Field>
           <Field label="ราคา"><Input name="price" type="number" inputMode="decimal" min="0" step="0.01" required /></Field>
@@ -121,13 +138,80 @@ export default async function AdminProductsPage({
         </form>
       </Card>
 
+      <Card>
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <h3 className="font-semibold">รายการสินค้า</h3>
+            <p className="text-sm text-muted">ค้นหาแล้วกดสินค้าเพื่อเปิดฟอร์มแก้ไข</p>
+          </div>
+          <Badge tone={filteredProducts.length > 0 ? "accent" : "neutral"}>
+            {filteredProducts.length} / {products.length} รายการ
+          </Badge>
+        </div>
+        <form action="/admin/products" method="get" className="mt-4 grid gap-3 sm:grid-cols-[1fr_auto]">
+          <label className="relative block">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
+            <Input
+              name="q"
+              defaultValue={query}
+              placeholder="ค้นหาชื่อสินค้า / SKU / หมวดหมู่"
+              className="pl-9"
+            />
+          </label>
+          <SubmitButton variant="secondary" pendingLabel="กำลังค้นหา...">
+            ค้นหา
+          </SubmitButton>
+        </form>
+      </Card>
+
       <div className="grid gap-3">
-        {products.map((product) => {
+        {filteredProducts.length === 0 ? (
+          <Card>
+            <h3 className="font-semibold">ไม่พบสินค้า</h3>
+            <p className="mt-1 text-sm text-muted">ลองค้นหาด้วยชื่อสินค้า SKU หรือหมวดหมู่อื่น</p>
+          </Card>
+        ) : null}
+
+        {filteredProducts.map((product) => {
           const inv = Array.isArray(product.inventory) ? product.inventory[0] : product.inventory;
           const imageUrl = product.image_path ? productImageUrls.get(product.image_path) : null;
           return (
-            <Card key={product.id}>
-              <form action={updateProductAction} encType="multipart/form-data" className="grid gap-3 lg:grid-cols-[160px_1fr_1fr_120px_100px_140px]">
+            <Card key={product.id} className="p-0">
+              <details className="group">
+                <summary className="grid cursor-pointer list-none grid-cols-[72px_minmax(0,1fr)_auto] items-center gap-3 p-3 marker:hidden">
+                  <div className="relative grid aspect-square place-items-center overflow-hidden rounded-lg bg-surface-muted text-muted">
+                    {imageUrl ? (
+                      <Image
+                        src={imageUrl}
+                        alt={product.name}
+                        fill
+                        sizes="72px"
+                        className="object-cover"
+                      />
+                    ) : (
+                      <PackageSearch className="h-7 w-7" />
+                    )}
+                  </div>
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h3 className="min-w-0 truncate font-semibold">{product.name}</h3>
+                      <Badge tone={product.is_active ? "success" : "neutral"}>
+                        {product.is_active ? "เปิดขาย" : "ปิดอยู่"}
+                      </Badge>
+                    </div>
+                    <p className="mt-1 truncate text-sm text-muted">{product.sku}</p>
+                    <div className="mt-2 flex flex-wrap items-center gap-2 text-xs font-semibold">
+                      <Badge tone="accent">{product.category?.name ?? "ไม่ระบุหมวดหมู่"}</Badge>
+                      <span className="text-muted">Stock {inv?.quantity_available ?? 0}</span>
+                      <span>{money(product.price)}</span>
+                    </div>
+                  </div>
+                  <span className="grid h-10 w-10 place-items-center rounded-lg border border-white/70 bg-white/72 text-accent">
+                    <ChevronDown className="h-4 w-4 transition-transform duration-200 group-open:rotate-180" />
+                  </span>
+                </summary>
+
+              <form action={updateProductAction} className="grid gap-3 border-t border-white/60 p-3 lg:grid-cols-[160px_1fr_1fr_120px_100px_140px]">
                 <input type="hidden" name="id" value={product.id} />
                 <div className="relative grid aspect-[4/3] place-items-center overflow-hidden rounded-md bg-surface-muted text-muted lg:row-span-3">
                   {imageUrl ? (
@@ -192,6 +276,7 @@ export default async function AdminProductsPage({
                   </SubmitButton>
                 </div>
               </form>
+              </details>
             </Card>
           );
         })}

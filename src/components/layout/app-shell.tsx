@@ -71,6 +71,7 @@ export function AppShell({
   navItems,
   profile,
   signOutAction = signOutCustomerAction,
+  showHeaderSignOut = true,
   mobileNavMode = "tabs",
   children,
 }: {
@@ -79,6 +80,7 @@ export function AppShell({
   navItems: NavItem[];
   profile: Profile;
   signOutAction?: () => Promise<void>;
+  showHeaderSignOut?: boolean;
   mobileNavMode?: "tabs" | "drawer";
   children: ReactNode;
 }) {
@@ -86,7 +88,7 @@ export function AppShell({
     <div
       className={clsx(
         "min-h-screen bg-transparent md:pb-0",
-        mobileNavMode === "drawer" ? "pb-20" : "pb-24",
+        mobileNavMode === "drawer" ? "pb-28" : "pb-36",
       )}
     >
       <NavCurrentMarker />
@@ -105,12 +107,14 @@ export function AppShell({
             <h1 className="text-lg font-semibold">{title}</h1>
             {subtitle ? <p className="break-words text-sm text-muted">{subtitle}</p> : null}
           </div>
-          <form action={signOutAction}>
-            <SubmitButton variant="secondary" pendingLabel="กำลังออก..." className="px-3">
-              <LogOut className="h-4 w-4" />
-              <span className="hidden sm:inline">ออกจากระบบ</span>
-            </SubmitButton>
-          </form>
+          {showHeaderSignOut ? (
+            <form action={signOutAction}>
+              <SubmitButton variant="secondary" pendingLabel="กำลังออก..." className="px-3">
+                <LogOut className="h-4 w-4" />
+                <span className="hidden sm:inline">ออกจากระบบ</span>
+              </SubmitButton>
+            </form>
+          ) : null}
         </div>
       </header>
 

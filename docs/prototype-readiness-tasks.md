@@ -34,7 +34,8 @@ This file tracks the work still needed after the full audit. It separates the mi
 
 ## P1 - Important Before Real Production
 
-- [ ] Implement real LINE Login / LIFF flow.
+- [ ] Configure Supabase Custom OAuth provider `custom:line` with the real LINE channel credentials.
+- [ ] Implement full LINE Login / LIFF account-linking flow.
 - [ ] Verify LINE ID token server-side and map `line_user_id` automatically.
 - [ ] Remove manual customer editing of `line_user_id`.
 - [ ] Add LINE OA notification delivery worker for queued events in `line_notification_outbox`.
@@ -58,7 +59,7 @@ This file tracks the work still needed after the full audit. It separates the mi
 1. Admin prepares products and stock.
 2. Customer opens the app from LINE, signs in with the demo customer account, and lands on `/home`.
 3. Customer browses `/products`, adds items to cart, and checks out.
-4. Admin opens `/admin/orders`, approves the order, uploads a packed photo, then moves status to shipping.
+4. Admin opens `/admin/orders`, approves the order, then uploads a packed photo and confirms it was shipped.
 5. Customer opens the order detail and sees the packed photo.
 6. Customer opens payment, uploads/takes a slip photo, and submits payment amount.
 7. Admin approves the payment in `/admin/payments`.

@@ -87,7 +87,7 @@ export async function getAdminOrders() {
   const supabase = await createSupabaseServerClient("admin");
   const { data, error } = await supabase
     .from("orders")
-    .select("*, customer:profiles!orders_customer_id_fkey(full_name, company_name, email), order_items(*), order_photos(*)")
+    .select("*, customer:profiles!orders_customer_id_fkey(full_name, company_name, email, phone, debt_balance), order_items(*), order_photos(*)")
     .order("created_at", { ascending: false });
   if (error) throw error;
   return data ?? [];

@@ -1,5 +1,7 @@
 import { clsx } from "clsx";
-import type { InputHTMLAttributes, SelectHTMLAttributes, TextareaHTMLAttributes } from "react";
+import type { InputHTMLAttributes, TextareaHTMLAttributes } from "react";
+
+export { Select } from "@/components/ui/select";
 
 export function Field({
   label,
@@ -36,18 +38,6 @@ export function Textarea({ className, ...props }: TextareaHTMLAttributes<HTMLTex
     <textarea
       className={clsx(
         "min-h-24 w-full min-w-0 rounded-lg border border-white/70 bg-white/82 px-3 py-2 text-base shadow-[inset_0_1px_0_rgba(255,255,255,0.88)] outline-none backdrop-blur-xl transition-colors duration-200 placeholder:text-muted/70 focus:border-accent focus:ring-2 focus:ring-accent/20 md:text-sm",
-        className,
-      )}
-      {...props}
-    />
-  );
-}
-
-export function Select({ className, ...props }: SelectHTMLAttributes<HTMLSelectElement>) {
-  return (
-    <select
-      className={clsx(
-        "min-h-11 w-full min-w-0 rounded-lg border border-white/70 bg-white/82 px-3 py-2 text-base shadow-[inset_0_1px_0_rgba(255,255,255,0.88)] outline-none backdrop-blur-xl transition-colors duration-200 focus:border-accent focus:ring-2 focus:ring-accent/20 md:text-sm",
         className,
       )}
       {...props}

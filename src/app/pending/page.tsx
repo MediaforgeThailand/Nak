@@ -3,6 +3,7 @@ import { signOutAdminAction, signOutCustomerAction } from "@/app/actions/auth";
 import { Card } from "@/components/ui/card";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { getCurrentProfile } from "@/lib/auth";
+import { accountStatusLabel } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 
@@ -36,7 +37,7 @@ export default async function PendingPage({
               <Mail className="mt-0.5 h-4 w-4 text-accent" />
               <div className="min-w-0">
                 <p className="break-words font-medium">{profile.email}</p>
-                <p className="text-muted">สถานะปัจจุบัน: {profile.status}</p>
+                <p className="text-muted">สถานะปัจจุบัน: {accountStatusLabel(profile.status)}</p>
               </div>
             </div>
             <div className="flex items-start gap-3">

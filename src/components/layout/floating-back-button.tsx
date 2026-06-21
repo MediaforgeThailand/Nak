@@ -91,7 +91,7 @@ export function FloatingBackButton() {
   return (
     <button
       type="button"
-      className="floating-back-button motion-surface fixed right-4 z-[60] grid h-12 w-12 place-items-center rounded-full border border-white/70 bg-white/90 text-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.92),0_18px_42px_rgba(31,65,58,0.22)] backdrop-blur-2xl transition-all duration-200 hover:bg-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+      className="floating-back-button motion-surface fixed right-3 z-[50] grid h-11 w-11 place-items-center rounded-full border border-white/70 bg-white/90 text-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.92),0_18px_42px_rgba(31,65,58,0.22)] backdrop-blur-2xl transition-all duration-200 hover:bg-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
       aria-label="ย้อนกลับหน้าก่อนหน้า"
       title="ย้อนกลับ"
       onClick={goBackInsideApp}

@@ -4,25 +4,25 @@ import { orderStatusLabel } from "@/lib/format";
 
 const normalStages = [
   "pending_admin",
-  "approved",
   "packing",
-  "ready_to_ship",
   "shipping",
-  "delivered",
 ];
 
 const rejectedStages = ["pending_admin", "rejected"];
 
 const shortLabels: Record<string, string> = {
   pending_admin: "รออนุมัติ",
-  approved: "อนุมัติแล้ว",
-  packing: "แพ็คสินค้า",
-  ready_to_ship: "พร้อมส่ง",
-  shipping: "จัดส่ง",
-  delivered: "สำเร็จ",
+  packing: "เตรียมจัดส่ง",
+  shipping: "จัดส่งแล้ว",
   rejected: "ปฏิเสธ",
   cancelled: "ยกเลิก",
 };
+
+function progressStatus(status: string) {
+  if (status === "approved" || status === "ready_to_ship") return "packing";
+  if (status === "delivered") return "shipping";
+  return status;
+}
 
 function stageState(status: string, stage: string, index: number, activeIndex: number) {
   if (stage === "rejected" || stage === "cancelled") return "rejected";
@@ -39,8 +39,9 @@ export function OrderProgress({
   status: string;
   compact?: boolean;
 }) {
-  const stages = status === "rejected" || status === "cancelled" ? rejectedStages : normalStages;
-  const activeIndex = Math.max(0, stages.indexOf(status));
+  const activeStatus = progressStatus(status);
+  const stages = activeStatus === "rejected" || activeStatus === "cancelled" ? rejectedStages : normalStages;
+  const activeIndex = Math.max(0, stages.indexOf(activeStatus));
 
   return (
     <div className="overflow-x-auto pb-1">
@@ -52,7 +53,7 @@ export function OrderProgress({
         style={{ gridTemplateColumns: `repeat(${stages.length}, minmax(0, 1fr))` }}
       >
         {stages.map((stage, index) => {
-          const state = stageState(status, stage, index, activeIndex);
+          const state = stageState(activeStatus, stage, index, activeIndex);
           const isDone = state === "done";
           const isCurrent = state === "current";
           const isRejected = state === "rejected";

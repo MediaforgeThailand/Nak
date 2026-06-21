@@ -7,6 +7,18 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { safeFileName } from "@/lib/storage";
 import type { OrderStatus, UserRole } from "@/lib/types";
 
+const userRoles: UserRole[] = ["customer", "factory_staff", "admin"];
+
+function adminReturnPath(formData: FormData, fallback: "/admin/customers" | "/admin/users") {
+  const value = String(formData.get("return_to") ?? fallback);
+  return value === "/admin/users" || value === "/admin/customers" ? value : fallback;
+}
+
+function parseUserRole(value: FormDataEntryValue | null) {
+  const role = String(value ?? "customer") as UserRole;
+  return userRoles.includes(role) ? role : null;
+}
+
 async function uploadImageFile(
   supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
   bucket: string,
@@ -159,6 +171,7 @@ export async function createProductAction(formData: FormData) {
   }
   revalidatePath("/admin/products");
   revalidatePath("/products");
+  revalidatePath("/home");
 }
 
 export async function updateProductAction(formData: FormData) {
@@ -173,6 +186,22 @@ export async function updateProductAction(formData: FormData) {
     formData.get("image"),
     "/admin/products",
   );
+  let oldImagePath: string | null = null;
+
+  if (imagePath) {
+    const { data: existingProduct, error: lookupError } = await supabase
+      .from("products")
+      .select("image_path")
+      .eq("id", id)
+      .maybeSingle<{ image_path: string | null }>();
+
+    if (lookupError) {
+      await supabase.storage.from("product-images").remove([imagePath]);
+      redirect(`/admin/products?error=${encodeURIComponent(lookupError.message)}`);
+    }
+
+    oldImagePath = existingProduct?.image_path ?? null;
+  }
 
   const payload: {
     sku: string;
@@ -204,8 +233,21 @@ export async function updateProductAction(formData: FormData) {
     if (imagePath) await supabase.storage.from("product-images").remove([imagePath]);
     redirect(`/admin/products?error=${encodeURIComponent(error.message)}`);
   }
+
+  if (
+    imagePath &&
+    oldImagePath &&
+    oldImagePath !== imagePath &&
+    !oldImagePath.startsWith("/") &&
+    !oldImagePath.startsWith("http://") &&
+    !oldImagePath.startsWith("https://")
+  ) {
+    await supabase.storage.from("product-images").remove([oldImagePath]);
+  }
+
   revalidatePath("/admin/products");
   revalidatePath("/products");
+  revalidatePath("/home");
 }
 
 export async function deleteProductAction(formData: FormData) {
@@ -244,6 +286,7 @@ export async function adjustInventoryAction(formData: FormData) {
   if (error) redirect(`/admin/stock?error=${encodeURIComponent(error.message)}`);
   revalidatePath("/admin/stock");
   revalidatePath("/products");
+  revalidatePath("/home");
 }
 
 export async function approveOrderAction(formData: FormData) {
@@ -251,12 +294,18 @@ export async function approveOrderAction(formData: FormData) {
   const supabase = await createSupabaseServerClient("admin");
   const orderId = String(formData.get("order_id") ?? "");
   const note = String(formData.get("admin_note") ?? "").trim() || null;
-  const { error } = await supabase.rpc("approve_order", {
+  const { error } = await supabase.rpc("approve_order_and_start_packing", {
     target_order_id: orderId,
     admin_note: note,
   });
+
   if (error) redirect(`/admin/orders?error=${encodeURIComponent(error.message)}`);
   revalidatePath("/admin/orders");
+  revalidatePath("/admin/home");
+  revalidatePath("/orders");
+  revalidatePath(`/orders/${orderId}`);
+  revalidatePath("/profile");
+  revalidatePath("/transactions");
 }
 
 export async function rejectOrderAction(formData: FormData) {
@@ -270,6 +319,10 @@ export async function rejectOrderAction(formData: FormData) {
   });
   if (error) redirect(`/admin/orders?error=${encodeURIComponent(error.message)}`);
   revalidatePath("/admin/orders");
+  revalidatePath("/admin/home");
+  revalidatePath("/orders");
+  revalidatePath(`/orders/${orderId}`);
+  revalidatePath("/home");
 }
 
 export async function updateOrderStatusAction(formData: FormData) {
@@ -278,6 +331,11 @@ export async function updateOrderStatusAction(formData: FormData) {
   const orderId = String(formData.get("order_id") ?? "");
   const status = String(formData.get("status") ?? "packing") as OrderStatus;
   const note = String(formData.get("note") ?? "").trim() || null;
+
+  if (!["packing", "shipping"].includes(status)) {
+    redirect(`/admin/orders?error=${encodeURIComponent("กรุณาอัปเดตสถานะตามขั้นตอนของหน้าออเดอร์")}`);
+  }
+
   const { error } = await supabase.rpc("update_order_status", {
     target_order_id: orderId,
     new_status: status,
@@ -285,6 +343,9 @@ export async function updateOrderStatusAction(formData: FormData) {
   });
   if (error) redirect(`/admin/orders?error=${encodeURIComponent(error.message)}`);
   revalidatePath("/admin/orders");
+  revalidatePath("/admin/home");
+  revalidatePath("/orders");
+  revalidatePath(`/orders/${orderId}`);
 }
 
 export async function uploadOrderPhotoAction(formData: FormData) {
@@ -322,6 +383,54 @@ export async function uploadOrderPhotoAction(formData: FormData) {
     redirect(`/admin/orders?error=${encodeURIComponent(error.message)}`);
   }
   revalidatePath("/admin/orders");
+  revalidatePath("/admin/home");
+  revalidatePath("/orders");
+  revalidatePath(`/orders/${orderId}`);
+}
+
+export async function shipOrderWithPhotoAction(formData: FormData) {
+  await requireStaff();
+  const supabase = await createSupabaseServerClient("admin");
+  const orderId = String(formData.get("order_id") ?? "");
+  const caption = String(formData.get("caption") ?? "").trim() || null;
+  const file = formData.get("photo");
+
+  if (!(file instanceof File) || file.size === 0) {
+    redirect(`/admin/orders?error=${encodeURIComponent("กรุณาถ่ายหรือแนบรูปสินค้าก่อนยืนยันจัดส่ง")}`);
+  }
+
+  if (!file.type.startsWith("image/")) {
+    redirect(`/admin/orders?error=${encodeURIComponent("กรุณาอัปโหลดไฟล์รูปภาพเท่านั้น")}`);
+  }
+
+  const path = `${orderId}/${Date.now()}-${safeFileName(file.name)}`;
+  const buffer = Buffer.from(await file.arrayBuffer());
+  const { error: uploadError } = await supabase.storage
+    .from("order-photos")
+    .upload(path, buffer, {
+      contentType: file.type || "application/octet-stream",
+      upsert: false,
+    });
+
+  if (uploadError) {
+    redirect(`/admin/orders?error=${encodeURIComponent(uploadError.message)}`);
+  }
+
+  const { error } = await supabase.rpc("ship_order_with_photo", {
+    target_order_id: orderId,
+    storage_path: path,
+    caption,
+  });
+
+  if (error) {
+    await supabase.storage.from("order-photos").remove([path]);
+    redirect(`/admin/orders?error=${encodeURIComponent(error.message)}`);
+  }
+
+  revalidatePath("/admin/orders");
+  revalidatePath("/admin/home");
+  revalidatePath("/orders");
+  revalidatePath(`/orders/${orderId}`);
 }
 
 export async function approvePaymentAction(formData: FormData) {
@@ -335,6 +444,9 @@ export async function approvePaymentAction(formData: FormData) {
   });
   if (error) redirect(`/admin/payments?error=${encodeURIComponent(error.message)}`);
   revalidatePath("/admin/payments");
+  revalidatePath("/admin/customers");
+  revalidatePath("/profile");
+  revalidatePath("/transactions");
 }
 
 export async function rejectPaymentAction(formData: FormData) {
@@ -348,19 +460,21 @@ export async function rejectPaymentAction(formData: FormData) {
   });
   if (error) redirect(`/admin/payments?error=${encodeURIComponent(error.message)}`);
   revalidatePath("/admin/payments");
+  revalidatePath("/profile");
+  revalidatePath("/transactions");
 }
 
 export async function updateCustomerDiscountAction(formData: FormData) {
-  await requireOwner();
+  await requireAdmin();
   const supabase = await createSupabaseServerClient("admin");
   const userId = String(formData.get("user_id") ?? "");
   const discount = Number(formData.get("per_item_discount") ?? 0);
 
   if (!Number.isFinite(discount) || discount < 0) {
-    redirect(`/admin/customers?error=${encodeURIComponent("Discount must be zero or greater")}`);
+    redirect(`/admin/customers?error=${encodeURIComponent("ส่วนลดต้องเป็น 0 หรือมากกว่า")}`);
   }
 
-  const { error } = await supabase.rpc("owner_update_customer_discount", {
+  const { error } = await supabase.rpc("admin_update_customer_discount", {
     target_customer_id: userId,
     discount_per_item: discount,
   });
@@ -368,6 +482,9 @@ export async function updateCustomerDiscountAction(formData: FormData) {
   if (error) redirect(`/admin/customers?error=${encodeURIComponent(error.message)}`);
   revalidatePath("/admin/customers");
   revalidatePath("/home");
+  revalidatePath("/products");
+  revalidatePath("/cart");
+  revalidatePath("/profile");
 }
 
 export async function adjustCustomerDebtAction(formData: FormData) {
@@ -436,27 +553,63 @@ export async function recordManualPaymentAction(formData: FormData) {
 }
 
 export async function approveUserAction(formData: FormData) {
-  await requireAdmin();
+  const { profile: currentProfile } = await requireAdmin();
   const supabase = await createSupabaseServerClient("admin");
+  const returnTo = adminReturnPath(formData, "/admin/users");
   const userId = String(formData.get("user_id") ?? "");
-  const role = String(formData.get("role") ?? "customer") as UserRole;
+  const role = parseUserRole(formData.get("role"));
+
+  if (!role) {
+    redirect(`${returnTo}?error=${encodeURIComponent("กรุณาเลือกสิทธิ์ที่ถูกต้อง")}`);
+  }
+
+  if (!userId || userId === currentProfile.id) {
+    redirect(`${returnTo}?error=${encodeURIComponent("ไม่สามารถแก้สิทธิ์บัญชีที่กำลังใช้งานอยู่")}`);
+  }
+
+  const { data: targetProfile, error: targetError } = await supabase
+    .from("profiles")
+    .select("id, role, status")
+    .eq("id", userId)
+    .single<{ id: string; role: UserRole; status: string }>();
+
+  if (targetError || !targetProfile) {
+    redirect(`${returnTo}?error=${encodeURIComponent(targetError?.message ?? "ไม่พบบัญชีที่ต้องการแก้ไข")}`);
+  }
+
+  if (targetProfile.role === "customer" && targetProfile.status !== "pending" && role !== "customer") {
+    redirect(
+      `${returnTo}?error=${encodeURIComponent(
+        "บัญชีลูกค้าที่ใช้งานแล้วไม่สามารถเลื่อนเป็นทีมงานจากหน้าจัดการลูกค้าได้ ให้ใช้คำขอทีมงานใหม่",
+      )}`,
+    );
+  }
+
   const { error } = await supabase.rpc("approve_customer", {
     target_user_id: userId,
     target_role: role,
   });
-  if (error) redirect(`/admin/customers?error=${encodeURIComponent(error.message)}`);
+
+  if (error) redirect(`${returnTo}?error=${encodeURIComponent(error.message)}`);
   revalidatePath("/admin/customers");
   revalidatePath("/admin/users");
 }
 
 export async function suspendUserAction(formData: FormData) {
-  await requireAdmin();
+  const { profile: currentProfile } = await requireAdmin();
   const supabase = await createSupabaseServerClient("admin");
+  const returnTo = adminReturnPath(formData, "/admin/users");
   const userId = String(formData.get("user_id") ?? "");
+
+  if (!userId || userId === currentProfile.id) {
+    redirect(`${returnTo}?error=${encodeURIComponent("ไม่สามารถระงับบัญชีที่กำลังใช้งานอยู่")}`);
+  }
+
   const { error } = await supabase.rpc("suspend_customer", {
     target_user_id: userId,
   });
-  if (error) redirect(`/admin/customers?error=${encodeURIComponent(error.message)}`);
+
+  if (error) redirect(`${returnTo}?error=${encodeURIComponent(error.message)}`);
   revalidatePath("/admin/customers");
   revalidatePath("/admin/users");
 }

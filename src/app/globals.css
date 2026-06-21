@@ -151,7 +151,16 @@ input[type="file"] {
 
 body:has(.mobile-tab-nav) .floating-back-button,
 body:has(.mobile-drawer-button) .floating-back-button {
-  bottom: calc(env(safe-area-inset-bottom) + 5.75rem);
+  bottom: calc(env(safe-area-inset-bottom) + 5.25rem);
+}
+
+body:has(.mobile-drawer-button) .floating-back-button {
+  bottom: calc(env(safe-area-inset-bottom) + 1rem);
+  right: calc(env(safe-area-inset-right) + 0.75rem);
+}
+
+.mobile-drawer-button {
+  bottom: calc(env(safe-area-inset-bottom) + 1rem);
 }
 
 .mobile-drawer {

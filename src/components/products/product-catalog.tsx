@@ -310,7 +310,7 @@ export function ProductCatalog({
         </Card>
       ) : (
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
-          {visibleProducts.map((product) => {
+          {visibleProducts.map((product, index) => {
             const qty = stock(product);
             const soldOut = qty <= 0;
             const unitDiscount = discountPerUnit(product.price, discountPerItem);
@@ -329,6 +329,7 @@ export function ProductCatalog({
                       src={product.imageUrl}
                       alt={product.name}
                       fill
+                      priority={index < 2}
                       sizes="(min-width: 1024px) 30vw, 50vw"
                       className="object-cover transition-transform duration-300 group-hover:scale-[1.025]"
                     />

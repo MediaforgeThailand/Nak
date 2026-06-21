@@ -26,12 +26,12 @@ export function compactDate(value: string | null | undefined) {
 
 export function orderStatusLabel(status: string) {
   const labels: Record<string, string> = {
-    pending_admin: "รอแอดมินอนุมัติ",
+    pending_admin: "รออนุมัติ",
     approved: "อนุมัติแล้ว",
-    packing: "กำลังแพ็ค",
-    ready_to_ship: "พร้อมส่ง",
-    shipping: "กำลังจัดส่ง",
-    delivered: "จัดส่งสำเร็จ",
+    packing: "กำลังเตรียมจัดส่ง",
+    ready_to_ship: "กำลังเตรียมจัดส่ง",
+    shipping: "จัดส่งแล้ว",
+    delivered: "จัดส่งแล้ว",
     rejected: "ถูกปฏิเสธ",
     cancelled: "ยกเลิก",
   };

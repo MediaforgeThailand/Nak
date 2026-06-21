@@ -38,7 +38,7 @@ export default async function NewPaymentPage({
         </div>
       </Card>
       <Card>
-        <form action={submitPaymentAction} encType="multipart/form-data" className="grid gap-4">
+        <form action={submitPaymentAction} className="grid gap-4">
           <Field label="ยอดโอน">
             <Input name="amount" type="number" inputMode="decimal" min="1" step="0.01" required />
           </Field>

@@ -27,6 +27,7 @@ export default async function CustomerLayout({
       subtitle={profile.company_name ?? profile.full_name ?? profile.email}
       navItems={navItems}
       profile={profile}
+      showHeaderSignOut={false}
     >
       {children}
     </AppShell>

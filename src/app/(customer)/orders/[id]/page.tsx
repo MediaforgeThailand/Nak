@@ -131,7 +131,7 @@ export default async function OrderDetailPage({
               <p className="mt-2 text-sm text-muted">ยังไม่มีรูปจากทีมแพ็คสินค้า</p>
             ) : (
               <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                {(order.order_photos ?? []).map((photo: { id: string; storage_path: string; caption: string | null }) => {
+                {(order.order_photos ?? []).map((photo: { id: string; storage_path: string; caption: string | null }, index: number) => {
                   const url = photoUrls.get(photo.storage_path);
                   return (
                     <div key={photo.id} className="overflow-hidden rounded-2xl border border-white/60 bg-white/48">
@@ -141,6 +141,7 @@ export default async function OrderDetailPage({
                           alt={photo.caption ?? "Packed product photo"}
                           width={640}
                           height={480}
+                          priority={index === 0}
                           className="aspect-[4/3] w-full object-cover"
                         />
                       ) : null}
