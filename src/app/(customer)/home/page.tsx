@@ -48,9 +48,6 @@ export default async function HomePage({
         <div className="mb-3 flex flex-wrap items-end justify-between gap-3">
           <div>
             <h2 className="text-xl font-semibold">ยืนยันออเดอร์</h2>
-            <p className="text-sm text-muted">
-              ตรวจรายการ เลือกที่อยู่จัดส่ง และส่งให้แอดมินอนุมัติ
-            </p>
           </div>
           <Badge tone="accent">ไม่มีชำระเงินตอน checkout</Badge>
         </div>

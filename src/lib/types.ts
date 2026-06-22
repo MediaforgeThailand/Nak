@@ -1,5 +1,6 @@
 export type UserRole = "customer" | "factory_staff" | "admin";
 export type AccountStatus = "pending" | "approved" | "suspended";
+export type SignupScope = "customer" | "staff";
 
 export type OrderStatus =
   | "pending_admin"
@@ -22,9 +23,12 @@ export type Profile = {
   line_user_id: string | null;
   role: UserRole;
   status: AccountStatus;
+  signup_scope: SignupScope;
   debt_balance: number;
   is_owner: boolean;
   per_item_discount: number;
+  created_at: string;
+  updated_at: string;
 };
 
 export type Product = {

@@ -25,7 +25,7 @@ export function Button({
     <button
       type={type}
       className={clsx(
-        "motion-surface inline-flex min-h-10 cursor-pointer touch-manipulation items-center justify-center gap-2 rounded-lg px-4 py-2 text-center text-sm font-semibold transition-all duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0 disabled:active:scale-100",
+        "motion-surface inline-flex min-h-9 cursor-pointer touch-manipulation items-center justify-center gap-1.5 rounded-lg px-3 py-1.5 text-center text-sm font-semibold transition-all duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0 disabled:active:scale-100",
         variants[variant],
         className,
       )}
@@ -48,7 +48,7 @@ export function ButtonLink({
     <Link
       prefetch={prefetch}
       className={clsx(
-        "motion-surface inline-flex min-h-10 cursor-pointer touch-manipulation items-center justify-center gap-2 rounded-lg px-4 py-2 text-center text-sm font-semibold transition-all duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent",
+        "motion-surface inline-flex min-h-9 cursor-pointer touch-manipulation items-center justify-center gap-1.5 rounded-lg px-3 py-1.5 text-center text-sm font-semibold transition-all duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent",
         variants[variant],
         className,
       )}

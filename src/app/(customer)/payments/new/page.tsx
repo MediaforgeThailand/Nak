@@ -16,7 +16,6 @@ export default async function NewPaymentPage({
     <div className="mx-auto grid max-w-2xl gap-4">
       <div>
         <h2 className="text-2xl font-semibold">แจ้งชำระเงิน</h2>
-        <p className="text-sm text-muted">ยอดหนี้จะลดหลังแอดมินตรวจสลิปและอนุมัติเท่านั้น</p>
       </div>
       {params.error ? (
         <div className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-danger">
@@ -24,16 +23,11 @@ export default async function NewPaymentPage({
         </div>
       ) : null}
       <Card>
-        <div className="grid gap-4 sm:grid-cols-[140px_1fr]">
-          <div className="grid aspect-square place-items-center rounded-md border border-border bg-surface-muted text-center">
+        <div className="grid gap-4">
+          <div className="grid aspect-square max-w-[180px] place-items-center rounded-md border border-border bg-surface-muted text-center">
             <div>
               <p className="text-lg font-semibold">QR ชำระเงิน</p>
-              <p className="mt-1 text-xs text-muted">สแกนหรือโอนตามข้อมูลที่ทีมงานแจ้งไว้</p>
             </div>
-          </div>
-          <div className="text-sm leading-6">
-            <p className="font-semibold">วิธีชำระเงิน</p>
-            <p className="text-muted">สแกน QR โรงงานหรือโอนตามข้อมูลที่ทีมงานให้ไว้ แล้วถ่ายหรืออัปโหลดสลิปในฟอร์มด้านล่าง</p>
           </div>
         </div>
       </Card>
@@ -51,7 +45,6 @@ export default async function NewPaymentPage({
               accept="image/*,.pdf"
               capture="environment"
               required
-              hint="แนะนำให้ถ่ายรูปสลิปจากกล้องมือถือ"
             />
           </Field>
           <Field label="หมายเหตุ">

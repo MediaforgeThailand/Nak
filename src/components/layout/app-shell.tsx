@@ -28,10 +28,10 @@ function MobileTabNav({ navItems }: { navItems: NavItem[] }) {
           href={item.href}
           data-nav-href={item.href}
           className={clsx(
-            "motion-surface flex min-h-16 min-w-0 flex-col items-center justify-center gap-1 px-1 text-[11px] font-semibold leading-tight text-muted transition-all duration-200 hover:bg-white/70 hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-accent",
+            "motion-surface flex min-h-14 min-w-0 flex-col items-center justify-center gap-0.5 px-1 text-[10px] font-semibold leading-tight text-muted transition-all duration-200 hover:bg-white/70 hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-accent",
           )}
         >
-          <item.icon className="h-5 w-5" />
+          <item.icon className="h-[18px] w-[18px]" />
           <span className="max-w-full truncate">{item.mobileLabel ?? item.label}</span>
         </Link>
       ))}
@@ -53,9 +53,9 @@ function MobileDrawerNav({
           key={item.href}
           href={item.href}
           data-nav-href={item.href}
-          className="motion-surface flex min-h-12 items-center gap-3 rounded-lg border border-transparent px-3 text-sm font-semibold text-muted transition-all duration-200 hover:border-white/70 hover:bg-white/76 hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+          className="motion-surface flex min-h-10 items-center gap-2.5 rounded-lg border border-transparent px-2.5 text-sm font-semibold text-muted transition-all duration-200 hover:border-white/70 hover:bg-white/76 hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
         >
-          <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg border border-white/70 bg-white/72 text-accent">
+          <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg border border-white/70 bg-white/72 text-accent">
             <item.icon className="h-4 w-4" />
           </span>
           <span className="truncate">{item.label}</span>
@@ -88,24 +88,24 @@ export function AppShell({
     <div
       className={clsx(
         "min-h-screen bg-transparent md:pb-0",
-        mobileNavMode === "drawer" ? "pb-28" : "pb-36",
+        mobileNavMode === "drawer" ? "pb-24" : "pb-28",
       )}
     >
       <NavCurrentMarker />
       <a
         href="#main-content"
-        className="sr-only z-50 rounded-md bg-accent px-4 py-2 text-sm font-semibold text-accent-foreground focus:not-sr-only focus:fixed focus:left-4 focus:top-4"
+        className="sr-only z-50 rounded-md bg-accent px-3 py-1.5 text-sm font-semibold text-accent-foreground focus:not-sr-only focus:fixed focus:left-4 focus:top-4"
       >
         ข้ามไปยังเนื้อหา
       </a>
       <header className="sticky top-0 z-20 border-b border-white/70 bg-white/82 backdrop-blur-2xl">
-        <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-4">
+        <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3">
           <div className="min-w-0">
-            <p className="text-xs font-semibold uppercase tracking-normal text-accent">
+            <p className="text-[11px] font-semibold uppercase tracking-normal text-accent">
               NAK Wholesale
             </p>
-            <h1 className="text-lg font-semibold">{title}</h1>
-            {subtitle ? <p className="break-words text-sm text-muted">{subtitle}</p> : null}
+            <h1 className="text-base font-semibold">{title}</h1>
+            {subtitle ? <p className="break-words text-xs text-muted">{subtitle}</p> : null}
           </div>
           {showHeaderSignOut ? (
             <form action={signOutAction}>
@@ -118,7 +118,7 @@ export function AppShell({
         </div>
       </header>
 
-      <div className="mx-auto grid max-w-7xl gap-6 px-4 py-5 md:grid-cols-[220px_1fr]">
+      <div className="mx-auto grid max-w-7xl gap-4 px-4 py-4 md:grid-cols-[220px_1fr]">
         <aside className="hidden md:block">
           <nav aria-label="เมนูหลัก" className="sticky top-4 grid gap-1">
             {navItems.map((item) => (
@@ -126,7 +126,7 @@ export function AppShell({
                 key={item.href}
                 href={item.href}
                 data-nav-href={item.href}
-                className="motion-surface flex min-h-11 items-center gap-2 rounded-lg border border-transparent px-3 text-sm font-medium text-muted transition-all duration-200 hover:border-white/70 hover:bg-white/72 hover:text-foreground hover:shadow-[0_12px_28px_rgba(31,65,58,0.1)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+                className="motion-surface flex min-h-10 items-center gap-2 rounded-lg border border-transparent px-2.5 text-sm font-medium text-muted transition-all duration-200 hover:border-white/70 hover:bg-white/72 hover:text-foreground hover:shadow-[0_10px_22px_rgba(31,65,58,0.09)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
               >
                 <item.icon className="h-4 w-4" />
                 {item.label}

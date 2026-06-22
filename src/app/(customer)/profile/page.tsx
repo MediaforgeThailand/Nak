@@ -71,11 +71,6 @@ export default async function ProfilePage() {
               <h3 className="mt-1 text-lg font-semibold">
                 {discountPerItem > 0 ? `ลด ${money(discountPerItem)} / ชิ้น` : "ยังไม่มีส่วนลดสมาชิก"}
               </h3>
-              <p className="mt-1 text-sm leading-6 text-muted">
-                {discountPerItem > 0
-                  ? "ส่วนลดนี้ตั้งจากฝั่งแอดมิน และจะถูกคำนวณอัตโนมัติเมื่อสั่งซื้อ"
-                  : "ถ้าแอดมินตั้งส่วนลดให้ บัญชีนี้จะแสดงยอดลดต่อชิ้นตรงนี้"}
-              </p>
             </div>
           </div>
           <Badge tone={discountPerItem > 0 ? "success" : "neutral"}>
@@ -86,10 +81,7 @@ export default async function ProfilePage() {
 
       <Card>
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h3 className="font-semibold">ยอดค้างและการชำระเงิน</h3>
-            <p className="text-sm text-muted">ดูยอดค้างปัจจุบันและแจ้งชำระเงินได้ทันที</p>
-          </div>
+          <h3 className="font-semibold">ยอดค้างและการชำระเงิน</h3>
           <ButtonLink href="/payments/new">
             <CreditCard className="h-4 w-4" />
             ชำระเงิน
@@ -230,12 +222,7 @@ export default async function ProfilePage() {
 
       <Card className="mb-2">
         <div className="grid gap-3">
-          <div>
-            <h3 className="font-semibold">ออกจากระบบ</h3>
-            <p className="mt-1 text-sm leading-6 text-muted">
-              ปุ่มนี้ถูกย้ายมาไว้ท้ายหน้าโปรไฟล์เพื่อป้องกันการกดออกจากระบบโดยไม่ตั้งใจ
-            </p>
-          </div>
+          <h3 className="font-semibold">ออกจากระบบ</h3>
           <form action={signOutCustomerAction}>
             <SubmitButton variant="secondary" pendingLabel="กำลังออกจากระบบ..." className="w-full">
               <LogOut className="h-4 w-4" />

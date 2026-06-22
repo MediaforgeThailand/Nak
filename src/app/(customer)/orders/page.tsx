@@ -21,9 +21,6 @@ export default async function OrdersPage() {
           <div>
             <p className="text-sm font-semibold text-accent">ติดตามออเดอร์</p>
             <h2 className="mt-1 text-2xl font-semibold">สถานะออเดอร์ของฉัน</h2>
-            <p className="mt-1 text-sm text-muted">
-              ดูว่าออเดอร์ผ่านการอนุมัติแล้วหรือยัง และอยู่ในขั้นตอนไหนของการจัดส่ง
-            </p>
           </div>
         </div>
       </Card>
@@ -63,7 +60,6 @@ export default async function OrdersPage() {
         {orders.length === 0 ? (
           <Card>
             <h3 className="font-semibold">ยังไม่มีออเดอร์</h3>
-            <p className="mt-1 text-sm text-muted">เลือกสินค้าที่หน้าหลักเพื่อส่งออเดอร์แรกของคุณ</p>
           </Card>
         ) : null}
       </div>

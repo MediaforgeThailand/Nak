@@ -3,10 +3,8 @@
 import Image from "next/image";
 import {
   ArrowLeft,
-  PackageCheck,
   PackageSearch,
   Search,
-  ShoppingBag,
   SlidersHorizontal,
 } from "lucide-react";
 import { useMemo, useState } from "react";
@@ -178,27 +176,6 @@ export function ProductCatalog({
                 </div>
               </div>
 
-              <div className="grid gap-3 rounded-lg border border-border bg-white/70 p-4">
-                <div className="flex items-start gap-3">
-                  <PackageCheck className="mt-0.5 h-5 w-5 text-accent" />
-                  <div>
-                    <p className="font-semibold">สต็อกพร้อมจองทันที</p>
-                    <p className="text-sm leading-6 text-muted">
-                      เมื่อส่งออเดอร์ ระบบจะจองสต็อกและส่งให้แอดมินอนุมัติก่อนคิดยอดค้างชำระ
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3">
-                  <ShoppingBag className="mt-0.5 h-5 w-5 text-accent" />
-                  <div>
-                    <p className="font-semibold">เหมาะสำหรับสั่งซ้ำและขายต่อ</p>
-                    <p className="text-sm leading-6 text-muted">
-                      ราคาและส่วนลดถูกบันทึกลงออเดอร์ทุกครั้ง เพื่อให้ตรวจย้อนหลังได้ชัดเจน
-                    </p>
-                  </div>
-                </div>
-              </div>
-
               {selectedProduct.description ? (
                 <p className="whitespace-pre-wrap text-sm leading-6 text-muted">
                   {selectedProduct.description}
@@ -209,7 +186,7 @@ export function ProductCatalog({
 
               {soldOut ? (
                 <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-danger">
-                  สินค้านี้หมดชั่วคราว ลูกค้าจะไม่สามารถเพิ่มลงตะกร้าหรือส่งออเดอร์ได้
+                  สินค้าหมด
                 </div>
               ) : null}
 
@@ -220,9 +197,6 @@ export function ProductCatalog({
                   label="เพิ่มลงตะกร้า"
                   addedLabel="เพิ่มแล้ว ไปยืนยันออเดอร์"
                 />
-                <p className="text-xs leading-5 text-muted">
-                  หลังเพิ่มสินค้าแล้วเลื่อนลงไปยืนยันออเดอร์ ระบบจะส่งรายการให้แอดมินอนุมัติ
-                </p>
               </div>
             </div>
           </div>
@@ -306,7 +280,6 @@ export function ProductCatalog({
       {visibleProducts.length === 0 ? (
         <Card>
           <h3 className="font-semibold">ไม่พบสินค้า</h3>
-          <p className="mt-1 text-sm text-muted">ลองเปลี่ยนตัวกรองหรือคำค้นหาอีกครั้ง</p>
         </Card>
       ) : (
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">

@@ -103,6 +103,56 @@ export async function getProfiles() {
   return data ?? [];
 }
 
+export async function getAdminCustomerDetail(customerId: string) {
+  const supabase = await createSupabaseServerClient("admin");
+  const [profileResult, addressResult, ordersResult, paymentsResult, transactionsResult] = await Promise.all([
+    supabase
+      .from("profiles")
+      .select("*")
+      .eq("id", customerId)
+      .eq("role", "customer")
+      .maybeSingle(),
+    supabase
+      .from("customer_addresses")
+      .select("*")
+      .eq("customer_id", customerId)
+      .order("is_default", { ascending: false })
+      .order("created_at", { ascending: false }),
+    supabase
+      .from("orders")
+      .select("*, order_items(*)")
+      .eq("customer_id", customerId)
+      .order("created_at", { ascending: false })
+      .limit(6),
+    supabase
+      .from("payments")
+      .select("*")
+      .eq("customer_id", customerId)
+      .order("created_at", { ascending: false })
+      .limit(6),
+    supabase
+      .from("account_transactions")
+      .select("*, orders(order_number), payments(payment_number)")
+      .eq("customer_id", customerId)
+      .order("created_at", { ascending: false })
+      .limit(8),
+  ]);
+
+  if (profileResult.error) throw profileResult.error;
+  if (addressResult.error) throw addressResult.error;
+  if (ordersResult.error) throw ordersResult.error;
+  if (paymentsResult.error) throw paymentsResult.error;
+  if (transactionsResult.error) throw transactionsResult.error;
+
+  return {
+    profile: profileResult.data,
+    addresses: addressResult.data ?? [],
+    orders: ordersResult.data ?? [],
+    payments: paymentsResult.data ?? [],
+    transactions: transactionsResult.data ?? [],
+  };
+}
+
 export async function getInventoryMovements() {
   const supabase = await createSupabaseServerClient("admin");
   const { data, error } = await supabase

@@ -1,8 +1,10 @@
 "use server";
 
 import { headers } from "next/headers";
+import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import type { AuthScope } from "@/lib/supabase/server";
 import type { Profile } from "@/lib/types";
 
 async function getSignedInProfile(supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>) {
@@ -30,6 +32,64 @@ function getRequestOrigin(headersList: Headers) {
   }
 
   return "http://localhost:3001";
+}
+
+function formScope(formData: FormData): AuthScope {
+  return formData.get("scope") === "admin" ? "admin" : "customer";
+}
+
+function metadataString(metadata: Record<string, unknown>, keys: string[]) {
+  for (const key of keys) {
+    const value = metadata[key];
+    if (typeof value === "string" && value.trim()) return value.trim();
+  }
+  return null;
+}
+
+export async function updatePendingProfileAction(formData: FormData) {
+  const scope = formScope(formData);
+  const supabase = await createSupabaseServerClient(scope);
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) redirect(scope === "admin" ? "/admin/login" : "/login");
+
+  const profile = await getSignedInProfile(supabase);
+  if (!profile) redirect(`/pending?scope=${scope}&error=${encodeURIComponent("ไม่พบบัญชีผู้ใช้งาน")}`);
+  if (profile.status !== "pending") redirect(scope === "admin" ? "/admin/home" : "/home");
+
+  const fullName = String(formData.get("full_name") ?? "").trim();
+  const companyName = String(formData.get("company_name") ?? "").trim();
+  const phone = String(formData.get("phone") ?? "").trim();
+
+  if (!fullName) {
+    redirect(`/pending?scope=${scope}&error=${encodeURIComponent("กรุณากรอกชื่อผู้ติดต่อ")}`);
+  }
+
+  const metadata = user.user_metadata as Record<string, unknown>;
+  const identity = user.identities?.find((item) => item.provider.toLowerCase().includes("line"));
+  const lineUserId = metadataString(metadata, ["sub", "provider_id", "user_id"]) ?? identity?.id ?? null;
+
+  const { error } = await supabase
+    .from("profiles")
+    .update({
+      full_name: fullName,
+      company_name: companyName || null,
+      phone: phone || null,
+      line_user_id: lineUserId,
+      signup_scope: scope === "admin" ? "staff" : "customer",
+    })
+    .eq("id", user.id)
+    .eq("status", "pending");
+
+  if (error) {
+    redirect(`/pending?scope=${scope}&error=${encodeURIComponent(error.message)}`);
+  }
+
+  revalidatePath("/pending");
+  revalidatePath("/admin/users");
+  redirect(`/pending?scope=${scope}&saved=1`);
 }
 
 export async function signInAction(formData: FormData) {

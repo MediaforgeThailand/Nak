@@ -376,7 +376,6 @@ export default async function AdminOrdersPage({
     <div className="grid gap-4">
       <div>
         <h2 className="text-2xl font-semibold">จัดการออเดอร์</h2>
-        <p className="mt-1 text-sm text-muted">เลือกขั้นตอน แล้วทำงานเฉพาะรายการในขั้นนั้น</p>
       </div>
 
       <StageSelector activeStage={activeStage} counts={counts} />

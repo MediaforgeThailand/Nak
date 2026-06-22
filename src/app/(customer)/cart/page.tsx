@@ -21,7 +21,6 @@ export default async function CartPage({
     <div className="grid gap-4">
       <div>
         <h2 className="text-2xl font-semibold">ตะกร้า / Checkout</h2>
-        <p className="text-sm text-muted">ลูกค้าไม่ต้องชำระเงินตอน checkout</p>
       </div>
       <CartView
         products={products}

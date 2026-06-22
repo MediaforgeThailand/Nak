@@ -124,7 +124,6 @@ export function CartView({
     return (
       <Card>
         <h2 className="text-lg font-semibold">ตะกร้าว่าง</h2>
-        <p className="mt-1 text-sm text-muted">เลือกสินค้าก่อนส่งออเดอร์</p>
       </Card>
     );
   }
@@ -141,7 +140,7 @@ export function CartView({
           {hasUnavailableItems ? (
             <div className="flex items-start gap-2 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-danger">
               <AlertCircle className="mt-0.5 h-4 w-4 flex-none" />
-              <span>มีสินค้าหมดในตะกร้า รายการนั้นจะกดสั่งซื้อไม่ได้ กรุณาลบออกหรือเลือกสินค้าอื่น</span>
+              <span>มีสินค้าหมดในตะกร้า</span>
             </div>
           ) : null}
           {rows.map(({ product, quantity }) => {

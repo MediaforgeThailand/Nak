@@ -57,7 +57,6 @@ export default async function AdminProductsPage({
     <div className="grid gap-4">
       <div>
         <h2 className="text-2xl font-semibold">จัดการสินค้า</h2>
-        <p className="text-sm text-muted">เพิ่มสินค้า แก้ข้อมูลหลัก และอัปเดตรูปสำหรับลูกค้า</p>
       </div>
       {params.error ? <div className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-danger">{params.error}</div> : null}
 
@@ -65,7 +64,6 @@ export default async function AdminProductsPage({
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <h3 className="font-semibold">หมวดหมู่สินค้า</h3>
-            <p className="text-sm text-muted">เพิ่มหรือลบหมวดหมู่ได้ตลอด สินค้าที่เคยอยู่ในหมวดที่ลบจะกลับเป็นไม่ระบุหมวดหมู่</p>
           </div>
           <Badge>{categories.length} หมวดหมู่</Badge>
         </div>
@@ -114,7 +112,7 @@ export default async function AdminProductsPage({
               ))}
             </Select>
           </Field>
-          <Field label="เพิ่มหมวดหมู่ใหม่พร้อมสินค้า" hint="ถ้ากรอกช่องนี้ ระบบจะใช้หมวดใหม่นี้แทนตัวเลือกด้านบน">
+          <Field label="เพิ่มหมวดหมู่ใหม่พร้อมสินค้า">
             <Input name="new_category_name" placeholder="เช่น เครื่องดื่ม / อุปกรณ์" />
           </Field>
           <Field label="สต็อกตั้งต้น"><Input name="quantity_available" type="number" inputMode="numeric" min="0" defaultValue="0" /></Field>
@@ -125,7 +123,6 @@ export default async function AdminProductsPage({
                 name="image"
                 accept="image/*"
                 capture="environment"
-                hint="ถ่ายรูปสินค้าหรือเลือกรูปจากเครื่อง"
               />
             </Field>
           </div>
@@ -142,7 +139,6 @@ export default async function AdminProductsPage({
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
             <h3 className="font-semibold">รายการสินค้า</h3>
-            <p className="text-sm text-muted">ค้นหาแล้วกดสินค้าเพื่อเปิดฟอร์มแก้ไข</p>
           </div>
           <Badge tone={filteredProducts.length > 0 ? "accent" : "neutral"}>
             {filteredProducts.length} / {products.length} รายการ
@@ -168,7 +164,6 @@ export default async function AdminProductsPage({
         {filteredProducts.length === 0 ? (
           <Card>
             <h3 className="font-semibold">ไม่พบสินค้า</h3>
-            <p className="mt-1 text-sm text-muted">ลองค้นหาด้วยชื่อสินค้า SKU หรือหมวดหมู่อื่น</p>
           </Card>
         ) : null}
 

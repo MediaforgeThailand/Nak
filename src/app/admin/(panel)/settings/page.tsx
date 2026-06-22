@@ -18,18 +18,9 @@ export default async function AdminSettingsPage() {
               <pre className="mt-2 overflow-x-auto rounded-md bg-surface-muted p-3 text-xs">
                 {JSON.stringify(setting.value, null, 2)}
               </pre>
-              <p className="mt-2 text-sm text-muted">{setting.description}</p>
             </div>
           ))}
         </div>
-      </Card>
-      <Card>
-        <h3 className="font-semibold">หมายเหตุ LINE OA</h3>
-        <p className="mt-2 text-sm leading-6 text-muted">
-          MVP stores notification events in <code>line_notification_outbox</code>. Future work:
-          connect LINE Login, map <code>line_user_id</code>, add an Edge Function worker, and send
-          order/payment status notifications through LINE Official Account.
-        </p>
       </Card>
     </div>
   );

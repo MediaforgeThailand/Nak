@@ -14,6 +14,15 @@ function adminReturnPath(formData: FormData, fallback: "/admin/customers" | "/ad
   return value === "/admin/users" || value === "/admin/customers" ? value : fallback;
 }
 
+function customerReturnPath(formData: FormData) {
+  const value = String(formData.get("return_to") ?? "/admin/customers");
+  return value === "/admin/customers" || value.startsWith("/admin/customers/") ? value : "/admin/customers";
+}
+
+function withError(path: string, message: string) {
+  return `${path}${path.includes("?") ? "&" : "?"}error=${encodeURIComponent(message)}`;
+}
+
 function parseUserRole(value: FormDataEntryValue | null) {
   const role = String(value ?? "customer") as UserRole;
   return userRoles.includes(role) ? role : null;
@@ -467,11 +476,12 @@ export async function rejectPaymentAction(formData: FormData) {
 export async function updateCustomerDiscountAction(formData: FormData) {
   await requireAdmin();
   const supabase = await createSupabaseServerClient("admin");
+  const returnTo = customerReturnPath(formData);
   const userId = String(formData.get("user_id") ?? "");
   const discount = Number(formData.get("per_item_discount") ?? 0);
 
   if (!Number.isFinite(discount) || discount < 0) {
-    redirect(`/admin/customers?error=${encodeURIComponent("ส่วนลดต้องเป็น 0 หรือมากกว่า")}`);
+    redirect(withError(returnTo, "ส่วนลดต้องเป็น 0 หรือมากกว่า"));
   }
 
   const { error } = await supabase.rpc("admin_update_customer_discount", {
@@ -479,8 +489,9 @@ export async function updateCustomerDiscountAction(formData: FormData) {
     discount_per_item: discount,
   });
 
-  if (error) redirect(`/admin/customers?error=${encodeURIComponent(error.message)}`);
+  if (error) redirect(withError(returnTo, error.message));
   revalidatePath("/admin/customers");
+  revalidatePath(returnTo);
   revalidatePath("/home");
   revalidatePath("/products");
   revalidatePath("/cart");
@@ -490,12 +501,13 @@ export async function updateCustomerDiscountAction(formData: FormData) {
 export async function adjustCustomerDebtAction(formData: FormData) {
   await requireOwner();
   const supabase = await createSupabaseServerClient("admin");
+  const returnTo = customerReturnPath(formData);
   const userId = String(formData.get("user_id") ?? "");
   const amountDelta = Number(formData.get("amount_delta") ?? 0);
   const note = String(formData.get("note") ?? "").trim() || null;
 
   if (!Number.isFinite(amountDelta) || amountDelta === 0) {
-    redirect(`/admin/customers?error=${encodeURIComponent("Manual adjustment amount cannot be zero")}`);
+    redirect(withError(returnTo, "Manual adjustment amount cannot be zero"));
   }
 
   const { error } = await supabase.rpc("owner_adjust_customer_debt", {
@@ -504,8 +516,9 @@ export async function adjustCustomerDebtAction(formData: FormData) {
     note,
   });
 
-  if (error) redirect(`/admin/customers?error=${encodeURIComponent(error.message)}`);
+  if (error) redirect(withError(returnTo, error.message));
   revalidatePath("/admin/customers");
+  revalidatePath(returnTo);
   revalidatePath("/profile");
   revalidatePath("/transactions");
 }

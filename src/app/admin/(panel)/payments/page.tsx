@@ -63,9 +63,6 @@ export default async function AdminPaymentsPage({
     <div className="grid gap-4">
       <div>
         <h2 className="text-2xl font-semibold">ตรวจสลิปชำระเงิน</h2>
-        <p className="mt-1 text-sm text-muted">
-          อนุมัติสลิปจากลูกค้า หรือบันทึกยอดชำระเองจากฝั่งทีมงาน
-        </p>
       </div>
 
       {params.error ? (

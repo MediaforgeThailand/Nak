@@ -149,14 +149,14 @@ export function Select({
         onClick={() => setIsOpen(true)}
         title={title}
         className={clsx(
-          "motion-surface flex min-h-12 w-full cursor-pointer touch-manipulation items-center justify-between gap-3 rounded-lg border border-white/70 bg-white/84 px-3.5 py-2.5 text-left text-base shadow-[inset_0_1px_0_rgba(255,255,255,0.9),0_10px_24px_rgba(31,65,58,0.08)] outline-none backdrop-blur-xl transition-all duration-200 hover:bg-white/94 focus-visible:border-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-55 md:text-sm",
+          "motion-surface flex min-h-10 w-full cursor-pointer touch-manipulation items-center justify-between gap-2 rounded-lg border border-white/70 bg-white/84 px-3 py-1.5 text-left text-sm shadow-[inset_0_1px_0_rgba(255,255,255,0.9),0_8px_18px_rgba(31,65,58,0.07)] outline-none backdrop-blur-xl transition-all duration-200 hover:bg-white/94 focus-visible:border-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-55",
           isOpen ? "border-accent ring-2 ring-accent/16" : "",
         )}
       >
         <span className={clsx("min-w-0 truncate font-medium", isEmpty ? "text-muted" : "text-foreground")}>
           {selectedOption?.label || placeholder}
         </span>
-        <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg border border-white/70 bg-white/72 text-accent">
+        <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg border border-white/70 bg-white/72 text-accent">
           <ChevronDown
             className={clsx("h-4 w-4 transition-transform duration-200", isOpen ? "rotate-180" : "")}
           />
@@ -171,7 +171,7 @@ export function Select({
           }}
         >
           <div className="motion-page max-h-[76vh] w-full overflow-hidden rounded-t-2xl border border-white/70 bg-white/94 shadow-[0_24px_70px_rgba(31,65,58,0.25)] backdrop-blur-2xl sm:max-h-[620px] sm:max-w-md sm:rounded-2xl">
-            <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-3">
+            <div className="flex items-center justify-between gap-3 border-b border-border px-3 py-2.5">
               <div className="min-w-0">
                 <p className="text-sm font-semibold">เลือกตัวเลือก</p>
                 <p className="truncate text-xs text-muted">{selectedOption?.label ?? placeholder}</p>
@@ -180,7 +180,7 @@ export function Select({
                 type="button"
                 aria-label="ปิดตัวเลือก"
                 onClick={() => setIsOpen(false)}
-                className="grid h-10 w-10 shrink-0 cursor-pointer place-items-center rounded-lg border border-white/70 bg-white/76 text-muted transition-colors duration-200 hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+                className="grid h-9 w-9 shrink-0 cursor-pointer place-items-center rounded-lg border border-white/70 bg-white/76 text-muted transition-colors duration-200 hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
               >
                 <X className="h-4 w-4" />
               </button>
@@ -194,7 +194,7 @@ export function Select({
                     value={query}
                     onChange={(event) => setQuery(event.currentTarget.value)}
                     placeholder="ค้นหาตัวเลือก"
-                    className="min-h-11 w-full rounded-lg border border-white/70 bg-white/82 px-3 py-2 pl-9 text-base outline-none transition-colors duration-200 placeholder:text-muted/70 focus:border-accent focus:ring-2 focus:ring-accent/20"
+                    className="min-h-10 w-full rounded-lg border border-white/70 bg-white/82 px-3 py-1.5 pl-9 text-sm outline-none transition-colors duration-200 placeholder:text-muted/70 focus:border-accent focus:ring-2 focus:ring-accent/20"
                   />
                 </label>
               </div>
@@ -212,7 +212,7 @@ export function Select({
                     role="option"
                     onClick={() => commit(option.value)}
                     className={clsx(
-                      "flex min-h-12 cursor-pointer items-center justify-between gap-3 rounded-lg border px-3 py-2 text-left text-base font-semibold transition-all duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-45",
+                      "flex min-h-10 cursor-pointer items-center justify-between gap-3 rounded-lg border px-3 py-1.5 text-left text-sm font-semibold transition-all duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-45",
                       active
                         ? "border-accent bg-accent text-white shadow-[0_12px_28px_rgba(15,118,110,0.18)]"
                         : "border-white/70 bg-white/72 text-foreground hover:bg-white",
