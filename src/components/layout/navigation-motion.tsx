@@ -74,7 +74,7 @@ export function NavigationMotion() {
   return (
     <div aria-live="polite" aria-busy="true" className="pointer-events-none fixed inset-0 z-50">
       <div className="absolute inset-x-0 top-0 h-1 overflow-hidden bg-accent/10">
-        <div className="route-progress-bar h-full w-1/3 rounded-r-full bg-accent shadow-[0_0_22px_rgba(15,118,110,0.48)]" />
+        <div className="route-progress-bar h-full w-1/3 rounded-r-full bg-accent shadow-[0_0_22px_rgba(229,64,79,0.48)]" />
       </div>
       <div className="absolute right-3 top-3 inline-flex items-center gap-2 rounded-full border border-white/70 bg-white/86 px-3 py-2 text-xs font-semibold text-foreground shadow-[0_16px_36px_rgba(31,65,58,0.16)] backdrop-blur-2xl">
         <Loader2 className="h-3.5 w-3.5 animate-spin text-accent" />

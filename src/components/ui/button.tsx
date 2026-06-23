@@ -3,11 +3,15 @@ import { clsx } from "clsx";
 import type { ComponentProps, ReactNode } from "react";
 
 const variants = {
-  primary: "border border-white/55 bg-accent/92 text-accent-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.42),0_12px_28px_rgba(15,118,110,0.26)] hover:bg-accent",
-  secondary: "border border-white/70 bg-white/78 text-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.86),0_10px_24px_rgba(31,65,58,0.1)] backdrop-blur-xl hover:bg-white/92",
-  danger: "border border-white/35 bg-danger/90 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.28),0_12px_26px_rgba(180,35,24,0.24)] hover:bg-danger",
-  ghost: "bg-transparent text-foreground hover:bg-white/60",
+  primary: "bg-[var(--p)] text-white shadow-[0_6px_16px_-6px_var(--p)] hover:brightness-[1.03]",
+  secondary: "bg-[var(--surface)] text-[var(--ink)] border border-[var(--line)] hover:bg-white",
+  danger: "bg-[#fbe6e3] text-[#b42318] hover:brightness-[0.98]",
+  ghost: "bg-transparent text-[var(--ink)] hover:bg-[var(--chip)]",
+  soft: "bg-[var(--p-soft)] text-[var(--p-deep)] hover:brightness-[1.02]",
 };
+
+const base =
+  "motion-surface inline-flex min-h-11 cursor-pointer touch-manipulation items-center justify-center gap-2 rounded-[var(--r-btn)] px-4 py-2.5 text-center text-sm font-bold leading-none tracking-[-.01em] transition-all duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--p)] disabled:cursor-not-allowed disabled:opacity-50 disabled:active:scale-100";
 
 type ButtonProps = ComponentProps<"button"> & {
   variant?: keyof typeof variants;
@@ -15,23 +19,8 @@ type ButtonProps = ComponentProps<"button"> & {
 
 export type { ButtonProps };
 
-export function Button({
-  className,
-  variant = "primary",
-  type = "button",
-  ...props
-}: ButtonProps) {
-  return (
-    <button
-      type={type}
-      className={clsx(
-        "motion-surface inline-flex min-h-9 cursor-pointer touch-manipulation items-center justify-center gap-1.5 rounded-lg px-3 py-1.5 text-center text-sm font-semibold transition-all duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0 disabled:active:scale-100",
-        variants[variant],
-        className,
-      )}
-      {...props}
-    />
-  );
+export function Button({ className, variant = "primary", type = "button", ...props }: ButtonProps) {
+  return <button type={type} className={clsx(base, variants[variant], className)} {...props} />;
 }
 
 export function ButtonLink({
@@ -45,15 +34,7 @@ export function ButtonLink({
   children: ReactNode;
 }) {
   return (
-    <Link
-      prefetch={prefetch}
-      className={clsx(
-        "motion-surface inline-flex min-h-9 cursor-pointer touch-manipulation items-center justify-center gap-1.5 rounded-lg px-3 py-1.5 text-center text-sm font-semibold transition-all duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent",
-        variants[variant],
-        className,
-      )}
-      {...props}
-    >
+    <Link prefetch={prefetch} className={clsx(base, variants[variant], className)} {...props}>
       {children}
     </Link>
   );

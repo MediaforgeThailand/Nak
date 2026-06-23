@@ -1,24 +1,14 @@
 "use client";
 
-import Image from "next/image";
-import {
-  ArrowLeft,
-  PackageSearch,
-  Search,
-  SlidersHorizontal,
-} from "lucide-react";
-import { useMemo, useState } from "react";
-import { AddToCartButton } from "@/components/cart/add-to-cart-button";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { Input, Select } from "@/components/ui/form";
+import { useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
+import { Icon } from "@/components/nak/icon";
+import { Badge, ProductImage } from "@/components/nak/ui";
 import { money } from "@/lib/format";
 
-type Category = {
-  id: string;
-  name: string;
-};
+const CART_KEY = "nak_cart";
+
+type Category = { id: string; name: string };
 
 type Product = {
   id: string;
@@ -47,13 +37,207 @@ function discountedUnitPrice(price: number, discountPerItem: number) {
   return Math.max((Number(price) || 0) - discountPerUnit(price, discountPerItem), 0);
 }
 
-function sortProducts(products: Product[], sortBy: string) {
-  return [...products].sort((a, b) => {
-    if (sortBy === "name") return a.name.localeCompare(b.name, "th");
-    if (sortBy === "price_low") return Number(a.price) - Number(b.price);
-    if (sortBy === "price_high") return Number(b.price) - Number(a.price);
-    return Date.parse(b.created_at) - Date.parse(a.created_at);
-  });
+function addToCart(productId: string) {
+  let cart: Record<string, number> = {};
+  try {
+    cart = JSON.parse(window.localStorage.getItem(CART_KEY) ?? "{}") as Record<string, number>;
+  } catch {
+    cart = {};
+  }
+  cart[productId] = (cart[productId] ?? 0) + 1;
+  window.localStorage.setItem(CART_KEY, JSON.stringify(cart));
+  window.dispatchEvent(new Event("nak-cart-updated"));
+  window.dispatchEvent(new CustomEvent("nak-toast", { detail: "เพิ่มลงตะกร้าแล้ว" }));
+}
+
+function ProductCard({
+  product,
+  discountPerItem,
+  onOpen,
+}: {
+  product: Product;
+  discountPerItem: number;
+  onOpen: (id: string) => void;
+}) {
+  const qty = stock(product);
+  const soldOut = qty <= 0;
+  const low = qty > 0 && qty < 25;
+  const unitDiscount = discountPerUnit(product.price, discountPerItem);
+  const finalPrice = discountedUnitPrice(product.price, discountPerItem);
+
+  return (
+    <button
+      type="button"
+      className="nak-card nak-press"
+      onClick={() => onOpen(product.id)}
+      style={{ padding: 0, overflow: "hidden", textAlign: "left", cursor: "pointer", display: "flex", flexDirection: "column" }}
+    >
+      <div style={{ position: "relative", padding: 8, paddingBottom: 0 }}>
+        <ProductImage seed={product.sku || product.id} imageUrl={product.imageUrl} alt={product.name} ratio="1 / 1" />
+        <div style={{ position: "absolute", top: 13, left: 13 }}>
+          <Badge tone={soldOut ? "danger" : low ? "warning" : "success"} size="sm">
+            {soldOut ? "สินค้าหมด" : `เหลือ ${qty}`}
+          </Badge>
+        </div>
+      </div>
+      <div style={{ padding: "9px 11px 11px", display: "flex", flexDirection: "column", gap: 7, flex: 1 }}>
+        <div style={{ fontSize: 10.5, fontWeight: 600, color: "var(--muted)", letterSpacing: ".02em" }}>{product.sku}</div>
+        <div
+          style={{
+            fontSize: 13,
+            fontWeight: 600,
+            lineHeight: 1.35,
+            color: "var(--ink)",
+            display: "-webkit-box",
+            WebkitLineClamp: 2,
+            WebkitBoxOrient: "vertical",
+            overflow: "hidden",
+            minHeight: 35,
+          }}
+        >
+          {product.name}
+        </div>
+        <div style={{ marginTop: "auto", display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 6 }}>
+          <div>
+            {unitDiscount > 0 && (
+              <div style={{ fontSize: 11, color: "var(--muted)", textDecoration: "line-through" }}>{money(product.price)}</div>
+            )}
+            <div style={{ fontSize: 17, fontWeight: 800, color: "var(--ink)", letterSpacing: "-.01em" }}>{money(finalPrice)}</div>
+            <div style={{ fontSize: 10.5, color: "var(--muted)" }}>ต่อ {product.unit}</div>
+          </div>
+          <span
+            onClick={(e) => {
+              e.stopPropagation();
+              if (!soldOut) addToCart(product.id);
+            }}
+            className="nak-addbtn"
+            aria-label="เพิ่มลงตะกร้า"
+            style={{ opacity: soldOut ? 0.3 : 1, pointerEvents: soldOut ? "none" : "auto" }}
+          >
+            <Icon name="plus" size={18} stroke={2.6} />
+          </span>
+        </div>
+      </div>
+    </button>
+  );
+}
+
+function ProductDetail({
+  product,
+  discountPerItem,
+  onClose,
+}: {
+  product: Product;
+  discountPerItem: number;
+  onClose: () => void;
+}) {
+  const qty = stock(product);
+  const soldOut = qty <= 0;
+  const unitDiscount = discountPerUnit(product.price, discountPerItem);
+  const finalPrice = discountedUnitPrice(product.price, discountPerItem);
+
+  return (
+    <div
+      style={{
+        position: "fixed",
+        inset: 0,
+        zIndex: 50,
+        display: "flex",
+        justifyContent: "center",
+        background: "var(--bg)",
+      }}
+    >
+      <div
+        style={{
+          width: "100%",
+          maxWidth: 480,
+          height: "100%",
+          overflowY: "auto",
+          background: "var(--bg)",
+          position: "relative",
+        }}
+      >
+        <div className="nak-subheader">
+          <button onClick={onClose} className="nak-iconbtn" aria-label="ย้อนกลับ" type="button">
+            <Icon name="chevL" size={20} stroke={2.4} />
+          </button>
+          <h2 style={{ flex: 1, fontSize: 17, fontWeight: 700, margin: 0, letterSpacing: "-.01em" }}>รายละเอียดสินค้า</h2>
+        </div>
+
+        <div className="motion-page" style={{ display: "grid", gap: 14, padding: "14px 14px 110px" }}>
+          <div className="nak-card" style={{ padding: 10 }}>
+            <ProductImage
+              seed={product.sku || product.id}
+              imageUrl={product.imageUrl}
+              alt={product.name}
+              ratio="4 / 3"
+              iconSize={72}
+              radius="calc(var(--r-sm) - 2px)"
+            />
+          </div>
+
+          <div style={{ display: "grid", gap: 10 }}>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              {product.category?.name ? <Badge tone="accent">{product.category.name}</Badge> : <Badge>ไม่ระบุหมวดหมู่</Badge>}
+              <Badge tone={soldOut ? "danger" : "success"}>{soldOut ? "สินค้าหมด" : `พร้อมส่ง ${qty} ${product.unit}`}</Badge>
+            </div>
+            <div style={{ fontSize: 12, color: "var(--muted)", fontWeight: 600 }}>{product.sku}</div>
+            <h2 style={{ margin: 0, fontSize: 22, fontWeight: 800, lineHeight: 1.3, letterSpacing: "-.01em" }}>{product.name}</h2>
+            <div style={{ display: "flex", alignItems: "flex-end", gap: 10 }}>
+              {unitDiscount > 0 && (
+                <span style={{ fontSize: 15, color: "var(--muted)", textDecoration: "line-through" }}>{money(product.price)}</span>
+              )}
+              <span style={{ fontSize: 30, fontWeight: 800, letterSpacing: "-.02em" }}>{money(finalPrice)}</span>
+              <span style={{ fontSize: 13, color: "var(--muted)", marginBottom: 4 }}>/ {product.unit}</span>
+            </div>
+            {unitDiscount > 0 && (
+              <div style={{ display: "inline-flex", alignItems: "center", gap: 6, color: "#1b7a4b", fontSize: 13, fontWeight: 700 }}>
+                <Icon name="percent" size={14} stroke={2.4} /> ส่วนลดเฉพาะบัญชีคุณ {money(unitDiscount)} / ชิ้น
+              </div>
+            )}
+          </div>
+
+          <div className="nak-card" style={{ padding: 15, display: "grid", gap: 8 }}>
+            <h3 style={{ margin: 0, fontSize: 14, fontWeight: 700 }}>รายละเอียด</h3>
+            <p style={{ margin: 0, fontSize: 13.5, lineHeight: 1.65, color: "var(--muted)", whiteSpace: "pre-wrap" }}>
+              {product.description || "ยังไม่มีรายละเอียดสินค้า"}
+            </p>
+          </div>
+        </div>
+
+        <div className="nak-bottombar">
+          <div style={{ display: "grid" }}>
+            <span style={{ fontSize: 11, color: "var(--muted)" }}>ราคาต่อ {product.unit}</span>
+            <span style={{ fontSize: 19, fontWeight: 800, letterSpacing: "-.01em" }}>{money(finalPrice)}</span>
+          </div>
+          <button
+            type="button"
+            disabled={soldOut}
+            onClick={() => addToCart(product.id)}
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 8,
+              padding: "13px 18px",
+              border: "1px solid transparent",
+              borderRadius: "var(--r-btn)",
+              background: "var(--p)",
+              color: "#fff",
+              fontSize: 15,
+              fontWeight: 700,
+              cursor: soldOut ? "not-allowed" : "pointer",
+              opacity: soldOut ? 0.45 : 1,
+              boxShadow: soldOut ? "none" : "0 6px 16px -6px var(--p)",
+            }}
+          >
+            <Icon name="cart" size={18} stroke={2.2} />
+            {soldOut ? "สินค้าหมด" : "เพิ่มลงตะกร้า"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 export function ProductCatalog({
@@ -65,296 +249,80 @@ export function ProductCatalog({
   categories: Category[];
   discountPerItem: number;
 }) {
-  const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
-  const [categoryId, setCategoryId] = useState("all");
-  const [stockFilter, setStockFilter] = useState("available");
-  const [sortBy, setSortBy] = useState("latest");
-  const [searchText, setSearchText] = useState("");
+  const [cat, setCat] = useState("all");
+  const [q, setQ] = useState("");
+  const [openId, setOpenId] = useState<string | null>(null);
+  const [mounted, setMounted] = useState(false);
 
-  const selectedProduct = useMemo(
-    () => products.find((product) => product.id === selectedProductId) ?? null,
-    [products, selectedProductId],
-  );
+  useEffect(() => setMounted(true), []);
 
-  const activeCategories = useMemo(() => {
-    const categoryIds = new Set(products.map((product) => product.category_id).filter(Boolean));
-    return categories.filter((category) => categoryIds.has(category.id));
-  }, [categories, products]);
+  const activeCats = useMemo(() => {
+    const ids = new Set(products.map((p) => p.category_id).filter(Boolean));
+    return categories.filter((c) => ids.has(c.id));
+  }, [products, categories]);
 
-  const visibleProducts = useMemo(() => {
-    const query = searchText.trim().toLowerCase();
-    const filtered = products.filter((product) => {
-      const productStock = stock(product);
-      const matchesCategory = categoryId === "all" || product.category_id === categoryId;
-      const matchesStock =
-        stockFilter === "all" ||
-        (stockFilter === "available" && productStock > 0) ||
-        (stockFilter === "sold_out" && productStock <= 0);
-      const matchesSearch =
+  const list = useMemo(() => {
+    const query = q.trim().toLowerCase();
+    return products.filter((p) => {
+      const mc = cat === "all" || p.category_id === cat;
+      const ms =
         !query ||
-        product.name.toLowerCase().includes(query) ||
-        product.sku.toLowerCase().includes(query) ||
-        product.category?.name.toLowerCase().includes(query);
-
-      return matchesCategory && matchesStock && matchesSearch;
+        p.name.toLowerCase().includes(query) ||
+        p.sku.toLowerCase().includes(query) ||
+        (p.category?.name?.toLowerCase().includes(query) ?? false);
+      return mc && ms;
     });
+  }, [products, cat, q]);
 
-    return sortProducts(filtered, sortBy);
-  }, [categoryId, products, searchText, sortBy, stockFilter]);
+  const selected = openId ? products.find((p) => p.id === openId) ?? null : null;
 
-  const availableCount = products.filter((product) => stock(product) > 0).length;
-
-  if (selectedProduct) {
-    const qty = stock(selectedProduct);
-    const soldOut = qty <= 0;
-    const unitDiscount = discountPerUnit(selectedProduct.price, discountPerItem);
-    const finalPrice = discountedUnitPrice(selectedProduct.price, discountPerItem);
-
-    return (
-      <div className="motion-page grid gap-4">
-        <Button
-          type="button"
-          variant="secondary"
-          onClick={() => setSelectedProductId(null)}
-          className="w-fit"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          กลับไปเลือกสินค้า
-        </Button>
-
-        <Card className="overflow-hidden p-0">
-          <div className="grid lg:grid-cols-[minmax(0,0.9fr)_minmax(360px,0.8fr)]">
-            <div className="relative min-h-[420px] overflow-hidden bg-[#eef3ef]">
-              {selectedProduct.imageUrl ? (
-                <Image
-                  src={selectedProduct.imageUrl}
-                  alt={selectedProduct.name}
-                  fill
-                  priority
-                  sizes="(min-width: 1024px) 54vw, 100vw"
-                  className="object-cover"
-                />
-              ) : (
-                <div className="grid h-full min-h-[420px] place-items-center text-muted">
-                  <PackageSearch className="h-12 w-12" />
-                </div>
-              )}
-              {soldOut ? (
-                <div className="absolute inset-0 grid place-items-center bg-white/62 backdrop-blur-sm">
-                  <Badge tone="danger">สินค้าหมด</Badge>
-                </div>
-              ) : null}
-            </div>
-
-            <div className="grid content-start gap-5 p-5 sm:p-6">
-              <div className="flex flex-wrap items-center gap-2">
-                {selectedProduct.category?.name ? (
-                  <Badge tone="accent">{selectedProduct.category.name}</Badge>
-                ) : (
-                  <Badge>ไม่ระบุหมวดหมู่</Badge>
-                )}
-                <Badge tone={soldOut ? "danger" : "success"}>
-                  {soldOut ? "สินค้าหมด" : `พร้อมส่ง ${qty} ${selectedProduct.unit}`}
-                </Badge>
-              </div>
-
-              <div>
-                <p className="text-sm font-medium text-muted">{selectedProduct.sku}</p>
-                <h2 className="mt-2 text-3xl font-semibold leading-tight">
-                  {selectedProduct.name}
-                </h2>
-                <div className="mt-4 grid gap-1">
-                  {unitDiscount > 0 ? (
-                    <p className="text-sm text-muted line-through">{money(selectedProduct.price)}</p>
-                  ) : null}
-                  <p className="text-3xl font-semibold">{money(finalPrice)}</p>
-                  {unitDiscount > 0 ? (
-                    <p className="text-sm font-semibold text-success">
-                      ส่วนลดเฉพาะบัญชีคุณ {money(unitDiscount)} / ชิ้น
-                    </p>
-                  ) : null}
-                </div>
-              </div>
-
-              {selectedProduct.description ? (
-                <p className="whitespace-pre-wrap text-sm leading-6 text-muted">
-                  {selectedProduct.description}
-                </p>
-              ) : (
-                <p className="text-sm text-muted">ยังไม่มีรายละเอียดสินค้า</p>
-              )}
-
-              {soldOut ? (
-                <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-danger">
-                  สินค้าหมด
-                </div>
-              ) : null}
-
-              <div className="grid max-w-sm gap-2">
-                <AddToCartButton
-                  productId={selectedProduct.id}
-                  disabled={soldOut}
-                  label="เพิ่มลงตะกร้า"
-                  addedLabel="เพิ่มแล้ว ไปยืนยันออเดอร์"
-                />
-              </div>
-            </div>
-          </div>
-        </Card>
-      </div>
-    );
-  }
+  useEffect(() => {
+    if (!selected) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [selected]);
 
   return (
-    <div className="grid gap-4">
-      <Card className="grid gap-4">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
-            <SlidersHorizontal className="h-4 w-4 text-accent" />
-            <div>
-              <h2 className="font-semibold">ค้นหาและกรองสินค้า</h2>
-              <p className="text-sm text-muted">
-                แสดง {visibleProducts.length} รายการ จากสินค้าพร้อมขาย {availableCount} รายการ
-              </p>
-            </div>
-          </div>
-          {discountPerItem > 0 ? (
-            <Badge tone="success">ส่วนลดบัญชีคุณ {money(discountPerItem)} / ชิ้น</Badge>
-          ) : null}
-        </div>
+    <div style={{ display: "grid", gap: 14 }}>
+      <div className="nak-search">
+        <Icon name="search" size={18} stroke={2.2} style={{ color: "var(--muted)" }} />
+        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="ค้นหาสินค้า / SKU" />
+        <Icon name="sliders" size={18} stroke={2.2} style={{ color: "var(--muted)" }} />
+      </div>
 
-        <div className="flex gap-2 overflow-x-auto pb-1">
-          <button
-            type="button"
-            aria-pressed={categoryId === "all"}
-            onClick={() => setCategoryId("all")}
-            className={`min-h-10 shrink-0 rounded-full border px-4 text-sm font-semibold transition-colors duration-200 ${
-              categoryId === "all"
-                ? "border-accent bg-accent text-white"
-                : "border-border bg-white/68 text-muted hover:bg-white"
-            }`}
-          >
-            ทั้งหมด
+      <div className="nak-chiprow">
+        {[{ id: "all", name: "ทั้งหมด" }, ...activeCats].map((c) => (
+          <button key={c.id} type="button" onClick={() => setCat(c.id)} className={"nak-chip" + (cat === c.id ? " is-on" : "")}>
+            {c.name}
           </button>
-          {activeCategories.map((category) => (
-            <button
-              key={category.id}
-              type="button"
-              aria-pressed={categoryId === category.id}
-              onClick={() => setCategoryId(category.id)}
-              className={`min-h-10 shrink-0 rounded-full border px-4 text-sm font-semibold transition-colors duration-200 ${
-                categoryId === category.id
-                  ? "border-accent bg-accent text-white"
-                  : "border-border bg-white/68 text-muted hover:bg-white"
-              }`}
-            >
-              {category.name}
-            </button>
-          ))}
-        </div>
+        ))}
+      </div>
 
-        <div className="grid gap-2 md:grid-cols-[1.4fr_1fr_1fr]">
-          <label className="relative">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
-            <Input
-              value={searchText}
-              onChange={(event) => setSearchText(event.currentTarget.value)}
-              placeholder="ค้นหาชื่อสินค้า / SKU / หมวดหมู่"
-              className="pl-9"
-            />
-          </label>
-          <Select value={stockFilter} onChange={(event) => setStockFilter(event.currentTarget.value)}>
-            <option value="available">มีสินค้า</option>
-            <option value="all">ทั้งหมด</option>
-            <option value="sold_out">สินค้าหมด</option>
-          </Select>
-          <Select value={sortBy} onChange={(event) => setSortBy(event.currentTarget.value)}>
-            <option value="latest">ล่าสุด</option>
-            <option value="name">ชื่อสินค้า A-Z</option>
-            <option value="price_low">ราคาต่ำไปสูง</option>
-            <option value="price_high">ราคาสูงไปต่ำ</option>
-          </Select>
-        </div>
-      </Card>
+      <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between" }}>
+        <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700 }}>สินค้าทั้งหมด</h3>
+        <span style={{ fontSize: 12, color: "var(--muted)" }}>{list.length} รายการ</span>
+      </div>
 
-      {visibleProducts.length === 0 ? (
-        <Card>
-          <h3 className="font-semibold">ไม่พบสินค้า</h3>
-        </Card>
-      ) : (
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
-          {visibleProducts.map((product, index) => {
-            const qty = stock(product);
-            const soldOut = qty <= 0;
-            const unitDiscount = discountPerUnit(product.price, discountPerItem);
-            const finalPrice = discountedUnitPrice(product.price, discountPerItem);
-
-            return (
-              <button
-                key={product.id}
-                type="button"
-                onClick={() => setSelectedProductId(product.id)}
-                className="motion-surface group grid min-w-0 cursor-pointer overflow-hidden rounded-lg border border-white/70 bg-white/84 text-left shadow-[0_16px_34px_rgba(31,65,58,0.1)] transition-all duration-200 hover:border-accent/60 hover:bg-white/95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-              >
-                <div className="relative grid aspect-[3/4] place-items-center overflow-hidden bg-[#edf2ef] text-muted">
-                  {product.imageUrl ? (
-                    <Image
-                      src={product.imageUrl}
-                      alt={product.name}
-                      fill
-                      priority={index < 2}
-                      sizes="(min-width: 1024px) 30vw, 50vw"
-                      className="object-cover transition-transform duration-300 group-hover:scale-[1.025]"
-                    />
-                  ) : (
-                    <PackageSearch className="h-9 w-9" />
-                  )}
-                  <div className="absolute left-2 top-2 flex flex-wrap gap-1">
-                    <Badge tone={soldOut ? "danger" : "success"}>
-                      {soldOut ? "หมด" : `เหลือ ${qty}`}
-                    </Badge>
-                  </div>
-                  {product.category?.name ? (
-                    <div className="absolute bottom-2 left-2 right-2">
-                      <span className="inline-flex max-w-full rounded-full border border-white/70 bg-white/82 px-2.5 py-1 text-xs font-semibold text-foreground shadow-sm backdrop-blur-xl">
-                        <span className="truncate">{product.category.name}</span>
-                      </span>
-                    </div>
-                  ) : null}
-                </div>
-
-                <div className="grid gap-3 p-3 sm:p-4">
-                  <div className="min-w-0">
-                    <p className="truncate text-[11px] font-medium text-muted">{product.sku}</p>
-                    <h3 className="mt-1 line-clamp-2 min-h-[2.75rem] font-semibold leading-snug">
-                      {product.name}
-                    </h3>
-                  </div>
-
-                  <div className="flex items-end justify-between gap-2">
-                    <span className="grid gap-0.5">
-                      {unitDiscount > 0 ? (
-                        <span className="text-xs text-muted line-through">{money(product.price)}</span>
-                      ) : null}
-                      <span className="text-lg font-semibold">{money(finalPrice)}</span>
-                      {unitDiscount > 0 ? (
-                        <span className="text-xs font-semibold text-success">
-                          ลด {money(unitDiscount)} / ชิ้น
-                        </span>
-                      ) : (
-                        <span className="text-xs text-muted">ต่อ {product.unit}</span>
-                      )}
-                    </span>
-                    <span className="shrink-0 text-xs font-semibold text-accent sm:text-sm">
-                      ดูสินค้า
-                    </span>
-                  </div>
-                </div>
-              </button>
-            );
-          })}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 11 }}>
+        {list.map((p) => (
+          <ProductCard key={p.id} product={p} discountPerItem={discountPerItem} onOpen={setOpenId} />
+        ))}
+      </div>
+      {list.length === 0 && (
+        <div className="nak-card" style={{ padding: 24, textAlign: "center", color: "var(--muted)", fontSize: 14 }}>
+          ไม่พบสินค้า
         </div>
       )}
+
+      {mounted && selected
+        ? createPortal(
+            <ProductDetail product={selected} discountPerItem={discountPerItem} onClose={() => setOpenId(null)} />,
+            document.body,
+          )
+        : null}
     </div>
   );
 }

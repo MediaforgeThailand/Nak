@@ -1,44 +1,26 @@
-import {
-  ClipboardList,
-  Home,
-  Package,
-  Settings,
-  Shield,
-  Users,
-  WalletCards,
-  Warehouse,
-} from "lucide-react";
-import { AppShell } from "@/components/layout/app-shell";
-import { signOutAdminAction } from "@/app/actions/auth";
+import { AdminShell } from "@/components/nak/admin-shell";
 import { requireStaff } from "@/lib/auth";
-import { roleLabel } from "@/lib/format";
-
-const navItems = [
-  { href: "/admin/home", label: "แดชบอร์ด", mobileLabel: "แดช", icon: Home },
-  { href: "/admin/products", label: "สินค้า", icon: Package },
-  { href: "/admin/stock", label: "สต็อก", icon: Warehouse },
-  { href: "/admin/orders", label: "ออเดอร์", icon: ClipboardList },
-  { href: "/admin/payments", label: "สลิป", icon: WalletCards },
-  { href: "/admin/customers", label: "ลูกค้า", icon: Users },
-  { href: "/admin/users", label: "สิทธิ์", icon: Shield },
-  { href: "/admin/settings", label: "ตั้งค่า", icon: Settings },
-];
+import { getAdminOrders, getPayments, getProfiles } from "@/lib/data/queries";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
-  const { profile } = await requireStaff();
+  const [{ profile }, orders, payments, profiles] = await Promise.all([
+    requireStaff(),
+    getAdminOrders(),
+    getPayments("admin"),
+    getProfiles(),
+  ]);
+
+  const badges = {
+    orders: orders.filter((order) => order.status === "pending_admin").length,
+    payments: payments.filter((payment) => payment.status === "pending").length,
+    users: profiles.filter((p) => p.status === "pending").length,
+  };
 
   return (
-    <AppShell
-      title="NAK Admin"
-      subtitle={`${roleLabel(profile.role)} | ${profile.email}`}
-      navItems={navItems}
-      profile={profile}
-      signOutAction={signOutAdminAction}
-      mobileNavMode="drawer"
-    >
+    <AdminShell email={profile.email} fullName={profile.full_name ?? ""} badges={badges}>
       {children}
-    </AppShell>
+    </AdminShell>
   );
 }

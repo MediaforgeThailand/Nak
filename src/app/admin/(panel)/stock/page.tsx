@@ -1,8 +1,7 @@
-import { adjustInventoryAction } from "@/app/actions/admin";
-import { Card } from "@/components/ui/card";
-import { Field, Input, Select } from "@/components/ui/form";
-import { SubmitButton } from "@/components/ui/submit-button";
-import { dateTime } from "@/lib/format";
+import { Icon } from "@/components/nak/icon";
+import { AdBadge, AdThumb, PageHead } from "@/components/nak/ui";
+import { StockAdjustRow } from "@/components/nak/stock-adjust-row";
+import { compactDate } from "@/lib/format";
 import { getInventoryMovements, getProductsWithInventory } from "@/lib/data/queries";
 
 export const dynamic = "force-dynamic";
@@ -19,48 +18,73 @@ export default async function AdminStockPage({
   ]);
 
   return (
-    <div className="grid gap-4">
-      <h2 className="text-2xl font-semibold">จัดการสต็อก</h2>
-      {params.error ? <div className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-danger">{params.error}</div> : null}
+    <div style={{ display: "grid", gap: 13 }}>
+      <PageHead title="จัดการสต็อก" sub="ปรับจำนวนแบบ manual พร้อมเหตุผล" />
 
-      <Card>
-        <form action={adjustInventoryAction} className="grid gap-3 sm:grid-cols-[1fr_140px_1fr_auto]">
-          <Field label="สินค้า">
-            <Select name="product_id" required>
-              {products.map((product) => (
-                <option key={product.id} value={product.id}>{product.sku} · {product.name}</option>
-              ))}
-            </Select>
-          </Field>
-          <Field label="เพิ่ม/ลด">
-            <Input name="quantity_delta" type="number" inputMode="numeric" required />
-          </Field>
-          <Field label="หมายเหตุ">
-            <Input name="note" />
-          </Field>
-          <SubmitButton pendingLabel="กำลังปรับ..." className="self-end">
-            ปรับสต็อก
-          </SubmitButton>
-        </form>
-      </Card>
-
-      <Card>
-        <h3 className="font-semibold">รายการเคลื่อนไหวสต็อกล่าสุด</h3>
-        <div className="mt-3 grid gap-2">
-          {movements.map((movement) => (
-            <div key={movement.id} className="grid gap-2 rounded-md border border-border p-3 sm:grid-cols-[1fr_auto_auto]">
-              <div>
-                <p className="font-medium">{movement.products?.sku} · {movement.products?.name}</p>
-                <p className="text-sm text-muted">{movement.note ?? movement.type}</p>
-              </div>
-              <p className={movement.quantity_delta > 0 ? "font-semibold text-success" : "font-semibold text-danger"}>
-                {movement.quantity_delta > 0 ? "+" : ""}{movement.quantity_delta}
-              </p>
-              <p className="text-sm text-muted">{dateTime(movement.created_at)}</p>
-            </div>
-          ))}
+      {params.error ? (
+        <div style={{ background: "#fbe6e3", border: "1px solid #f3c8c2", padding: "11px 12px", borderRadius: "var(--r-sm)", color: "#b42318", fontSize: 12.5 }}>
+          {params.error}
         </div>
-      </Card>
+      ) : null}
+
+      <div className="ad-card" style={{ padding: 6 }}>
+        {products.map((product, i) => {
+          const inv = Array.isArray(product.inventory) ? product.inventory[0] : product.inventory;
+          const qty = inv?.quantity_available ?? 0;
+          return (
+            <div key={product.id} style={{ display: "grid", gap: 9, padding: 11, borderBottom: i < products.length - 1 ? "1px solid var(--line)" : "none" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 11 }}>
+                <AdThumb name={product.name} size={38} />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{product.name}</div>
+                  <div style={{ fontSize: 11, color: "var(--muted)" }}>{product.sku}</div>
+                </div>
+                <AdBadge tone={qty === 0 ? "danger" : qty < 40 ? "warning" : "neutral"}>คงเหลือ {qty}</AdBadge>
+              </div>
+              <StockAdjustRow productId={product.id} />
+            </div>
+          );
+        })}
+        {products.length === 0 ? <div style={{ padding: 20, textAlign: "center", color: "var(--muted)", fontSize: 14 }}>ยังไม่มีสินค้า</div> : null}
+      </div>
+
+      <div className="ad-card" style={{ padding: 16, display: "grid", gap: 4 }}>
+        <h3 style={{ margin: "0 0 6px", fontSize: 15, fontWeight: 700 }}>การเคลื่อนไหวล่าสุด</h3>
+        {movements.map((m, i) => {
+          const delta = Number(m.quantity_delta ?? 0);
+          return (
+            <div key={m.id} style={{ display: "flex", alignItems: "center", gap: 11, padding: "9px 0", borderBottom: i < movements.length - 1 ? "1px solid var(--line)" : "none" }}>
+              <span
+                style={{
+                  width: 32,
+                  height: 32,
+                  borderRadius: 9,
+                  background: delta > 0 ? "#e7f4ec" : "#fbe6e3",
+                  color: delta > 0 ? "#1b7a4b" : "#b42318",
+                  display: "grid",
+                  placeItems: "center",
+                  flexShrink: 0,
+                }}
+              >
+                <Icon name={delta > 0 ? "plus" : "minus"} size={15} stroke={2.6} />
+              </span>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 13, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  {m.products?.name ?? m.products?.sku ?? "สินค้า"}
+                </div>
+                <div style={{ fontSize: 11.5, color: "var(--muted)" }}>
+                  {(m.note ?? m.type) || "ปรับสต็อก"} · {compactDate(m.created_at)}
+                </div>
+              </div>
+              <span style={{ fontSize: 14, fontWeight: 800, color: delta > 0 ? "#1b7a4b" : "#b42318" }}>
+                {delta > 0 ? "+" : ""}
+                {delta}
+              </span>
+            </div>
+          );
+        })}
+        {movements.length === 0 ? <p style={{ fontSize: 13, color: "var(--muted)", margin: "4px 0" }}>ยังไม่มีการเคลื่อนไหว</p> : null}
+      </div>
     </div>
   );
 }

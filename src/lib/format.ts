@@ -38,6 +38,30 @@ export function orderStatusLabel(status: string) {
   return labels[status] ?? status;
 }
 
+export type OrderStatusTone = "neutral" | "accent" | "success" | "warning" | "danger";
+
+export type OrderStatusMeta = {
+  label: string;
+  tone: OrderStatusTone;
+  icon: string;
+  step: number; // 0..2 along [รออนุมัติ → กำลังจัดส่ง → จัดส่งแล้ว], -1 when rejected/cancelled
+};
+
+// Maps the real order lifecycle onto the 3-step progress used in the redesign.
+export function orderStatusMeta(status: string): OrderStatusMeta {
+  const meta: Record<string, OrderStatusMeta> = {
+    pending_admin: { label: "รออนุมัติ", tone: "warning", icon: "clock", step: 0 },
+    approved: { label: "กำลังจัดส่ง", tone: "accent", icon: "truck", step: 1 },
+    packing: { label: "กำลังจัดส่ง", tone: "accent", icon: "truck", step: 1 },
+    ready_to_ship: { label: "กำลังจัดส่ง", tone: "accent", icon: "truck", step: 1 },
+    shipping: { label: "จัดส่งแล้ว", tone: "success", icon: "checkCircle", step: 2 },
+    delivered: { label: "จัดส่งแล้ว", tone: "success", icon: "checkCircle", step: 2 },
+    rejected: { label: "ถูกปฏิเสธ", tone: "danger", icon: "xCircle", step: -1 },
+    cancelled: { label: "ยกเลิก", tone: "danger", icon: "xCircle", step: -1 },
+  };
+  return meta[status] ?? meta.pending_admin;
+}
+
 export function paymentStatusLabel(status: string) {
   const labels: Record<string, string> = {
     pending: "รอตรวจสลิป",

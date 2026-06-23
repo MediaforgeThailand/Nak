@@ -1,5 +1,3 @@
-import Image from "next/image";
-import { ChevronDown, PackageSearch, Search, Trash2 } from "lucide-react";
 import {
   createCategoryAction,
   createProductAction,
@@ -7,10 +5,10 @@ import {
   deleteProductAction,
   updateProductAction,
 } from "@/app/actions/admin";
-import { Badge } from "@/components/ui/badge";
-import { Card } from "@/components/ui/card";
+import { Icon } from "@/components/nak/icon";
+import { AdBadge, AdThumb, NakField, PageHead } from "@/components/nak/ui";
 import { FileUploadPreview } from "@/components/ui/file-upload-preview";
-import { Field, Input, Select, Textarea } from "@/components/ui/form";
+import { Select } from "@/components/ui/form";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { money } from "@/lib/format";
 import { getProductCategories, getProductsWithInventory } from "@/lib/data/queries";
@@ -30,249 +28,220 @@ export default async function AdminProductsPage({
     getProductsWithInventory(true, "admin"),
     getProductCategories("admin"),
   ]);
-  const filteredProducts = normalizedQuery
-    ? products.filter((product) => {
-        const searchable = [
-          product.name,
-          product.sku,
-          product.category?.name,
-          product.description,
-        ]
+  const filtered = normalizedQuery
+    ? products.filter((product) =>
+        [product.name, product.sku, product.category?.name, product.description]
           .filter(Boolean)
           .join(" ")
-          .toLowerCase();
-
-        return searchable.includes(normalizedQuery);
-      })
+          .toLowerCase()
+          .includes(normalizedQuery),
+      )
     : products;
-  const productImageUrls = await signedUrls(
+  const imageUrls = await signedUrls(
     "product-images",
-    filteredProducts
-      .map((product) => product.image_path)
-      .filter((path): path is string => Boolean(path)),
+    filtered.map((p) => p.image_path).filter((path): path is string => Boolean(path)),
     "admin",
   );
 
   return (
-    <div className="grid gap-4">
-      <div>
-        <h2 className="text-2xl font-semibold">จัดการสินค้า</h2>
-      </div>
-      {params.error ? <div className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-danger">{params.error}</div> : null}
+    <div style={{ display: "grid", gap: 13 }}>
+      <PageHead title="จัดการสินค้า" sub={`${products.length} รายการ`} />
 
-      <Card>
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <h3 className="font-semibold">หมวดหมู่สินค้า</h3>
-          </div>
-          <Badge>{categories.length} หมวดหมู่</Badge>
+      {params.error ? (
+        <div style={{ background: "#fbe6e3", border: "1px solid #f3c8c2", padding: "11px 12px", borderRadius: "var(--r-sm)", color: "#b42318", fontSize: 12.5 }}>
+          {params.error}
         </div>
+      ) : null}
 
-        <form action={createCategoryAction} className="mt-4 grid gap-3 md:grid-cols-[1fr_1fr_auto]">
-          <Field label="ชื่อหมวดหมู่"><Input name="name" required /></Field>
-          <Field label="คำอธิบาย"><Input name="description" /></Field>
-          <SubmitButton pendingLabel="กำลังเพิ่ม..." className="self-end">
-            เพิ่มหมวดหมู่
+      {/* categories */}
+      <details className="ad-card" style={{ padding: 16 }}>
+        <summary style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", listStyle: "none" }}>
+          <Icon name="filter" size={16} stroke={2.2} style={{ color: "var(--p)" }} />
+          <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700, flex: 1 }}>หมวดหมู่สินค้า ({categories.length})</h3>
+          <Icon name="chevD" size={16} stroke={2.4} style={{ color: "var(--muted)" }} />
+        </summary>
+        <form action={createCategoryAction} style={{ marginTop: 12, display: "grid", gridTemplateColumns: "1fr 1fr auto", gap: 8, alignItems: "end" }}>
+          <NakField label="ชื่อหมวดหมู่">
+            <input className="ad-input" name="name" required />
+          </NakField>
+          <NakField label="คำอธิบาย">
+            <input className="ad-input" name="description" />
+          </NakField>
+          <SubmitButton pendingLabel="..." variant="secondary">
+            เพิ่ม
           </SubmitButton>
         </form>
-
-        <div className="mt-4 flex flex-wrap gap-2">
+        <div style={{ marginTop: 12, display: "flex", flexWrap: "wrap", gap: 8 }}>
           {categories.length === 0 ? (
-            <span className="text-sm text-muted">ยังไม่มีหมวดหมู่</span>
+            <span style={{ fontSize: 13, color: "var(--muted)" }}>ยังไม่มีหมวดหมู่</span>
           ) : (
             categories.map((category) => (
-              <form key={category.id} action={deleteCategoryAction} className="inline-flex items-center gap-1 rounded-full border border-border bg-surface-muted px-3 py-1.5">
+              <form
+                key={category.id}
+                action={deleteCategoryAction}
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 4,
+                  borderRadius: 999,
+                  border: "1px solid var(--line)",
+                  background: "var(--surface)",
+                  padding: "5px 6px 5px 12px",
+                }}
+              >
                 <input type="hidden" name="category_id" value={category.id} />
-                <span className="text-sm font-medium">{category.name}</span>
-                <button
-                  type="submit"
-                  aria-label={`ลบหมวดหมู่ ${category.name}`}
-                  className="grid h-7 w-7 cursor-pointer place-items-center rounded-full text-danger transition-colors hover:bg-red-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
+                <span style={{ fontSize: 13, fontWeight: 600 }}>{category.name}</span>
+                <button type="submit" aria-label={`ลบ ${category.name}`} style={{ display: "grid", placeItems: "center", width: 22, height: 22, borderRadius: 999, border: "none", background: "transparent", color: "#b42318", cursor: "pointer" }}>
+                  <Icon name="x" size={13} stroke={2.4} />
                 </button>
               </form>
             ))
           )}
         </div>
-      </Card>
+      </details>
 
-      <Card>
-        <h3 className="font-semibold">เพิ่มสินค้าใหม่</h3>
-        <form action={createProductAction} className="mt-4 grid gap-3 sm:grid-cols-2">
-          <Field label="SKU"><Input name="sku" required /></Field>
-          <Field label="ชื่อสินค้า"><Input name="name" required /></Field>
-          <Field label="ราคา"><Input name="price" type="number" inputMode="decimal" min="0" step="0.01" required /></Field>
-          <Field label="หน่วย"><Input name="unit" defaultValue="ชิ้น" required /></Field>
-          <Field label="หมวดหมู่">
+      {/* add product */}
+      <details className="ad-card" style={{ padding: 16 }}>
+        <summary style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", listStyle: "none" }}>
+          <span className="ad-iconbtn" style={{ width: 30, height: 30, background: "var(--p)", color: "#fff", borderColor: "var(--p)" }}>
+            <Icon name="plus" size={17} stroke={2.6} />
+          </span>
+          <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700, flex: 1 }}>เพิ่มสินค้าใหม่</h3>
+          <Icon name="chevD" size={16} stroke={2.4} style={{ color: "var(--muted)" }} />
+        </summary>
+        <form action={createProductAction} style={{ marginTop: 12, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+          <NakField label="SKU">
+            <input className="ad-input" name="sku" required />
+          </NakField>
+          <NakField label="ชื่อสินค้า">
+            <input className="ad-input" name="name" required />
+          </NakField>
+          <NakField label="ราคา">
+            <input className="ad-input" name="price" inputMode="decimal" min="0" step="0.01" type="number" required />
+          </NakField>
+          <NakField label="หน่วย">
+            <input className="ad-input" name="unit" defaultValue="ลัง" required />
+          </NakField>
+          <NakField label="หมวดหมู่">
             <Select name="category_id" defaultValue="">
               <option value="">ไม่ระบุหมวดหมู่</option>
-              {categories.map((category) => (
-                <option key={category.id} value={category.id}>{category.name}</option>
+              {categories.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
               ))}
             </Select>
-          </Field>
-          <Field label="เพิ่มหมวดหมู่ใหม่พร้อมสินค้า">
-            <Input name="new_category_name" placeholder="เช่น เครื่องดื่ม / อุปกรณ์" />
-          </Field>
-          <Field label="สต็อกตั้งต้น"><Input name="quantity_available" type="number" inputMode="numeric" min="0" defaultValue="0" /></Field>
-          <Field label="เตือนเมื่อเหลือ"><Input name="low_stock_threshold" type="number" inputMode="numeric" min="0" defaultValue="5" /></Field>
-          <div className="sm:col-span-2">
-            <Field label="รูปสินค้า">
-              <FileUploadPreview
-                name="image"
-                accept="image/*"
-                capture="environment"
-              />
-            </Field>
+          </NakField>
+          <NakField label="เพิ่มหมวดหมู่ใหม่">
+            <input className="ad-input" name="new_category_name" placeholder="เช่น เครื่องดื่ม" />
+          </NakField>
+          <NakField label="สต็อกตั้งต้น">
+            <input className="ad-input" name="quantity_available" type="number" inputMode="numeric" min="0" defaultValue="0" />
+          </NakField>
+          <NakField label="เตือนเมื่อเหลือ">
+            <input className="ad-input" name="low_stock_threshold" type="number" inputMode="numeric" min="0" defaultValue="5" />
+          </NakField>
+          <div style={{ gridColumn: "1 / -1" }}>
+            <NakField label="รูปสินค้า">
+              <FileUploadPreview name="image" accept="image/*" capture="environment" />
+            </NakField>
           </div>
-          <div className="sm:col-span-2">
-            <Field label="รายละเอียด"><Textarea name="description" /></Field>
+          <div style={{ gridColumn: "1 / -1" }}>
+            <NakField label="รายละเอียด">
+              <textarea className="ad-input" name="description" rows={2} style={{ resize: "none" }} />
+            </NakField>
           </div>
-          <SubmitButton pendingLabel="กำลังเพิ่มสินค้า..." className="sm:col-span-2">
-            เพิ่มสินค้า
-          </SubmitButton>
+          <div style={{ gridColumn: "1 / -1" }}>
+            <SubmitButton pendingLabel="กำลังเพิ่ม..." className="w-full">
+              เพิ่มสินค้า
+            </SubmitButton>
+          </div>
         </form>
-      </Card>
+      </details>
 
-      <Card>
-        <div className="flex flex-wrap items-end justify-between gap-3">
-          <div>
-            <h3 className="font-semibold">รายการสินค้า</h3>
-          </div>
-          <Badge tone={filteredProducts.length > 0 ? "accent" : "neutral"}>
-            {filteredProducts.length} / {products.length} รายการ
-          </Badge>
-        </div>
-        <form action="/admin/products" method="get" className="mt-4 grid gap-3 sm:grid-cols-[1fr_auto]">
-          <label className="relative block">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
-            <Input
-              name="q"
-              defaultValue={query}
-              placeholder="ค้นหาชื่อสินค้า / SKU / หมวดหมู่"
-              className="pl-9"
-            />
-          </label>
-          <SubmitButton variant="secondary" pendingLabel="กำลังค้นหา...">
-            ค้นหา
-          </SubmitButton>
-        </form>
-      </Card>
+      {/* search */}
+      <form action="/admin/products" method="get" className="ad-search">
+        <Icon name="search" size={18} stroke={2.2} style={{ color: "var(--muted)" }} />
+        <input name="q" defaultValue={query} placeholder="ค้นหาชื่อสินค้า / SKU" />
+        <button type="submit" style={{ border: "none", background: "transparent", color: "var(--p)", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
+          ค้นหา
+        </button>
+      </form>
 
-      <div className="grid gap-3">
-        {filteredProducts.length === 0 ? (
-          <Card>
-            <h3 className="font-semibold">ไม่พบสินค้า</h3>
-          </Card>
+      {/* list */}
+      <div className="ad-card" style={{ padding: 6 }}>
+        {filtered.length === 0 ? (
+          <div style={{ padding: 20, textAlign: "center", color: "var(--muted)", fontSize: 14 }}>ไม่พบสินค้า</div>
         ) : null}
-
-        {filteredProducts.map((product) => {
+        {filtered.map((product, i) => {
           const inv = Array.isArray(product.inventory) ? product.inventory[0] : product.inventory;
-          const imageUrl = product.image_path ? productImageUrls.get(product.image_path) : null;
+          const qty = inv?.quantity_available ?? 0;
+          const imageUrl = product.image_path ? imageUrls.get(product.image_path) : null;
           return (
-            <Card key={product.id} className="p-0">
-              <details className="group">
-                <summary className="grid cursor-pointer list-none grid-cols-[72px_minmax(0,1fr)_auto] items-center gap-3 p-3 marker:hidden">
-                  <div className="relative grid aspect-square place-items-center overflow-hidden rounded-lg bg-surface-muted text-muted">
-                    {imageUrl ? (
-                      <Image
-                        src={imageUrl}
-                        alt={product.name}
-                        fill
-                        sizes="72px"
-                        className="object-cover"
-                      />
-                    ) : (
-                      <PackageSearch className="h-7 w-7" />
-                    )}
+            <details key={product.id} style={{ borderBottom: i < filtered.length - 1 ? "1px solid var(--line)" : "none" }}>
+              <summary style={{ display: "flex", alignItems: "center", gap: 12, padding: 10, cursor: "pointer", listStyle: "none" }}>
+                <AdThumb name={product.name} imageUrl={imageUrl} size={46} />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 13.5, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{product.name}</div>
+                  <div style={{ fontSize: 11.5, color: "var(--muted)", marginTop: 1 }}>
+                    {product.sku} · {product.category?.name ?? "ไม่ระบุ"}
                   </div>
-                  <div className="min-w-0">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <h3 className="min-w-0 truncate font-semibold">{product.name}</h3>
-                      <Badge tone={product.is_active ? "success" : "neutral"}>
-                        {product.is_active ? "เปิดขาย" : "ปิดอยู่"}
-                      </Badge>
-                    </div>
-                    <p className="mt-1 truncate text-sm text-muted">{product.sku}</p>
-                    <div className="mt-2 flex flex-wrap items-center gap-2 text-xs font-semibold">
-                      <Badge tone="accent">{product.category?.name ?? "ไม่ระบุหมวดหมู่"}</Badge>
-                      <span className="text-muted">Stock {inv?.quantity_available ?? 0}</span>
-                      <span>{money(product.price)}</span>
-                    </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 5, flexWrap: "wrap" }}>
+                    <span style={{ fontSize: 14, fontWeight: 800 }}>{money(product.price)}</span>
+                    <AdBadge tone={qty === 0 ? "danger" : qty < 40 ? "warning" : "neutral"}>{qty === 0 ? "หมด" : `เหลือ ${qty}`}</AdBadge>
+                    <AdBadge tone={product.is_active ? "success" : "neutral"}>{product.is_active ? "เปิดขาย" : "ปิดขาย"}</AdBadge>
                   </div>
-                  <span className="grid h-10 w-10 place-items-center rounded-lg border border-white/70 bg-white/72 text-accent">
-                    <ChevronDown className="h-4 w-4 transition-transform duration-200 group-open:rotate-180" />
-                  </span>
-                </summary>
-
-              <form action={updateProductAction} className="grid gap-3 border-t border-white/60 p-3 lg:grid-cols-[160px_1fr_1fr_120px_100px_140px]">
-                <input type="hidden" name="id" value={product.id} />
-                <div className="relative grid aspect-[4/3] place-items-center overflow-hidden rounded-md bg-surface-muted text-muted lg:row-span-3">
-                  {imageUrl ? (
-                    <Image
-                      src={imageUrl}
-                      alt={product.name}
-                      fill
-                      sizes="160px"
-                      className="object-cover"
-                    />
-                  ) : (
-                    <PackageSearch className="h-8 w-8" />
-                  )}
                 </div>
-                <Field label="ชื่อ"><Input name="name" defaultValue={product.name} /></Field>
-                <Field label="SKU"><Input name="sku" defaultValue={product.sku} /></Field>
-                <Field label="ราคา"><Input name="price" type="number" inputMode="decimal" step="0.01" defaultValue={product.price} /></Field>
-                <Field label="หน่วย"><Input name="unit" defaultValue={product.unit} /></Field>
-                <Field label="หมวดหมู่">
+                <span className="ad-iconbtn" style={{ width: 34, height: 34 }}>
+                  <Icon name="edit" size={15} stroke={2.2} />
+                </span>
+              </summary>
+
+              <form action={updateProductAction} style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, padding: "4px 10px 14px" }}>
+                <input type="hidden" name="id" value={product.id} />
+                <NakField label="ชื่อ">
+                  <input className="ad-input" name="name" defaultValue={product.name} />
+                </NakField>
+                <NakField label="SKU">
+                  <input className="ad-input" name="sku" defaultValue={product.sku} />
+                </NakField>
+                <NakField label="ราคา">
+                  <input className="ad-input" name="price" type="number" inputMode="decimal" step="0.01" defaultValue={product.price} />
+                </NakField>
+                <NakField label="หน่วย">
+                  <input className="ad-input" name="unit" defaultValue={product.unit} />
+                </NakField>
+                <NakField label="หมวดหมู่">
                   <Select name="category_id" defaultValue={product.category_id ?? ""}>
                     <option value="">ไม่ระบุ</option>
-                    {categories.map((category) => (
-                      <option key={category.id} value={category.id}>{category.name}</option>
+                    {categories.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name}
+                      </option>
                     ))}
                   </Select>
-                </Field>
-                <div className="flex items-end gap-2">
-                  <label className="flex min-h-11 items-center gap-2 text-sm">
-                    <input name="is_active" type="checkbox" defaultChecked={product.is_active} />
-                    Active
-                  </label>
+                </NakField>
+                <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, alignSelf: "end", paddingBottom: 10 }}>
+                  <input name="is_active" type="checkbox" defaultChecked={product.is_active} /> เปิดขาย
+                </label>
+                <div style={{ gridColumn: "1 / -1" }}>
+                  <NakField label="รายละเอียด">
+                    <textarea className="ad-input" name="description" defaultValue={product.description ?? ""} rows={2} style={{ resize: "none" }} />
+                  </NakField>
                 </div>
-                <div className="lg:col-span-5">
-                  <Field label="รายละเอียด"><Textarea name="description" defaultValue={product.description ?? ""} /></Field>
+                <div style={{ gridColumn: "1 / -1" }}>
+                  <NakField label="เปลี่ยนรูป (เว้นว่างถ้าไม่เปลี่ยน)">
+                    <FileUploadPreview name="image" accept="image/*" capture="environment" />
+                  </NakField>
                 </div>
-                <div className="lg:col-span-5">
-                  <Field label="เปลี่ยนรูปสินค้า">
-                    <FileUploadPreview
-                      name="image"
-                      accept="image/*"
-                      capture="environment"
-                      hint="ปล่อยว่างไว้ถ้ายังไม่ต้องการเปลี่ยนรูป"
-                    />
-                  </Field>
-                </div>
-                <div className="flex flex-wrap items-center justify-between gap-3 lg:col-span-6">
-                  <div className="flex items-center gap-2 text-sm text-muted">
-                    <Badge tone={product.is_active ? "success" : "neutral"}>{product.is_active ? "active" : "inactive"}</Badge>
-                    <Badge tone="accent">{product.category?.name ?? "ไม่ระบุหมวดหมู่"}</Badge>
-                    <span>Stock {inv?.quantity_available ?? 0}</span>
-                    <span>{money(product.price)}</span>
-                  </div>
-                  <SubmitButton variant="secondary" pendingLabel="กำลังบันทึก...">
-                    บันทึก
-                  </SubmitButton>
-                  <SubmitButton
-                    variant="danger"
-                    formAction={deleteProductAction}
-                    pendingLabel="กำลังลบ..."
-                  >
-                    ลบออกจากหน้าลูกค้า
-                  </SubmitButton>
-                </div>
+                <SubmitButton variant="secondary" pendingLabel="..." className="w-full">
+                  บันทึก
+                </SubmitButton>
+                <SubmitButton variant="danger" formAction={deleteProductAction} pendingLabel="..." className="w-full">
+                  ปิดการขาย
+                </SubmitButton>
               </form>
-              </details>
-            </Card>
+            </details>
           );
         })}
       </div>
