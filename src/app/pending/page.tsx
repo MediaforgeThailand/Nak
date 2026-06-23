@@ -1,4 +1,5 @@
-import { Clock3 } from "lucide-react";
+import Link from "next/link";
+import { Clock3, ShieldCheck } from "lucide-react";
 import { signOutAdminAction, signOutCustomerAction, updatePendingProfileAction } from "@/app/actions/auth";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
@@ -34,23 +35,73 @@ export default async function PendingPage({
   const defaultName = profile?.full_name || lineName;
   const accountLabel = profile?.company_name || defaultName || profile?.email || "ผู้ใช้ LINE";
 
+  // An already-approved customer that signed in on the backend → staff-access request.
+  const isStaffRequestByCustomer =
+    scope === "admin" && profile?.role === "customer" && profile?.status === "approved";
+
+  if (isStaffRequestByCustomer && profile) {
+    return (
+      <main className="motion-page grid min-h-screen place-items-center px-4 py-8">
+        <Card className="w-full max-w-lg p-6">
+          <div className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-[var(--p-soft)] text-[var(--p-deep)]">
+            <ShieldCheck className="h-7 w-7" />
+          </div>
+
+          <div className="mt-5 text-center">
+            <p className="text-sm font-semibold text-accent">NAK Admin</p>
+            <h1 className="mt-2 text-2xl font-bold">คำขอเป็นทีมงานรออนุมัติ</h1>
+            <p className="mt-2 text-sm leading-6 text-muted">
+              คุณเข้าสู่ระบบหลังบ้านด้วย<b> บัญชีลูกค้า</b> — ระบบส่งคำขอเป็นทีมงานให้แอดมินแล้ว
+              เมื่อแอดมินอนุมัติ จะเข้าหลังบ้านได้ทันที
+            </p>
+          </div>
+
+          <div className="mt-5 grid gap-2 rounded-[var(--r-sm)] border border-[var(--line)] bg-[var(--surface)] p-3">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-xs font-semibold text-muted">ชื่อผู้ติดต่อ</span>
+              <Badge tone="accent">บัญชีลูกค้า</Badge>
+            </div>
+            <p className="break-words font-semibold">{defaultName || "—"}</p>
+            {profile.email ? <p className="break-words text-sm text-muted">{profile.email}</p> : null}
+          </div>
+
+          <Link
+            href="/home"
+            className="motion-surface mt-5 flex min-h-11 w-full items-center justify-center gap-2 rounded-[var(--r-btn)] bg-[var(--p-soft)] px-4 font-bold text-[var(--p-deep)]"
+          >
+            กลับไปหน้าซื้อสินค้า
+          </Link>
+
+          <form action={signOutAction} className="mt-3">
+            <SubmitButton variant="secondary" pendingLabel="กำลังออก..." className="w-full">
+              ออกจากระบบ
+            </SubmitButton>
+          </form>
+        </Card>
+      </main>
+    );
+  }
+
   return (
     <main className="motion-page grid min-h-screen place-items-center px-4 py-8">
       <Card className="w-full max-w-lg p-6">
-        <div className="mx-auto grid h-14 w-14 place-items-center rounded-lg border border-amber-200 bg-amber-50 text-warning">
+        <div className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-[#fbeedd] text-[#a35a10]">
           <Clock3 className="h-7 w-7" />
         </div>
 
         <div className="mt-5 text-center">
-          <p className="text-sm font-semibold uppercase tracking-normal text-accent">NAK Account</p>
-          <h1 className="mt-2 text-2xl font-semibold">บัญชียังรออนุมัติ</h1>
+          <p className="text-sm font-semibold text-accent">{scope === "admin" ? "NAK Admin" : "NAK Account"}</p>
+          <h1 className="mt-2 text-2xl font-bold">บัญชียังรออนุมัติ</h1>
+          {scope === "admin" ? (
+            <p className="mt-2 text-sm text-muted">กรอกชื่อเพื่อส่งคำขอเป็นทีมงาน รอแอดมินอนุมัติและกำหนดสิทธิ์</p>
+          ) : null}
         </div>
 
         {profile ? (
           <form action={updatePendingProfileAction} className="mt-5 grid gap-4">
             <input type="hidden" name="scope" value={scope} />
 
-            <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border bg-white/70 p-3">
+            <div className="flex flex-wrap items-center justify-between gap-2 rounded-[var(--r-sm)] border border-[var(--line)] bg-[var(--surface)] p-3">
               <div className="min-w-0">
                 <p className="break-words font-semibold">{accountLabel}</p>
                 {profile.email ? <p className="break-words text-sm text-muted">{profile.email}</p> : null}
@@ -59,7 +110,11 @@ export default async function PendingPage({
             </div>
 
             {params.saved ? <Badge tone="success">บันทึกข้อมูลแล้ว</Badge> : null}
-            {params.error ? <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-danger">{params.error}</div> : null}
+            {params.error ? (
+              <div className="rounded-[var(--r-sm)] border border-[#f3c8c2] bg-[#fbe6e3] p-3 text-sm text-[#b42318]">
+                {params.error}
+              </div>
+            ) : null}
 
             <Field label="ชื่อผู้ติดต่อ">
               <Input name="full_name" autoComplete="name" defaultValue={defaultName} required />

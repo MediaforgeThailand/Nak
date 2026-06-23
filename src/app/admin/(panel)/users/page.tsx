@@ -15,12 +15,23 @@ function profileName(profile: ProfileRecord) {
   return profile.company_name || profile.full_name || profile.email || "ผู้ใช้ LINE";
 }
 
-function ReqRow({ title, sub, children }: { title: string; sub: string; children: React.ReactNode }) {
+function ReqRow({
+  title,
+  sub,
+  badge,
+  children,
+}: {
+  title: string;
+  sub: string;
+  badge?: React.ReactNode;
+  children: React.ReactNode;
+}) {
   return (
     <div style={{ border: "1px solid var(--line)", borderRadius: "var(--r-sm)", padding: 11, display: "grid", gap: 9 }}>
       <div style={{ minWidth: 0 }}>
         <div style={{ fontSize: 13.5, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{title}</div>
         <div style={{ fontSize: 11.5, color: "var(--muted)" }}>{sub}</div>
+        {badge ? <div style={{ marginTop: 6 }}>{badge}</div> : null}
       </div>
       {children}
     </div>
@@ -37,8 +48,14 @@ export default async function AdminUsersPage({
   const profiles = await getProfiles();
 
   const pendingCustomers = profiles.filter((p) => p.status === "pending" && p.signup_scope !== "staff");
-  const pendingStaff = profiles.filter((p) => p.status === "pending" && p.signup_scope === "staff");
-  const customers = profiles.filter((p) => p.role === "customer" && p.status !== "pending" && p.signup_scope !== "staff");
+  // Staff requests: brand-new staff signups, plus approved customers that asked
+  // for backend access (marked via signup_scope on the backend LINE login).
+  const pendingStaff = profiles.filter(
+    (p) =>
+      (p.status === "pending" && p.signup_scope === "staff") ||
+      (p.status === "approved" && p.role === "customer" && p.signup_scope === "staff"),
+  );
+  const customers = profiles.filter((p) => p.role === "customer" && p.status !== "pending");
   const staff = profiles.filter((p) => p.status !== "pending" && ["admin", "factory_staff"].includes(p.role));
 
   return (
@@ -70,21 +87,29 @@ export default async function AdminUsersPage({
         {pendingCustomers.length === 0 ? <p style={{ fontSize: 12.5, color: "var(--muted)", margin: 0 }}>ยังไม่มีคำขอลูกค้า</p> : null}
 
         <div style={{ fontSize: 12, fontWeight: 700, color: "var(--muted)", marginTop: 4 }}>คำขอทีมงาน ({pendingStaff.length})</div>
-        {pendingStaff.map((p) => (
-          <ReqRow key={p.id} title={profileName(p)} sub={p.email || "—"}>
-            <form action={approveUserAction} style={{ display: "grid", gridTemplateColumns: "1fr 120px", gap: 8 }}>
-              <input type="hidden" name="user_id" value={p.id} />
-              <input type="hidden" name="return_to" value="/admin/users" />
-              <Select name="role" defaultValue="factory_staff" disabled={p.id === currentProfile.id}>
-                <option value="factory_staff">ทีมจัดสินค้า</option>
-                <option value="admin">ผู้ดูแลระบบ</option>
-              </Select>
-              <SubmitButton variant="secondary" pendingLabel="..." disabled={p.id === currentProfile.id}>
-                อนุมัติ
-              </SubmitButton>
-            </form>
-          </ReqRow>
-        ))}
+        {pendingStaff.map((p) => {
+          const alsoCustomer = p.status === "approved" && p.role === "customer";
+          return (
+            <ReqRow
+              key={p.id}
+              title={profileName(p)}
+              sub={[p.email, p.phone].filter(Boolean).join(" · ") || "—"}
+              badge={alsoCustomer ? <AdBadge tone="accent">มีสิทธิ์เป็นลูกค้าอยู่แล้ว</AdBadge> : undefined}
+            >
+              <form action={approveUserAction} style={{ display: "grid", gridTemplateColumns: "1fr 120px", gap: 8 }}>
+                <input type="hidden" name="user_id" value={p.id} />
+                <input type="hidden" name="return_to" value="/admin/users" />
+                <Select name="role" defaultValue={alsoCustomer ? "admin" : "factory_staff"} disabled={p.id === currentProfile.id}>
+                  <option value="factory_staff">ทีมจัดสินค้า</option>
+                  <option value="admin">ผู้ดูแลระบบ</option>
+                </Select>
+                <SubmitButton variant="secondary" pendingLabel="..." disabled={p.id === currentProfile.id}>
+                  อนุมัติ
+                </SubmitButton>
+              </form>
+            </ReqRow>
+          );
+        })}
         {pendingStaff.length === 0 ? <p style={{ fontSize: 12.5, color: "var(--muted)", margin: 0 }}>ยังไม่มีคำขอทีมงาน</p> : null}
       </div>
 

@@ -31,9 +31,7 @@ export default async function AdminCustomersPage({
   await requireAdmin();
   const profiles = await getProfiles();
   const query = String(params.q ?? "").trim();
-  const customers = profiles.filter(
-    (p) => p.role === "customer" && p.status !== "pending" && p.signup_scope !== "staff",
-  );
+  const customers = profiles.filter((p) => p.role === "customer" && p.status !== "pending");
   const filtered = customers.filter((p) => matches(p, query));
 
   return (
