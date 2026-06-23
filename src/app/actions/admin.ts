@@ -582,15 +582,18 @@ export async function approveUserAction(formData: FormData) {
 
   const { data: targetProfile, error: targetError } = await supabase
     .from("profiles")
-    .select("id, role, status")
+    .select("id, role, status, signup_scope")
     .eq("id", userId)
-    .single<{ id: string; role: UserRole; status: string }>();
+    .single<{ id: string; role: UserRole; status: string; signup_scope: string }>();
 
   if (targetError || !targetProfile) {
     redirect(`${returnTo}?error=${encodeURIComponent(targetError?.message ?? "ไม่พบบัญชีที่ต้องการแก้ไข")}`);
   }
 
-  if (targetProfile.role === "customer" && targetProfile.status !== "pending" && role !== "customer") {
+  // Approved customers can only be promoted to staff via an explicit staff request
+  // (signup_scope = "staff"), not accidentally from the customer management screens.
+  const isStaffRequest = targetProfile.signup_scope === "staff";
+  if (!isStaffRequest && targetProfile.role === "customer" && targetProfile.status !== "pending" && role !== "customer") {
     redirect(
       `${returnTo}?error=${encodeURIComponent(
         "บัญชีลูกค้าที่ใช้งานแล้วไม่สามารถเลื่อนเป็นทีมงานจากหน้าจัดการลูกค้าได้ ให้ใช้คำขอทีมงานใหม่",

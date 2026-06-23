@@ -39,14 +39,22 @@ export async function GET(request: NextRequest) {
     .eq("id", user.id)
     .single<Profile>();
 
+  // Logging in on the backend with a non-staff account registers a staff-access
+  // request (marked via signup_scope) instead of being rejected outright.
+  if (scope === "admin" && profile && profile.role === "customer" && profile.signup_scope !== "staff") {
+    await supabase.from("profiles").update({ signup_scope: "staff" }).eq("id", user.id);
+    profile.signup_scope = "staff";
+  }
+
   if (!profile || profile.status !== "approved") {
     return NextResponse.redirect(new URL(`/pending?scope=${scope}`, request.url));
   }
 
   if (scope === "admin") {
     if (!["admin", "factory_staff"].includes(profile.role)) {
-      await supabase.auth.signOut();
-      return callbackError(request, scope, "บัญชีนี้ไม่มีสิทธิ์เข้าหลังบ้าน");
+      // Approved customer asking for backend access → show the pending request page
+      // (their staff request now appears in the admin "คำขอทีมงาน" list).
+      return NextResponse.redirect(new URL("/pending?scope=admin", request.url));
     }
 
     return NextResponse.redirect(new URL("/admin/home", request.url));
