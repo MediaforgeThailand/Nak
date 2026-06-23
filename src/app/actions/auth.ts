@@ -24,14 +24,28 @@ async function getSignedInProfile(supabase: Awaited<ReturnType<typeof createSupa
 }
 
 function getRequestOrigin(headersList: Headers) {
+  // 1) Explicit, stable public URL — set NEXT_PUBLIC_SITE_URL on Vercel so the
+  //    OAuth redirect always points at the right domain (never localhost).
+  const configured = process.env.NEXT_PUBLIC_SITE_URL;
+  if (configured) return configured.replace(/\/+$/, "");
+
+  // 2) The Origin header (present on server-action POSTs from the browser).
   const origin = headersList.get("origin");
   if (origin) return origin;
 
+  // 3) Reconstruct from the forwarded host when running behind a proxy.
+  const forwardedHost = headersList.get("x-forwarded-host") ?? headersList.get("host");
+  if (forwardedHost) {
+    const proto = headersList.get("x-forwarded-proto") ?? "https";
+    return `${proto}://${forwardedHost}`;
+  }
+
+  // 4) Vercel deployment URL as a last resort before local dev.
   if (process.env.VERCEL_URL) {
     return `https://${process.env.VERCEL_URL}`;
   }
 
-  return "http://localhost:3001";
+  return "http://localhost:3000";
 }
 
 function formScope(formData: FormData): AuthScope {
