@@ -214,7 +214,7 @@ export function Select({
                     className={clsx(
                       "flex min-h-10 cursor-pointer items-center justify-between gap-3 rounded-lg border px-3 py-1.5 text-left text-sm font-semibold transition-all duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-45",
                       active
-                        ? "border-accent bg-accent text-white shadow-[0_12px_28px_rgba(15,118,110,0.18)]"
+                        ? "border-accent bg-accent text-white shadow-[0_12px_28px_rgba(229,64,79,0.2)]"
                         : "border-white/70 bg-white/72 text-foreground hover:bg-white",
                     )}
                   >

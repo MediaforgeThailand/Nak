@@ -1,65 +1,25 @@
 import Link from "next/link";
-import { BadgePercent, ChevronRight, Phone, Search, UserRound, WalletCards } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { Field, Input } from "@/components/ui/form";
+import { Icon } from "@/components/nak/icon";
+import { Avatar, PageHead } from "@/components/nak/ui";
 import { requireAdmin } from "@/lib/auth";
 import { getProfiles } from "@/lib/data/queries";
-import { accountStatusLabel, money } from "@/lib/format";
+import { money } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 
 type ProfileRecord = Awaited<ReturnType<typeof getProfiles>>[number];
 
-function includesSearch(profile: ProfileRecord, query: string) {
-  if (!query) return true;
-  const haystack = [profile.company_name, profile.full_name, profile.email, profile.phone]
-    .filter(Boolean)
-    .join(" ")
-    .toLowerCase();
-
-  return haystack.includes(query.toLowerCase());
-}
-
 function profileName(profile: ProfileRecord) {
   return profile.company_name || profile.full_name || profile.email || "ผู้ใช้ LINE";
 }
 
-function CustomerRow({ profile }: { profile: ProfileRecord }) {
-  return (
-    <Link
-      href={`/admin/customers/${profile.id}`}
-      className="flex items-center gap-3 rounded-lg border border-white/70 bg-white/64 p-3 transition-colors duration-200 hover:bg-white/82"
-    >
-      <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-white/70 bg-white/76 text-accent">
-        <UserRound className="h-4 w-4" />
-      </div>
-      <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-2">
-          <p className="truncate text-sm font-semibold">{profileName(profile)}</p>
-          <Badge tone={profile.status === "approved" ? "success" : "danger"}>
-            {accountStatusLabel(profile.status)}
-          </Badge>
-        </div>
-        <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted">
-          <span className="inline-flex items-center gap-1">
-            <Phone className="h-3.5 w-3.5 text-accent" />
-            {profile.phone || "ไม่มีเบอร์"}
-          </span>
-          <span className="inline-flex items-center gap-1">
-            <WalletCards className="h-3.5 w-3.5 text-warning" />
-            {money(profile.debt_balance)}
-          </span>
-          <span className="inline-flex items-center gap-1">
-            <BadgePercent className="h-3.5 w-3.5 text-success" />
-            {money(profile.per_item_discount)} / ชิ้น
-          </span>
-        </div>
-      </div>
-      <ChevronRight className="h-4 w-4 shrink-0 text-muted" />
-    </Link>
-  );
+function matches(profile: ProfileRecord, query: string) {
+  if (!query) return true;
+  return [profile.company_name, profile.full_name, profile.email, profile.phone]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase()
+    .includes(query.toLowerCase());
 }
 
 export default async function AdminCustomersPage({
@@ -72,47 +32,60 @@ export default async function AdminCustomersPage({
   const profiles = await getProfiles();
   const query = String(params.q ?? "").trim();
   const customers = profiles.filter(
-    (profile) => profile.role === "customer" && profile.status !== "pending" && profile.signup_scope !== "staff",
+    (p) => p.role === "customer" && p.status !== "pending" && p.signup_scope !== "staff",
   );
-  const filteredCustomers = customers.filter((profile) => includesSearch(profile, query));
+  const filtered = customers.filter((p) => matches(p, query));
 
   return (
-    <div className="grid gap-3">
-      <div>
-        <h2 className="text-xl font-semibold">จัดการลูกค้า</h2>
-      </div>
+    <div style={{ display: "grid", gap: 13 }}>
+      <PageHead title="ลูกค้า" sub={`${customers.length} บัญชีที่อนุมัติแล้ว`} />
 
       {params.error ? (
-        <div className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-danger">{params.error}</div>
+        <div style={{ background: "#fbe6e3", border: "1px solid #f3c8c2", padding: "11px 12px", borderRadius: "var(--r-sm)", color: "#b42318", fontSize: 12.5 }}>
+          {params.error}
+        </div>
       ) : null}
 
-      <Card className="p-3">
-        <form action="/admin/customers" className="grid gap-2 sm:grid-cols-[1fr_auto]" method="get">
-          <Field label="ค้นหาลูกค้า">
-            <Input name="q" defaultValue={query} placeholder="ชื่อ / เบอร์ / อีเมล" autoComplete="off" />
-          </Field>
-          <Button type="submit" variant="secondary" className="self-end">
-            <Search className="h-4 w-4" />
-            ค้นหา
-          </Button>
-        </form>
-      </Card>
+      <form action="/admin/customers" method="get" className="ad-search">
+        <Icon name="search" size={18} stroke={2.2} style={{ color: "var(--muted)" }} />
+        <input name="q" defaultValue={query} placeholder="ค้นหาลูกค้า ชื่อ หรือเบอร์" />
+        <button type="submit" style={{ border: "none", background: "transparent", color: "var(--p)", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
+          ค้นหา
+        </button>
+      </form>
 
-      <div className="flex items-center justify-between gap-2">
-        <p className="text-sm font-semibold">ลูกค้า {filteredCustomers.length} รายการ</p>
-        {query ? <Badge tone="accent">ค้นหา: {query}</Badge> : <Badge>{customers.length} ทั้งหมด</Badge>}
-      </div>
-
-      <div className="grid gap-2">
-        {filteredCustomers.map((profile) => (
-          <CustomerRow key={profile.id} profile={profile} />
+      <div className="ad-card" style={{ padding: 6 }}>
+        {filtered.map((profile, i) => (
+          <Link
+            key={profile.id}
+            href={`/admin/customers/${profile.id}`}
+            className="ad-press"
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 11,
+              padding: 11,
+              borderRadius: "var(--r-sm)",
+              borderBottom: i < filtered.length - 1 ? "1px solid var(--line)" : "none",
+              textAlign: "left",
+            }}
+          >
+            <Avatar name={profileName(profile)} tone="neutral" size={40} />
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 14, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                {profileName(profile)}
+              </div>
+              <div style={{ fontSize: 11.5, color: "var(--muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                {profile.phone || profile.email || "—"}
+              </div>
+            </div>
+            {Number(profile.debt_balance ?? 0) > 0 ? (
+              <span style={{ fontSize: 12, fontWeight: 700, color: "#a35a10", whiteSpace: "nowrap" }}>{money(profile.debt_balance)}</span>
+            ) : null}
+            <Icon name="chevR" size={16} stroke={2.4} style={{ color: "var(--muted)" }} />
+          </Link>
         ))}
-
-        {filteredCustomers.length === 0 ? (
-          <Card className="p-4">
-            <p className="text-sm text-muted">ไม่พบลูกค้า</p>
-          </Card>
-        ) : null}
+        {filtered.length === 0 ? <div style={{ padding: 20, textAlign: "center", color: "var(--muted)", fontSize: 14 }}>ไม่พบลูกค้า</div> : null}
       </div>
     </div>
   );

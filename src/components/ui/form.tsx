@@ -13,34 +13,21 @@ export function Field({
   hint?: string;
 }) {
   return (
-    <label className="grid min-w-0 gap-1 text-sm font-medium text-foreground">
-      <span>{label}</span>
+    <label className="grid min-w-0 gap-1.5 text-sm font-semibold text-[var(--ink)]">
+      <span className="text-[12.5px]">{label}</span>
       {children}
-      {hint ? <span className="text-xs font-normal text-muted">{hint}</span> : null}
+      {hint ? <span className="text-[11.5px] font-normal text-muted">{hint}</span> : null}
     </label>
   );
 }
 
+const fieldBase =
+  "w-full min-w-0 rounded-[var(--r-sm)] border border-[var(--line)] bg-[var(--surface)] text-sm text-[var(--ink)] outline-none transition-colors duration-200 placeholder:text-muted focus:border-[var(--p)] focus:ring-2 focus:ring-[color-mix(in_srgb,var(--p)_18%,transparent)]";
+
 export function Input({ className, ...props }: InputHTMLAttributes<HTMLInputElement>) {
-  return (
-    <input
-      className={clsx(
-        "min-h-10 w-full min-w-0 rounded-lg border border-white/70 bg-white/82 px-3 py-1.5 text-sm shadow-[inset_0_1px_0_rgba(255,255,255,0.88)] outline-none backdrop-blur-xl transition-colors duration-200 placeholder:text-muted/70 focus:border-accent focus:ring-2 focus:ring-accent/20",
-        className,
-      )}
-      {...props}
-    />
-  );
+  return <input className={clsx(fieldBase, "min-h-11 px-3 py-2.5", className)} {...props} />;
 }
 
 export function Textarea({ className, ...props }: TextareaHTMLAttributes<HTMLTextAreaElement>) {
-  return (
-    <textarea
-      className={clsx(
-        "min-h-20 w-full min-w-0 rounded-lg border border-white/70 bg-white/82 px-3 py-2 text-sm shadow-[inset_0_1px_0_rgba(255,255,255,0.88)] outline-none backdrop-blur-xl transition-colors duration-200 placeholder:text-muted/70 focus:border-accent focus:ring-2 focus:ring-accent/20",
-        className,
-      )}
-      {...props}
-    />
-  );
+  return <textarea className={clsx(fieldBase, "min-h-20 px-3 py-2.5", className)} {...props} />;
 }

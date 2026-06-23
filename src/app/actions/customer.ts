@@ -26,7 +26,7 @@ export async function createOrderAction(formData: FormData) {
     customer_note: note || null,
   });
 
-  if (error) redirect(`/home?error=${encodeURIComponent(error.message)}#checkout`);
+  if (error) redirect(`/cart?error=${encodeURIComponent(error.message)}`);
   redirect(`/orders/${data}?ordered=1`);
 }
 

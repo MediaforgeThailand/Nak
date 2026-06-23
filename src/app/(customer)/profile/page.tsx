@@ -1,19 +1,12 @@
 import Link from "next/link";
-import { BadgePercent, CreditCard, LogOut, MapPin, ReceiptText, UserRound } from "lucide-react";
 import { signOutCustomerAction } from "@/app/actions/auth";
 import { saveAddressAction, updateProfileAction } from "@/app/actions/customer";
-import { Badge } from "@/components/ui/badge";
-import { ButtonLink } from "@/components/ui/button";
-import { Card, StatCard } from "@/components/ui/card";
-import { Field, Input, Textarea } from "@/components/ui/form";
+import { Icon } from "@/components/nak/icon";
+import { Badge, InfoRow, NakField, SectionCard, StatCard } from "@/components/nak/ui";
+import { Input, Textarea } from "@/components/ui/form";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { requireCustomer } from "@/lib/auth";
-import {
-  getCustomerAddresses,
-  getCustomerOrders,
-  getPayments,
-  getTransactions,
-} from "@/lib/data/queries";
+import { getCustomerAddresses, getCustomerOrders, getPayments, getTransactions } from "@/lib/data/queries";
 import { accountStatusLabel, compactDate, money, paymentStatusLabel } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
@@ -31,206 +24,239 @@ export default async function ProfilePage() {
     .reduce((sum, order) => sum + Number(order.subtotal ?? 0), 0);
   const defaultAddress = addresses.find((address) => address.is_default) ?? addresses[0];
   const discountPerItem = Math.max(Number(profile.per_item_discount ?? 0), 0);
+  const approved = profile.status === "approved";
 
   return (
-    <div className="grid gap-4">
-      <Card>
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div className="flex min-w-0 items-start gap-3">
-            <div className="grid h-12 w-12 place-items-center rounded-2xl border border-white/55 bg-white/70 text-accent shadow-[inset_0_1px_0_rgba(255,255,255,0.82)]">
-              <UserRound className="h-6 w-6" />
-            </div>
-            <div className="min-w-0">
-              <p className="text-sm font-semibold text-accent">โปรไฟล์และบัญชี</p>
-              <h2 className="mt-1 break-words text-2xl font-semibold">
-                {profile.company_name ?? profile.full_name ?? profile.email}
-              </h2>
-              <p className="mt-1 text-sm text-muted">{profile.email}</p>
-            </div>
-          </div>
-          <Badge tone={profile.status === "approved" ? "success" : profile.status === "suspended" ? "danger" : "warning"}>
-            {accountStatusLabel(profile.status)}
-          </Badge>
+    <div style={{ display: "grid", gap: 13, padding: "14px 14px 24px" }}>
+      <div className="nak-card" style={{ padding: 16, display: "flex", gap: 13, alignItems: "center" }}>
+        <div
+          style={{
+            width: 52,
+            height: 52,
+            borderRadius: 16,
+            background: "var(--p-soft)",
+            color: "var(--p-deep)",
+            display: "grid",
+            placeItems: "center",
+            flexShrink: 0,
+          }}
+        >
+          <Icon name="building" size={26} stroke={1.9} />
         </div>
-      </Card>
-
-      <div className="grid gap-3 md:grid-cols-3">
-        <StatCard label="ยอดค้างชำระ" value={money(profile.debt_balance)} tone="warning" />
-        <StatCard label="ซื้อไปทั้งหมด" value={money(totalPurchased)} tone="success" />
-        <StatCard label="จำนวนออเดอร์" value={String(orders.length)} />
+        <div style={{ minWidth: 0, flex: 1 }}>
+          <div style={{ fontSize: 16, fontWeight: 800, letterSpacing: "-.01em" }}>
+            {profile.company_name ?? profile.full_name ?? profile.email}
+          </div>
+          <div style={{ fontSize: 12.5, color: "var(--muted)" }}>{profile.full_name ?? profile.email}</div>
+        </div>
+        <Badge tone={approved ? "success" : profile.status === "suspended" ? "danger" : "warning"}>
+          <Icon name="checkCircle" size={13} stroke={2.4} /> {accountStatusLabel(profile.status)}
+        </Badge>
       </div>
 
-      <Card>
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div className="flex min-w-0 items-start gap-3">
-            <div className="grid h-11 w-11 shrink-0 place-items-center rounded-lg border border-emerald-200 bg-emerald-50 text-success shadow-[inset_0_1px_0_rgba(255,255,255,0.86)]">
-              <BadgePercent className="h-5 w-5" />
-            </div>
-            <div className="min-w-0">
-              <p className="text-xs font-semibold uppercase tracking-normal text-muted">Membership Discount</p>
-              <h3 className="mt-1 text-lg font-semibold">
-                {discountPerItem > 0 ? `ลด ${money(discountPerItem)} / ชิ้น` : "ยังไม่มีส่วนลดสมาชิก"}
-              </h3>
-            </div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 9 }}>
+        <StatCard label="ยอดค้าง" value={money(profile.debt_balance)} tone="warning" icon="wallet" />
+        <StatCard label="ซื้อทั้งหมด" value={money(totalPurchased)} tone="success" icon="bag" />
+        <StatCard label="ออเดอร์" value={String(orders.length)} icon="receipt" />
+      </div>
+
+      <div className="nak-card" style={{ padding: 14, display: "flex", alignItems: "center", gap: 11 }}>
+        <span
+          style={{
+            width: 38,
+            height: 38,
+            borderRadius: 11,
+            background: "#e7f4ec",
+            color: "#1b7a4b",
+            display: "grid",
+            placeItems: "center",
+            flexShrink: 0,
+          }}
+        >
+          <Icon name="percent" size={18} stroke={2.2} />
+        </span>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 11, fontWeight: 600, color: "var(--muted)" }}>ส่วนลดสมาชิก</div>
+          <div style={{ fontSize: 15, fontWeight: 700 }}>
+            {discountPerItem > 0 ? `ลด ${money(discountPerItem)} / ชิ้น` : "ยังไม่มีส่วนลด"}
           </div>
-          <Badge tone={discountPerItem > 0 ? "success" : "neutral"}>
-            {discountPerItem > 0 ? "เปิดใช้งาน" : "ไม่มีส่วนลด"}
-          </Badge>
         </div>
-      </Card>
+        <Badge tone={discountPerItem > 0 ? "success" : "neutral"}>{discountPerItem > 0 ? "เปิดใช้งาน" : "ไม่มีส่วนลด"}</Badge>
+      </div>
 
-      <Card>
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <h3 className="font-semibold">ยอดค้างและการชำระเงิน</h3>
-          <ButtonLink href="/payments/new">
-            <CreditCard className="h-4 w-4" />
-            ชำระเงิน
-          </ButtonLink>
+      <Link
+        href="/payments/new"
+        className="nak-card nak-press"
+        style={{ padding: 14, display: "flex", alignItems: "center", gap: 11, textAlign: "left", width: "100%" }}
+      >
+        <span
+          style={{
+            width: 38,
+            height: 38,
+            borderRadius: 11,
+            background: "var(--p-soft)",
+            color: "var(--p-deep)",
+            display: "grid",
+            placeItems: "center",
+            flexShrink: 0,
+          }}
+        >
+          <Icon name="card" size={18} stroke={2.2} />
+        </span>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: 14.5, fontWeight: 700 }}>ชำระยอดค้าง</div>
+          <div style={{ fontSize: 12, color: "var(--muted)" }}>แจ้งโอนและแนบสลิปให้แอดมินตรวจ</div>
         </div>
-      </Card>
+        <Icon name="chevR" size={18} stroke={2.4} style={{ color: "var(--muted)" }} />
+      </Link>
 
-      <div className="grid gap-4 lg:grid-cols-2">
-        <Card>
-          <h3 className="font-semibold">ข้อมูลติดต่อ</h3>
-          <form action={updateProfileAction} className="mt-4 grid gap-4">
-            <Field label="ชื่อผู้ติดต่อ">
-              <Input name="full_name" defaultValue={profile.full_name ?? ""} />
-            </Field>
-            <Field label="บริษัท / ร้านค้า">
-              <Input name="company_name" defaultValue={profile.company_name ?? ""} />
-            </Field>
-            <Field label="เบอร์โทร">
-              <Input name="phone" type="tel" inputMode="tel" autoComplete="tel" defaultValue={profile.phone ?? ""} />
-            </Field>
-            <SubmitButton pendingLabel="กำลังบันทึกโปรไฟล์...">
-              บันทึกโปรไฟล์
-            </SubmitButton>
-          </form>
-        </Card>
-
-        <Card>
-          <div className="flex items-center gap-2">
-            <MapPin className="h-5 w-5 text-accent" />
-            <h3 className="font-semibold">ที่อยู่จัดส่ง</h3>
-          </div>
-
-          {defaultAddress ? (
-            <div className="mt-3 rounded-2xl border border-white/60 bg-white/48 p-3 text-sm leading-6">
-              <p className="font-semibold">{defaultAddress.label}</p>
-              <p>{defaultAddress.recipient_name} · {defaultAddress.phone}</p>
-              <p className="text-muted">{defaultAddress.address_line1}</p>
-              <p className="text-muted">
-                {[defaultAddress.district, defaultAddress.province, defaultAddress.postal_code]
+      <SectionCard title="ข้อมูลติดต่อ" icon="user">
+        <InfoRow icon="building" label="บริษัท / ร้านค้า" value={profile.company_name ?? "—"} />
+        <InfoRow icon="phone" label="เบอร์โทร" value={profile.phone ?? "—"} />
+        <InfoRow icon="mail" label="อีเมล" value={profile.email} />
+        <InfoRow
+          icon="pin"
+          label="ที่อยู่จัดส่ง"
+          last
+          value={
+            defaultAddress
+              ? `${defaultAddress.address_line1}, ${[defaultAddress.district, defaultAddress.province, defaultAddress.postal_code]
                   .filter(Boolean)
-                  .join(" ")}
-              </p>
-            </div>
-          ) : (
-            <p className="mt-2 text-sm text-muted">ยังไม่มีที่อยู่จัดส่ง</p>
-          )}
+                  .join(" ")}`
+              : "ยังไม่มีที่อยู่"
+          }
+        />
+      </SectionCard>
 
-          <form action={saveAddressAction} className="mt-4 grid gap-3">
-            <Field label="ชื่อที่อยู่">
-              <Input name="label" defaultValue="Main address" />
-            </Field>
-            <Field label="ผู้รับ">
-              <Input name="recipient_name" required />
-            </Field>
-            <Field label="เบอร์โทร">
-              <Input name="phone" type="tel" inputMode="tel" autoComplete="tel" />
-            </Field>
-            <Field label="ที่อยู่">
-              <Textarea name="address_line1" required />
-            </Field>
-            <div className="grid gap-3 sm:grid-cols-3">
-              <Field label="ตำบล/อำเภอ">
-                <Input name="district" />
-              </Field>
-              <Field label="จังหวัด">
-                <Input name="province" />
-              </Field>
-              <Field label="รหัสไปรษณีย์">
-                <Input name="postal_code" inputMode="numeric" autoComplete="postal-code" />
-              </Field>
-            </div>
-            <label className="flex items-center gap-2 text-sm">
-              <input name="is_default" type="checkbox" />
-              ตั้งเป็นที่อยู่หลัก
-            </label>
-            <SubmitButton pendingLabel="กำลังบันทึกที่อยู่...">
-              เพิ่มที่อยู่
-            </SubmitButton>
-          </form>
-        </Card>
-      </div>
+      <details className="nak-card" style={{ padding: 16 }}>
+        <summary style={{ display: "flex", alignItems: "center", gap: 7, cursor: "pointer", listStyle: "none" }}>
+          <Icon name="edit" size={16} stroke={2.2} style={{ color: "var(--p)" }} />
+          <h3 style={{ margin: 0, fontSize: 14, fontWeight: 700, flex: 1 }}>แก้ไขข้อมูลติดต่อ</h3>
+          <Icon name="chevD" size={16} stroke={2.4} style={{ color: "var(--muted)" }} />
+        </summary>
+        <form action={updateProfileAction} style={{ marginTop: 12, display: "grid", gap: 12 }}>
+          <NakField label="ชื่อผู้ติดต่อ">
+            <Input name="full_name" defaultValue={profile.full_name ?? ""} />
+          </NakField>
+          <NakField label="บริษัท / ร้านค้า">
+            <Input name="company_name" defaultValue={profile.company_name ?? ""} />
+          </NakField>
+          <NakField label="เบอร์โทร">
+            <Input name="phone" type="tel" inputMode="tel" autoComplete="tel" defaultValue={profile.phone ?? ""} />
+          </NakField>
+          <SubmitButton variant="secondary" pendingLabel="กำลังบันทึก...">
+            บันทึกโปรไฟล์
+          </SubmitButton>
+        </form>
+      </details>
 
-      <Card>
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
-            <ReceiptText className="h-5 w-5 text-accent" />
-            <h3 className="font-semibold">ธุรกรรมล่าสุด</h3>
+      <details className="nak-card" style={{ padding: 16 }}>
+        <summary style={{ display: "flex", alignItems: "center", gap: 7, cursor: "pointer", listStyle: "none" }}>
+          <Icon name="pin" size={16} stroke={2.2} style={{ color: "var(--p)" }} />
+          <h3 style={{ margin: 0, fontSize: 14, fontWeight: 700, flex: 1 }}>เพิ่มที่อยู่จัดส่ง</h3>
+          <Icon name="chevD" size={16} stroke={2.4} style={{ color: "var(--muted)" }} />
+        </summary>
+        <form action={saveAddressAction} style={{ marginTop: 12, display: "grid", gap: 12 }}>
+          <NakField label="ชื่อที่อยู่">
+            <Input name="label" defaultValue="หน้าร้าน" />
+          </NakField>
+          <NakField label="ผู้รับ">
+            <Input name="recipient_name" required />
+          </NakField>
+          <NakField label="เบอร์โทร">
+            <Input name="phone" type="tel" inputMode="tel" autoComplete="tel" />
+          </NakField>
+          <NakField label="ที่อยู่">
+            <Textarea name="address_line1" required />
+          </NakField>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
+            <NakField label="ตำบล/อำเภอ">
+              <Input name="district" />
+            </NakField>
+            <NakField label="จังหวัด">
+              <Input name="province" />
+            </NakField>
+            <NakField label="ไปรษณีย์">
+              <Input name="postal_code" inputMode="numeric" autoComplete="postal-code" />
+            </NakField>
           </div>
-          <ButtonLink href="/transactions" variant="secondary">
-            ดูธุรกรรมทั้งหมด
-          </ButtonLink>
-        </div>
-        <div className="mt-4 grid gap-3">
-          {transactions.slice(0, 5).map((tx) => (
-            <Link
-              key={tx.id}
-              href="/transactions"
-              className="grid grid-cols-[minmax(0,1fr)_auto] gap-3 rounded-2xl border border-white/60 bg-white/48 p-3 transition-all duration-200 hover:bg-white/72 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-            >
-              <div className="min-w-0">
-                <p className="font-medium">{tx.note ?? tx.type}</p>
-                <p className="text-sm text-muted">{compactDate(tx.created_at)}</p>
-              </div>
-              <div className="text-right">
-                <p className={Number(tx.amount) < 0 ? "font-semibold text-success" : "font-semibold text-warning"}>
-                  {money(tx.amount)}
-                </p>
-                <p className="text-xs text-muted">คงเหลือ {money(tx.balance_after)}</p>
-              </div>
-            </Link>
-          ))}
-          {transactions.length === 0 ? (
-            <p className="text-sm text-muted">ยังไม่มีรายการบัญชี</p>
-          ) : null}
-        </div>
-      </Card>
+          <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13 }}>
+            <input name="is_default" type="checkbox" /> ตั้งเป็นที่อยู่หลัก
+          </label>
+          <SubmitButton variant="secondary" pendingLabel="กำลังบันทึก...">
+            เพิ่มที่อยู่
+          </SubmitButton>
+        </form>
+      </details>
 
-      <Card>
-        <h3 className="font-semibold">ประวัติแจ้งชำระล่าสุด</h3>
-        <div className="mt-4 grid gap-3">
-          {payments.slice(0, 3).map((payment) => (
-            <div key={payment.id} className="flex items-center justify-between gap-3 rounded-2xl border border-white/60 bg-white/48 p-3">
-              <div>
-                <p className="font-medium">{payment.payment_number}</p>
-                <p className="text-sm text-muted">{compactDate(payment.created_at)}</p>
-              </div>
-              <div className="text-right">
-                <p className="font-semibold">{money(payment.amount)}</p>
-                <Badge tone={payment.status === "approved" ? "success" : payment.status === "rejected" ? "danger" : "warning"}>
-                  {paymentStatusLabel(payment.status)}
-                </Badge>
-              </div>
+      <SectionCard
+        title="ธุรกรรมล่าสุด"
+        icon="receipt"
+        action={
+          <Link href="/transactions" style={{ fontSize: 12.5, fontWeight: 700, color: "var(--p)" }}>
+            ดูทั้งหมด
+          </Link>
+        }
+      >
+        {transactions.slice(0, 4).map((tx, i) => (
+          <div
+            key={tx.id}
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              padding: "10px 0",
+              borderBottom: i < Math.min(transactions.length, 4) - 1 ? "1px solid var(--line)" : "none",
+            }}
+          >
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: 13.5, fontWeight: 600 }}>{tx.note ?? tx.type}</div>
+              <div style={{ fontSize: 11.5, color: "var(--muted)" }}>{compactDate(tx.created_at)}</div>
             </div>
-          ))}
-          {payments.length === 0 ? <p className="text-sm text-muted">ยังไม่มีประวัติแจ้งชำระ</p> : null}
-        </div>
-      </Card>
+            <div style={{ textAlign: "right" }}>
+              <div style={{ fontSize: 14, fontWeight: 700, color: Number(tx.amount) < 0 ? "#1b7a4b" : "#a35a10" }}>
+                {Number(tx.amount) < 0 ? "" : "+"}
+                {money(tx.amount)}
+              </div>
+              <div style={{ fontSize: 11, color: "var(--muted)" }}>คงเหลือ {money(tx.balance_after)}</div>
+            </div>
+          </div>
+        ))}
+        {transactions.length === 0 ? <p style={{ fontSize: 13, color: "var(--muted)", margin: "6px 0" }}>ยังไม่มีรายการ</p> : null}
+      </SectionCard>
 
-      <Card className="mb-2">
-        <div className="grid gap-3">
-          <h3 className="font-semibold">ออกจากระบบ</h3>
-          <form action={signOutCustomerAction}>
-            <SubmitButton variant="secondary" pendingLabel="กำลังออกจากระบบ..." className="w-full">
-              <LogOut className="h-4 w-4" />
-              ออกจากระบบ
-            </SubmitButton>
-          </form>
-        </div>
-      </Card>
+      <SectionCard title="ประวัติแจ้งชำระ" icon="card">
+        {payments.slice(0, 5).map((payment, i) => (
+          <div
+            key={payment.id}
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              padding: "10px 0",
+              borderBottom: i < Math.min(payments.length, 5) - 1 ? "1px solid var(--line)" : "none",
+            }}
+          >
+            <div>
+              <div style={{ fontSize: 13.5, fontWeight: 600 }}>{payment.payment_number}</div>
+              <div style={{ fontSize: 11.5, color: "var(--muted)" }}>{compactDate(payment.created_at)}</div>
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
+              <span style={{ fontSize: 14, fontWeight: 700 }}>{money(payment.amount)}</span>
+              <Badge tone={payment.status === "approved" ? "success" : payment.status === "rejected" ? "danger" : "warning"}>
+                {paymentStatusLabel(payment.status)}
+              </Badge>
+            </div>
+          </div>
+        ))}
+        {payments.length === 0 ? <p style={{ fontSize: 13, color: "var(--muted)", margin: "6px 0" }}>ยังไม่มีประวัติ</p> : null}
+      </SectionCard>
+
+      <form action={signOutCustomerAction}>
+        <button type="submit" className="nak-logout">
+          <Icon name="logout" size={18} stroke={2.2} /> ออกจากระบบ
+        </button>
+      </form>
     </div>
   );
 }

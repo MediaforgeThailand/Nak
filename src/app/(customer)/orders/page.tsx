@@ -1,9 +1,7 @@
 import Link from "next/link";
-import { ArrowRight, PackageCheck } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { Card } from "@/components/ui/card";
-import { OrderProgress } from "@/components/orders/order-progress";
-import { compactDate, money, orderStatusLabel } from "@/lib/format";
+import { Icon } from "@/components/nak/icon";
+import { OrderProgress, StatusBadge } from "@/components/nak/ui";
+import { compactDate, money } from "@/lib/format";
 import { getCustomerOrders } from "@/lib/data/queries";
 
 export const dynamic = "force-dynamic";
@@ -12,57 +10,55 @@ export default async function OrdersPage() {
   const orders = await getCustomerOrders();
 
   return (
-    <div className="grid gap-4">
-      <Card>
-        <div className="flex items-start gap-3">
-          <div className="grid h-11 w-11 place-items-center rounded-2xl border border-white/55 bg-white/70 text-accent shadow-[inset_0_1px_0_rgba(255,255,255,0.82)]">
-            <PackageCheck className="h-5 w-5" />
-          </div>
-          <div>
-            <p className="text-sm font-semibold text-accent">ติดตามออเดอร์</p>
-            <h2 className="mt-1 text-2xl font-semibold">สถานะออเดอร์ของฉัน</h2>
-          </div>
-        </div>
-      </Card>
-
-      <div className="grid gap-3">
-        {orders.map((order) => (
-          <Link key={order.id} href={`/orders/${order.id}`} className="group block">
-            <Card className="grid gap-4 transition-all duration-200 group-hover:border-accent/45 group-hover:bg-white/78">
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <h3 className="font-semibold">{order.order_number}</h3>
-                    <Badge tone={order.status === "rejected" ? "danger" : "accent"}>
-                      {orderStatusLabel(order.status)}
-                    </Badge>
-                  </div>
-                  <p className="mt-1 text-sm text-muted">{compactDate(order.created_at)}</p>
+    <div style={{ display: "grid", gap: 11, padding: "14px 14px 20px" }}>
+      {orders.map((order) => {
+        const itemCount = (order.order_items ?? []).length;
+        return (
+          <Link
+            key={order.id}
+            href={`/orders/${order.id}`}
+            className="nak-card nak-press"
+            style={{ padding: 14, textAlign: "left", display: "grid", gap: 13 }}
+          >
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10 }}>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                  <span style={{ fontSize: 15, fontWeight: 700, letterSpacing: "-.01em" }}>{order.order_number}</span>
+                  <StatusBadge status={order.status} />
                 </div>
-                <div className="text-right">
-                  <p className="text-lg font-semibold">{money(order.subtotal)}</p>
-                  {Number(order.total_discount ?? 0) > 0 ? (
-                    <p className="text-xs font-semibold text-success">
-                      ประหยัด {money(order.total_discount)}
-                    </p>
-                  ) : null}
-                  <p className="mt-1 inline-flex items-center gap-1 text-sm font-semibold text-accent">
-                    ดูรายละเอียด
-                    <ArrowRight className="h-4 w-4" />
-                  </p>
+                <div style={{ fontSize: 12, color: "var(--muted)", marginTop: 3 }}>
+                  {compactDate(order.created_at)} · {itemCount} รายการ
                 </div>
               </div>
-
-              <OrderProgress status={order.status} compact />
-            </Card>
+              <div style={{ textAlign: "right" }}>
+                <div style={{ fontSize: 16, fontWeight: 800, letterSpacing: "-.01em" }}>{money(order.subtotal)}</div>
+                {Number(order.total_discount ?? 0) > 0 ? (
+                  <div style={{ fontSize: 11, fontWeight: 700, color: "#1b7a4b" }}>ประหยัด {money(order.total_discount)}</div>
+                ) : null}
+              </div>
+            </div>
+            <OrderProgress status={order.status} compact />
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "flex-end",
+                gap: 4,
+                color: "var(--p)",
+                fontSize: 13,
+                fontWeight: 700,
+              }}
+            >
+              ดูรายละเอียด <Icon name="arrowR" size={15} stroke={2.4} />
+            </div>
           </Link>
-        ))}
-        {orders.length === 0 ? (
-          <Card>
-            <h3 className="font-semibold">ยังไม่มีออเดอร์</h3>
-          </Card>
-        ) : null}
-      </div>
+        );
+      })}
+      {orders.length === 0 ? (
+        <div className="nak-card" style={{ padding: 24, textAlign: "center", color: "var(--muted)", fontSize: 14 }}>
+          ยังไม่มีออเดอร์
+        </div>
+      ) : null}
     </div>
   );
 }

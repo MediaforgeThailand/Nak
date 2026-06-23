@@ -1,11 +1,11 @@
 import { clsx } from "clsx";
 
 const tones = {
-  neutral: "border-border bg-white/72 text-muted",
-  success: "border-emerald-200 bg-emerald-50 text-success",
-  warning: "border-amber-200 bg-amber-50 text-warning",
-  danger: "border-red-200 bg-red-50 text-danger",
-  accent: "border-teal-200 bg-teal-50 text-accent",
+  neutral: "bg-[var(--chip)] text-muted",
+  success: "bg-[#e7f4ec] text-[#1b7a4b]",
+  warning: "bg-[#fbeedd] text-[#a35a10]",
+  danger: "bg-[#fbe6e3] text-[#b42318]",
+  accent: "bg-[var(--p-soft)] text-[var(--p-deep)]",
 };
 
 export function Badge({
@@ -18,7 +18,7 @@ export function Badge({
   return (
     <span
       className={clsx(
-        "inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-semibold",
+        "inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold leading-none",
         tones[tone],
       )}
     >

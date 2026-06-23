@@ -1,6 +1,6 @@
 import Link from "next/link";
-import { ArrowRight, ShieldCheck, UserRound } from "lucide-react";
-import { signInAdminAction, signUpStaffAction } from "@/app/actions/auth";
+import { signInAdminAction, signInWithLineAdminAction, signUpStaffAction } from "@/app/actions/auth";
+import { Icon } from "@/components/nak/icon";
 import { Card } from "@/components/ui/card";
 import { Field, Input } from "@/components/ui/form";
 import { SubmitButton } from "@/components/ui/submit-button";
@@ -16,42 +16,52 @@ export default async function AdminLoginPage({
   const isSignup = params.mode === "signup";
 
   return (
-    <main className="motion-page min-h-screen bg-background px-4 py-6 sm:py-10">
+    <main className="motion-page min-h-screen px-4 py-6 sm:py-10">
       <div className="mx-auto grid min-h-[calc(100vh-3rem)] w-full max-w-md place-items-center">
         <section className="w-full">
-          <Card className="w-full p-5 sm:p-6">
-            <div className="mb-5">
-              <p className="text-xs font-semibold uppercase tracking-normal text-accent">NAK Admin</p>
-              <h1 className="mt-1 text-2xl font-semibold">
-                {isSignup ? "สมัครบัญชีทีมงาน" : "เข้าสู่ระบบทีมงาน"}
+          <div className="mb-6 flex flex-col items-center gap-3 text-center">
+            <span
+              className="grid h-14 w-14 place-items-center rounded-2xl text-2xl font-extrabold text-white"
+              style={{ background: "var(--p)", boxShadow: "0 10px 24px -8px var(--p)" }}
+            >
+              N
+            </span>
+            <div>
+              <h1 className="text-xl font-extrabold tracking-tight">
+                NAK <span style={{ color: "var(--p)" }}>Admin</span>
               </h1>
+              <p className="text-xs text-muted">ระบบหลังบ้าน</p>
             </div>
+          </div>
+
+          <Card className="w-full p-5 sm:p-6">
+            <h2 className="mb-5 text-lg font-bold">{isSignup ? "สมัครบัญชีทีมงาน" : "เข้าสู่ระบบทีมงาน"}</h2>
 
             <div className="mb-5 grid grid-cols-2 gap-2">
               <Link
                 href="/login"
-                className="flex min-h-14 items-center gap-2 rounded-lg border border-white/70 bg-white/62 px-3 text-sm font-semibold text-muted transition-colors duration-200 hover:bg-white/82 hover:text-foreground"
+                className="flex min-h-12 items-center justify-center gap-2 rounded-[var(--r-sm)] border border-[var(--line)] bg-[var(--surface)] px-3 text-sm font-semibold text-muted transition-colors duration-200 hover:text-[var(--ink)]"
               >
-                <UserRound className="h-4 w-4" />
+                <Icon name="user" size={16} stroke={2.2} />
                 ฝั่งลูกค้า
               </Link>
-              <Link
-                href="/admin/login"
-                className="flex min-h-14 items-center gap-2 rounded-lg border border-teal-200 bg-teal-50 px-3 text-sm font-semibold text-accent transition-colors duration-200 hover:bg-teal-100"
+              <span
+                className="flex min-h-12 items-center justify-center gap-2 rounded-[var(--r-sm)] px-3 text-sm font-bold"
+                style={{ background: "var(--p-soft)", color: "var(--p-deep)" }}
               >
-                <ShieldCheck className="h-4 w-4" />
+                <Icon name="shield" size={16} stroke={2.2} />
                 ฝั่งทีมงาน
-              </Link>
+              </span>
             </div>
 
             {isSignup ? (
-              <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm leading-6 text-warning">
+              <div className="mb-4 rounded-[var(--r-sm)] border border-[#f3dcb6] bg-[#fbeedd] p-3 text-sm leading-6 text-[#a35a10]">
                 สมัครทีมงานแล้วจะยังเข้า Admin Panel ไม่ได้ ต้องรอแอดมินอนุมัติและกำหนดสิทธิ์ก่อน
               </div>
             ) : null}
 
             {params.error ? (
-              <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-danger">
+              <div className="mb-4 rounded-[var(--r-sm)] border border-[#f3c8c2] bg-[#fbe6e3] p-3 text-sm text-[#b42318]">
                 {params.error}
               </div>
             ) : null}
@@ -82,18 +92,27 @@ export default async function AdminLoginPage({
                   required
                 />
               </Field>
-              <SubmitButton pendingLabel={isSignup ? "กำลังส่งคำขอ..." : "กำลังเข้าสู่ระบบ..."}>
+              <SubmitButton pendingLabel={isSignup ? "กำลังส่งคำขอ..." : "กำลังเข้าสู่ระบบ..."} className="w-full">
                 {isSignup ? "ส่งคำขอสมัครทีมงาน" : "เข้าสู่ระบบทีมงาน"}
-                <ArrowRight className="h-4 w-4" />
+                <Icon name="arrowR" size={18} stroke={2.2} />
               </SubmitButton>
             </form>
 
-            <div className="mt-5 border-t border-border pt-4 text-sm text-muted">
+            {!isSignup ? (
+              <form action={signInWithLineAdminAction} className="mt-3">
+                <SubmitButton
+                  className="w-full text-white hover:brightness-[1.03]"
+                  style={{ background: "#06c755", boxShadow: "0 10px 24px -8px rgba(6,199,85,0.5)" }}
+                  pendingLabel="กำลังเปิด LINE..."
+                >
+                  เข้าสู่ระบบทีมงานด้วย LINE
+                </SubmitButton>
+              </form>
+            ) : null}
+
+            <div className="mt-5 border-t border-[var(--line)] pt-4 text-sm text-muted">
               {isSignup ? "มีบัญชีทีมงานแล้ว?" : "ต้องการขอสิทธิ์ทีมงาน?"}{" "}
-              <Link
-                href={isSignup ? "/admin/login" : "/admin/login?mode=signup"}
-                className="font-semibold text-accent"
-              >
+              <Link href={isSignup ? "/admin/login" : "/admin/login?mode=signup"} className="font-bold" style={{ color: "var(--p)" }}>
                 {isSignup ? "เข้าสู่ระบบทีมงาน" : "สมัครทีมงาน"}
               </Link>
             </div>

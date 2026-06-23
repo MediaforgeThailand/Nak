@@ -1,7 +1,5 @@
-import { CreditCard, ReceiptText } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { ButtonLink } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import { SubHeader } from "@/components/nak/sub-header";
+import { Badge, SectionCard } from "@/components/nak/ui";
 import { compactDate, money, paymentStatusLabel } from "@/lib/format";
 import { getPayments, getTransactions } from "@/lib/data/queries";
 
@@ -11,66 +9,64 @@ export default async function TransactionsPage() {
   const [transactions, payments] = await Promise.all([getTransactions(), getPayments()]);
 
   return (
-    <div className="grid gap-4">
-      <Card>
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-start gap-3">
-            <div className="grid h-11 w-11 place-items-center rounded-2xl border border-white/55 bg-white/70 text-accent shadow-[inset_0_1px_0_rgba(255,255,255,0.82)]">
-              <ReceiptText className="h-5 w-5" />
-            </div>
-            <div>
-              <p className="text-sm font-semibold text-accent">บัญชี</p>
-              <h2 className="mt-1 text-2xl font-semibold">ธุรกรรมทั้งหมด</h2>
-              <p className="mt-1 text-sm text-muted">รายการหนี้จากออเดอร์และเครดิตจากสลิปที่อนุมัติแล้ว</p>
-            </div>
-          </div>
-          <ButtonLink href="/payments/new">
-            <CreditCard className="h-4 w-4" />
-            ชำระเงิน
-          </ButtonLink>
-        </div>
-      </Card>
-
-      <Card>
-        <h3 className="font-semibold">รายการบัญชี</h3>
-        <div className="mt-3 grid gap-3">
-          {transactions.map((tx) => (
-            <div key={tx.id} className="flex items-center justify-between gap-3 rounded-2xl border border-white/60 bg-white/48 p-3">
-              <div>
-                <p className="font-medium">{tx.note ?? tx.type}</p>
-                <p className="text-sm text-muted">{compactDate(tx.created_at)}</p>
+    <>
+      <SubHeader title="ธุรกรรมทั้งหมด" fallbackHref="/profile" />
+      <div style={{ display: "grid", gap: 13, padding: "14px 14px 24px" }}>
+        <SectionCard title="รายการบัญชี" icon="receipt">
+          {transactions.map((tx, i) => (
+            <div
+              key={tx.id}
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                padding: "10px 0",
+                borderBottom: i < transactions.length - 1 ? "1px solid var(--line)" : "none",
+              }}
+            >
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontSize: 13.5, fontWeight: 600 }}>{tx.note ?? tx.type}</div>
+                <div style={{ fontSize: 11.5, color: "var(--muted)" }}>{compactDate(tx.created_at)}</div>
               </div>
-              <div className="text-right">
-                <p className={Number(tx.amount) < 0 ? "font-semibold text-success" : "font-semibold text-warning"}>
+              <div style={{ textAlign: "right" }}>
+                <div style={{ fontSize: 14, fontWeight: 700, color: Number(tx.amount) < 0 ? "#1b7a4b" : "#a35a10" }}>
+                  {Number(tx.amount) < 0 ? "" : "+"}
                   {money(tx.amount)}
-                </p>
-                <p className="text-xs text-muted">คงเหลือ {money(tx.balance_after)}</p>
+                </div>
+                <div style={{ fontSize: 11, color: "var(--muted)" }}>คงเหลือ {money(tx.balance_after)}</div>
               </div>
             </div>
           ))}
-          {transactions.length === 0 ? <p className="text-sm text-muted">ยังไม่มีรายการบัญชี</p> : null}
-        </div>
-      </Card>
+          {transactions.length === 0 ? <p style={{ fontSize: 13, color: "var(--muted)", margin: "6px 0" }}>ยังไม่มีรายการบัญชี</p> : null}
+        </SectionCard>
 
-      <Card>
-        <h3 className="font-semibold">ประวัติการแจ้งชำระ</h3>
-        <div className="mt-3 grid gap-3">
-          {payments.map((payment) => (
-            <div key={payment.id} className="flex items-center justify-between gap-3 rounded-2xl border border-white/60 bg-white/48 p-3">
+        <SectionCard title="ประวัติการแจ้งชำระ" icon="card">
+          {payments.map((payment, i) => (
+            <div
+              key={payment.id}
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                padding: "10px 0",
+                borderBottom: i < payments.length - 1 ? "1px solid var(--line)" : "none",
+              }}
+            >
               <div>
-                <p className="font-medium">{payment.payment_number}</p>
-                <p className="text-sm text-muted">{compactDate(payment.created_at)}</p>
+                <div style={{ fontSize: 13.5, fontWeight: 600 }}>{payment.payment_number}</div>
+                <div style={{ fontSize: 11.5, color: "var(--muted)" }}>{compactDate(payment.created_at)}</div>
               </div>
-              <div className="text-right">
-                <p className="font-semibold">{money(payment.amount)}</p>
+              <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
+                <span style={{ fontSize: 14, fontWeight: 700 }}>{money(payment.amount)}</span>
                 <Badge tone={payment.status === "approved" ? "success" : payment.status === "rejected" ? "danger" : "warning"}>
                   {paymentStatusLabel(payment.status)}
                 </Badge>
               </div>
             </div>
           ))}
-        </div>
-      </Card>
-    </div>
+          {payments.length === 0 ? <p style={{ fontSize: 13, color: "var(--muted)", margin: "6px 0" }}>ยังไม่มีประวัติ</p> : null}
+        </SectionCard>
+      </div>
+    </>
   );
 }
