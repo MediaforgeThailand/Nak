@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { signInAdminAction, signUpStaffAction } from "@/app/actions/auth";
+import { signInAdminAction, signInWithLineAdminAction, signUpStaffAction } from "@/app/actions/auth";
 import { Icon } from "@/components/nak/icon";
 import { Card } from "@/components/ui/card";
 import { Field, Input } from "@/components/ui/form";
@@ -97,6 +97,18 @@ export default async function AdminLoginPage({
                 <Icon name="arrowR" size={18} stroke={2.2} />
               </SubmitButton>
             </form>
+
+            {!isSignup ? (
+              <form action={signInWithLineAdminAction} className="mt-3">
+                <SubmitButton
+                  className="w-full text-white hover:brightness-[1.03]"
+                  style={{ background: "#06c755", boxShadow: "0 10px 24px -8px rgba(6,199,85,0.5)" }}
+                  pendingLabel="กำลังเปิด LINE..."
+                >
+                  เข้าสู่ระบบทีมงานด้วย LINE
+                </SubmitButton>
+              </form>
+            ) : null}
 
             <div className="mt-5 border-t border-[var(--line)] pt-4 text-sm text-muted">
               {isSignup ? "มีบัญชีทีมงานแล้ว?" : "ต้องการขอสิทธิ์ทีมงาน?"}{" "}

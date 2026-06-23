@@ -124,22 +124,31 @@ export async function signInAction(formData: FormData) {
   redirect("/home");
 }
 
-export async function signInWithLineAction() {
-  const supabase = await createSupabaseServerClient("customer");
+async function startLineOAuth(scope: AuthScope) {
+  const supabase = await createSupabaseServerClient(scope);
   const headersList = await headers();
   const origin = getRequestOrigin(headersList);
+  const loginPath = scope === "admin" ? "/admin/login" : "/login";
 
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: "custom:line",
     options: {
-      redirectTo: `${origin}/auth/callback?scope=customer`,
+      redirectTo: `${origin}/auth/callback?scope=${scope}`,
     },
   });
 
-  if (error) redirect(`/login?error=${encodeURIComponent(error.message)}`);
+  if (error) redirect(`${loginPath}?error=${encodeURIComponent(error.message)}`);
   if (data.url) redirect(data.url);
 
-  redirect(`/login?error=${encodeURIComponent("ไม่สามารถเปิด LINE Login ได้")}`);
+  redirect(`${loginPath}?error=${encodeURIComponent("ไม่สามารถเปิด LINE Login ได้")}`);
+}
+
+export async function signInWithLineAction() {
+  await startLineOAuth("customer");
+}
+
+export async function signInWithLineAdminAction() {
+  await startLineOAuth("admin");
 }
 
 export async function signInAdminAction(formData: FormData) {
