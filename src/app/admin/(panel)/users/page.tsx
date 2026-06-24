@@ -27,10 +27,10 @@ function ReqRow({
   children: React.ReactNode;
 }) {
   return (
-    <div style={{ border: "1px solid var(--line)", borderRadius: "var(--r-sm)", padding: 11, display: "grid", gap: 9 }}>
-      <div style={{ minWidth: 0 }}>
+    <div style={{ border: "1px solid var(--line)", borderRadius: "var(--r-sm)", padding: 11, display: "grid", gap: 9, minWidth: 0, maxWidth: "100%", overflow: "hidden" }}>
+      <div style={{ minWidth: 0, maxWidth: "100%", overflow: "hidden" }}>
         <div style={{ fontSize: 13.5, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{title}</div>
-        <div style={{ fontSize: 11.5, color: "var(--muted)" }}>{sub}</div>
+        <div style={{ fontSize: 11.5, color: "var(--muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{sub}</div>
         {badge ? <div style={{ marginTop: 6 }}>{badge}</div> : null}
       </div>
       {children}
@@ -96,7 +96,7 @@ export default async function AdminUsersPage({
               sub={[p.email, p.phone].filter(Boolean).join(" · ") || "—"}
               badge={alsoCustomer ? <AdBadge tone="accent">มีสิทธิ์เป็นลูกค้าอยู่แล้ว</AdBadge> : undefined}
             >
-              <form action={approveUserAction} style={{ display: "grid", gridTemplateColumns: "1fr 120px", gap: 8 }}>
+              <form action={approveUserAction} style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 140px), 1fr))", gap: 8, minWidth: 0 }}>
                 <input type="hidden" name="user_id" value={p.id} />
                 <input type="hidden" name="return_to" value="/admin/users" />
                 <Select name="role" defaultValue={alsoCustomer ? "admin" : "factory_staff"} disabled={p.id === currentProfile.id}>
@@ -123,6 +123,8 @@ export default async function AdminUsersPage({
               display: "flex",
               alignItems: "center",
               gap: 11,
+              minWidth: 0,
+              maxWidth: "100%",
               padding: "9px 0",
               borderBottom: i < customers.length - 1 ? "1px solid var(--line)" : "none",
             }}
@@ -141,18 +143,18 @@ export default async function AdminUsersPage({
       <div className="ad-card" style={{ padding: 16, display: "grid", gap: 10 }}>
         <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700 }}>บัญชีทีมงาน ({staff.length})</h3>
         {staff.map((s) => (
-          <div key={s.id} style={{ border: "1px solid var(--line)", borderRadius: "var(--r-sm)", padding: 11, display: "grid", gap: 10 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 11 }}>
+          <div key={s.id} style={{ border: "1px solid var(--line)", borderRadius: "var(--r-sm)", padding: 11, display: "grid", gap: 10, minWidth: 0, maxWidth: "100%", overflow: "hidden" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 11, minWidth: 0 }}>
               <Avatar name={profileName(s)} size={34} />
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 13.5, fontWeight: 600 }}>{profileName(s)}</div>
-                <div style={{ fontSize: 11.5, color: "var(--muted)" }}>{s.email || "—"}</div>
+              <div style={{ flex: 1, minWidth: 0, overflow: "hidden" }}>
+                <div style={{ fontSize: 13.5, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{profileName(s)}</div>
+                <div style={{ fontSize: 11.5, color: "var(--muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s.email || "—"}</div>
               </div>
               <AdBadge tone={s.is_owner ? "accent" : "neutral"}>{s.is_owner ? "เจ้าของ" : roleLabel(s.role)}</AdBadge>
             </div>
             {s.id !== currentProfile.id ? (
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-                <form action={approveUserAction} style={{ display: "grid", gap: 6 }}>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 150px), 1fr))", gap: 8, minWidth: 0 }}>
+                <form action={approveUserAction} style={{ display: "grid", gap: 6, minWidth: 0 }}>
                   <input type="hidden" name="user_id" value={s.id} />
                   <input type="hidden" name="return_to" value="/admin/users" />
                   <Select name="role" defaultValue={s.role}>
@@ -163,7 +165,7 @@ export default async function AdminUsersPage({
                     บันทึกสิทธิ์
                   </SubmitButton>
                 </form>
-                <form action={suspendUserAction} style={{ display: "grid", alignItems: "end" }}>
+                <form action={suspendUserAction} style={{ display: "grid", alignItems: "end", minWidth: 0 }}>
                   <input type="hidden" name="user_id" value={s.id} />
                   <input type="hidden" name="return_to" value="/admin/users" />
                   <SubmitButton variant="danger" pendingLabel="..." className="w-full">

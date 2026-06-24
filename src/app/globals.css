@@ -53,6 +53,12 @@
   --r-btn: 14px;
 }
 
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
 * {
   -webkit-tap-highlight-color: transparent;
 }
@@ -70,6 +76,15 @@ body {
 
 html {
   scroll-behavior: smooth;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+body {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
 }
 
 button,
@@ -112,6 +127,7 @@ input[type="file"] {
   margin: 0 auto;
   width: 100%;
   max-width: 480px;
+  overflow-x: clip;
   min-height: 100vh;
   min-height: 100dvh;
   display: flex;
@@ -425,6 +441,7 @@ input[type="file"] {
   margin: 0 auto;
   width: 100%;
   max-width: 480px;
+  overflow-x: clip;
   min-height: 100vh;
   min-height: 100dvh;
 }
@@ -433,6 +450,8 @@ input[type="file"] {
   position: sticky;
   top: 0;
   z-index: 8;
+  width: 100%;
+  max-width: 100%;
   background: rgba(255, 247, 248, 0.9);
   backdrop-filter: blur(18px);
   padding: calc(env(safe-area-inset-top) + 14px) 14px 12px;
@@ -487,6 +506,9 @@ input[type="file"] {
 }
 .adm-page {
   padding: 14px 14px calc(env(safe-area-inset-bottom) + 28px);
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: clip;
 }
 
 /* drawer */
@@ -579,6 +601,8 @@ input[type="file"] {
 /* admin cards + controls */
 .ad-card {
   min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(255, 255, 255, 0.74));
   border-radius: var(--r);
   border: 1px solid var(--card-line);
