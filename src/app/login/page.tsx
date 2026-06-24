@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { signInAction, signInWithLineAction, signUpAction } from "@/app/actions/auth";
 import { Icon } from "@/components/nak/icon";
+import { LiffAutoLogin } from "@/components/line/liff-auto-login";
 import { Card } from "@/components/ui/card";
 import { Field, Input } from "@/components/ui/form";
 import { SubmitButton } from "@/components/ui/submit-button";
@@ -17,6 +18,7 @@ export default async function LoginPage({
 
   return (
     <main className="motion-page min-h-screen px-4 py-6 sm:py-10">
+      <LiffAutoLogin />
       <div className="mx-auto grid min-h-[calc(100vh-3rem)] w-full max-w-md place-items-center">
         <section className="w-full">
           <div className="mb-6 flex flex-col items-center gap-3 text-center">
