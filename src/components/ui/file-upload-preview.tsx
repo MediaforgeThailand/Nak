@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useId, useRef, useState } from "react";
-import { Camera, FileImage, Loader2, X } from "lucide-react";
+import { Camera, FileImage, Images, Loader2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 type FileUploadPreviewProps = {
@@ -73,6 +73,19 @@ export function FileUploadPreview({
     setInputKey((value) => value + 1);
   }
 
+  // Open the OS picker, choosing camera vs file/gallery per the button pressed.
+  // `capture` is toggled on the fly so the same input serves both modes.
+  function openPicker(useCamera: boolean) {
+    const input = inputRef.current;
+    if (!input) return;
+    if (useCamera) {
+      input.setAttribute("capture", typeof capture === "string" ? capture : "environment");
+    } else {
+      input.removeAttribute("capture");
+    }
+    input.click();
+  }
+
   async function handleChange(event: React.ChangeEvent<HTMLInputElement>) {
     const original = event.currentTarget.files?.[0];
     if (previewUrl) URL.revokeObjectURL(previewUrl);
@@ -125,13 +138,26 @@ export function FileUploadPreview({
             </Button>
           ) : null}
         </div>
-        <label
-          htmlFor={inputId}
-          className="inline-flex min-h-11 items-center justify-center gap-2 rounded-[var(--r-sm)] border border-[var(--line)] bg-[var(--surface)] px-4 py-2 text-sm font-semibold text-[var(--ink)] transition-colors duration-200 hover:brightness-[0.98] focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-[var(--p)]"
-        >
-          <Camera className="h-4 w-4" />
-          ถ่ายหรือเลือกไฟล์
-        </label>
+        <div className="flex flex-wrap gap-2">
+          {capture ? (
+            <button
+              type="button"
+              onClick={() => openPicker(true)}
+              className="inline-flex min-h-11 flex-1 items-center justify-center gap-2 rounded-[var(--r-sm)] border border-[var(--line)] bg-[var(--surface)] px-4 py-2 text-sm font-semibold text-[var(--ink)] transition-colors duration-200 hover:brightness-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--p)]"
+            >
+              <Camera className="h-4 w-4" />
+              ถ่ายรูป
+            </button>
+          ) : null}
+          <button
+            type="button"
+            onClick={() => openPicker(false)}
+            className="inline-flex min-h-11 flex-1 items-center justify-center gap-2 rounded-[var(--r-sm)] border border-[var(--line)] bg-[var(--surface)] px-4 py-2 text-sm font-semibold text-[var(--ink)] transition-colors duration-200 hover:brightness-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--p)]"
+          >
+            <Images className="h-4 w-4" />
+            เลือกไฟล์
+          </button>
+        </div>
       </div>
       <input
         key={inputKey}
@@ -140,7 +166,6 @@ export function FileUploadPreview({
         name={name}
         type="file"
         accept={accept}
-        capture={capture}
         required={required}
         className="sr-only"
         onChange={handleChange}
