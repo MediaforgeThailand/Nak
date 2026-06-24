@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useId, useRef, useState } from "react";
-import { Camera, FileImage, Loader2, X } from "lucide-react";
+import { Camera, FileImage, Loader2, Upload, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 type FileUploadPreviewProps = {
@@ -129,8 +129,8 @@ export function FileUploadPreview({
           htmlFor={inputId}
           className="inline-flex min-h-11 items-center justify-center gap-2 rounded-[var(--r-sm)] border border-[var(--line)] bg-[var(--surface)] px-4 py-2 text-sm font-semibold text-[var(--ink)] transition-colors duration-200 hover:brightness-[0.98] focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-[var(--p)]"
         >
-          <Camera className="h-4 w-4" />
-          ถ่ายหรือเลือกไฟล์
+          {capture ? <Camera className="h-4 w-4" /> : <Upload className="h-4 w-4" />}
+          {capture ? "ถ่ายหรือเลือกไฟล์" : "อัปโหลดรูป"}
         </label>
       </div>
       <input
@@ -146,8 +146,10 @@ export function FileUploadPreview({
         onChange={handleChange}
       />
       <p className="flex items-center gap-1 text-xs text-muted">
-        <Camera className="h-3.5 w-3.5" />
-        บนมือถือถ่ายรูปใหม่หรือเลือกจากเครื่องได้ · ระบบย่อขนาดรูปให้อัตโนมัติ
+        {capture ? <Camera className="h-3.5 w-3.5" /> : <Upload className="h-3.5 w-3.5" />}
+        {capture
+          ? "บนมือถือถ่ายรูปใหม่หรือเลือกจากเครื่องได้ · ระบบย่อขนาดรูปให้อัตโนมัติ"
+          : "เลือกรูปจากเครื่อง · ระบบย่อขนาดรูปให้อัตโนมัติ"}
       </p>
     </div>
   );

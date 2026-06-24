@@ -164,7 +164,7 @@ function ShipCard({ order }: { order: AdminOrder }) {
       <ItemsBox order={order} />
       <form action={shipOrderWithPhotoAction} style={{ display: "grid", gap: 10 }}>
         <input type="hidden" name="order_id" value={order.id} />
-        <FileUploadPreview name="photo" accept="image/*" capture="environment" required hint="ถ่ายรูปสินค้าที่แพ็คก่อนยืนยันจัดส่ง" />
+        <FileUploadPreview name="photo" accept="image/*" required hint="เลือกรูปสินค้าที่แพ็คก่อนยืนยันจัดส่ง" />
         <input className="ad-input" name="caption" placeholder="หมายเหตุรูป (ไม่บังคับ)" />
         <SubmitButton pendingLabel="กำลังยืนยัน..." className="w-full">
           <Icon name="truck" size={17} stroke={2.4} /> ยืนยันจัดส่งแล้ว
