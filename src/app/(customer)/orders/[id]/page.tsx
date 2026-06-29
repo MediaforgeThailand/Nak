@@ -2,7 +2,7 @@ import Image from "next/image";
 import { ClearCartOnMount } from "@/components/cart/clear-cart-on-mount";
 import { Icon } from "@/components/nak/icon";
 import { SubHeader } from "@/components/nak/sub-header";
-import { Badge, OrderProgress, Row, StatusBadge } from "@/components/nak/ui";
+import { OrderProgress, Row, StatusBadge } from "@/components/nak/ui";
 import { ButtonLink } from "@/components/ui/button";
 import { requireCustomer } from "@/lib/auth";
 import { compactDate, dateTime, money } from "@/lib/format";

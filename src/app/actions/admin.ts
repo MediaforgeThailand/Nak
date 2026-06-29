@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { requireAdmin, requireOwner, requireStaff } from "@/lib/auth";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { safeFileName } from "@/lib/storage";
-import type { OrderStatus, UserRole } from "@/lib/types";
+import type { UserRole } from "@/lib/types";
 
 const userRoles: UserRole[] = ["customer", "factory_staff", "admin"];
 
@@ -332,69 +332,6 @@ export async function rejectOrderAction(formData: FormData) {
   revalidatePath("/orders");
   revalidatePath(`/orders/${orderId}`);
   revalidatePath("/home");
-}
-
-export async function updateOrderStatusAction(formData: FormData) {
-  await requireStaff();
-  const supabase = await createSupabaseServerClient("admin");
-  const orderId = String(formData.get("order_id") ?? "");
-  const status = String(formData.get("status") ?? "packing") as OrderStatus;
-  const note = String(formData.get("note") ?? "").trim() || null;
-
-  if (!["packing", "shipping"].includes(status)) {
-    redirect(`/admin/orders?error=${encodeURIComponent("กรุณาอัปเดตสถานะตามขั้นตอนของหน้าออเดอร์")}`);
-  }
-
-  const { error } = await supabase.rpc("update_order_status", {
-    target_order_id: orderId,
-    new_status: status,
-    note,
-  });
-  if (error) redirect(`/admin/orders?error=${encodeURIComponent(error.message)}`);
-  revalidatePath("/admin/orders");
-  revalidatePath("/admin/home");
-  revalidatePath("/orders");
-  revalidatePath(`/orders/${orderId}`);
-}
-
-export async function uploadOrderPhotoAction(formData: FormData) {
-  await requireStaff();
-  const supabase = await createSupabaseServerClient("admin");
-  const orderId = String(formData.get("order_id") ?? "");
-  const caption = String(formData.get("caption") ?? "").trim() || null;
-  const file = formData.get("photo");
-
-  if (!(file instanceof File) || file.size === 0) {
-    redirect(`/admin/orders?error=${encodeURIComponent("Order photo is required")}`);
-  }
-
-  const path = `${orderId}/${Date.now()}-${safeFileName(file.name)}`;
-  const buffer = Buffer.from(await file.arrayBuffer());
-  const { error: uploadError } = await supabase.storage
-    .from("order-photos")
-    .upload(path, buffer, {
-      contentType: file.type || "application/octet-stream",
-      upsert: false,
-    });
-
-  if (uploadError) {
-    redirect(`/admin/orders?error=${encodeURIComponent(uploadError.message)}`);
-  }
-
-  const { error } = await supabase.rpc("upload_order_photo", {
-    target_order_id: orderId,
-    storage_path: path,
-    caption,
-  });
-
-  if (error) {
-    await supabase.storage.from("order-photos").remove([path]);
-    redirect(`/admin/orders?error=${encodeURIComponent(error.message)}`);
-  }
-  revalidatePath("/admin/orders");
-  revalidatePath("/admin/home");
-  revalidatePath("/orders");
-  revalidatePath(`/orders/${orderId}`);
 }
 
 export async function shipOrderWithPhotoAction(formData: FormData) {

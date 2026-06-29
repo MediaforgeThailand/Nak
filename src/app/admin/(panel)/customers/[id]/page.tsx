@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { adjustCustomerDebtAction, updateCustomerDiscountAction } from "@/app/actions/admin";
 import { AdBadge, Avatar, BackHead, InfoRow, MiniStat, NakField, SectionCard } from "@/components/nak/ui";
@@ -6,7 +5,7 @@ import { Input, Textarea } from "@/components/ui/form";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { requireAdmin } from "@/lib/auth";
 import { getAdminCustomerDetail } from "@/lib/data/queries";
-import { accountStatusLabel, compactDate, money, orderStatusLabel, paymentStatusLabel } from "@/lib/format";
+import { accountStatusLabel, compactDate, money, orderStatusLabel, paymentStatusLabel, transactionLabel } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 
@@ -15,13 +14,6 @@ type CustomerDetail = Awaited<ReturnType<typeof getAdminCustomerDetail>>;
 function displayName(profile: NonNullable<CustomerDetail["profile"]>) {
   return profile.company_name || profile.full_name || profile.email || "ผู้ใช้ LINE";
 }
-
-const txLabels: Record<string, string> = {
-  order_debt: "เพิ่มยอดจากออเดอร์",
-  payment: "ชำระเงิน",
-  manual_adjustment: "ปรับยอดด้วยมือ",
-  order_reversal: "คืนยอดออเดอร์",
-};
 
 export default async function AdminCustomerDetailPage({
   params,
@@ -180,7 +172,7 @@ export default async function AdminCustomerDetailPage({
             <div key={tx.id} style={{ padding: "10px 0", borderBottom: i < transactions.length - 1 ? "1px solid var(--line)" : "none" }}>
               <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
                 <div style={{ minWidth: 0 }}>
-                  <div style={{ fontSize: 13, fontWeight: 700 }}>{txLabels[tx.type] ?? tx.type}</div>
+                  <div style={{ fontSize: 13, fontWeight: 700 }}>{transactionLabel(tx.type, tx.note)}</div>
                   <div style={{ fontSize: 11.5, color: "var(--muted)" }}>{compactDate(tx.created_at)}</div>
                 </div>
                 <span style={{ fontSize: 13.5, fontWeight: 700 }}>{money(tx.amount)}</span>

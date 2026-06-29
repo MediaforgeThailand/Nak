@@ -71,6 +71,21 @@ export function paymentStatusLabel(status: string) {
   return labels[status] ?? status;
 }
 
+const TRANSACTION_TYPE_LABELS: Record<string, string> = {
+  order_debt: "เพิ่มยอดจากออเดอร์",
+  payment_credit: "ชำระเงิน",
+  manual_adjustment: "ปรับยอดด้วยมือ",
+  order_reversal: "คืนยอดออเดอร์",
+};
+
+// Account-transaction notes from the RPCs are stored in English. Show a Thai
+// label by type to customers/staff, but keep owner-written manual-adjustment
+// notes (often Thai and more specific) when present.
+export function transactionLabel(type: string, note?: string | null) {
+  if (type === "manual_adjustment" && note && note.trim()) return note.trim();
+  return TRANSACTION_TYPE_LABELS[type] ?? note ?? type;
+}
+
 export function roleLabel(role: UserRole | string | null | undefined) {
   const labels: Record<UserRole, string> = {
     admin: "ผู้ดูแลระบบ",

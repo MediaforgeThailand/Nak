@@ -10,7 +10,7 @@ export const dynamic = "force-dynamic";
 export default async function AdminLoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string; mode?: string }>;
+  searchParams: Promise<{ error?: string; mode?: string; email?: string }>;
 }) {
   const params = await searchParams;
   const isSignup = params.mode === "signup";
@@ -81,7 +81,7 @@ export default async function AdminLoginPage({
                 </>
               ) : null}
               <Field label="อีเมล">
-                <Input name="email" type="email" autoComplete="email" required />
+                <Input name="email" type="email" autoComplete="email" defaultValue={params.email ?? ""} required />
               </Field>
               <Field label="รหัสผ่าน">
                 <Input

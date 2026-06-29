@@ -7,7 +7,7 @@ import { Input, Textarea } from "@/components/ui/form";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { requireCustomer } from "@/lib/auth";
 import { getCustomerAddresses, getCustomerOrders, getPayments, getTransactions } from "@/lib/data/queries";
-import { accountStatusLabel, compactDate, money, paymentStatusLabel } from "@/lib/format";
+import { accountStatusLabel, compactDate, money, paymentStatusLabel, transactionLabel } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 
@@ -210,7 +210,7 @@ export default async function ProfilePage() {
             }}
           >
             <div style={{ minWidth: 0 }}>
-              <div style={{ fontSize: 13.5, fontWeight: 600 }}>{tx.note ?? tx.type}</div>
+              <div style={{ fontSize: 13.5, fontWeight: 600 }}>{transactionLabel(tx.type, tx.note)}</div>
               <div style={{ fontSize: 11.5, color: "var(--muted)" }}>{compactDate(tx.created_at)}</div>
             </div>
             <div style={{ textAlign: "right" }}>

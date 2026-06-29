@@ -237,11 +237,23 @@ export function CartView({
                     {isSoldOut ? <span style={{ marginLeft: 6, fontSize: 11, fontWeight: 700, color: "#b42318" }}>สินค้าหมด</span> : null}
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: 0, marginTop: 2 }}>
-                    <button type="button" className="nak-step" onClick={() => updateQuantity(row.product.id, displayQuantity - 1, stock)}>
+                    <button
+                      type="button"
+                      className="nak-step"
+                      disabled={isSoldOut}
+                      style={{ opacity: isSoldOut ? 0.4 : 1 }}
+                      onClick={() => updateQuantity(row.product.id, displayQuantity - 1, stock)}
+                    >
                       <Icon name="minus" size={15} stroke={2.6} />
                     </button>
                     <span style={{ width: 34, textAlign: "center", fontSize: 14, fontWeight: 700 }}>{displayQuantity}</span>
-                    <button type="button" className="nak-step" onClick={() => updateQuantity(row.product.id, displayQuantity + 1, stock)}>
+                    <button
+                      type="button"
+                      className="nak-step"
+                      disabled={isSoldOut}
+                      style={{ opacity: isSoldOut ? 0.4 : 1 }}
+                      onClick={() => updateQuantity(row.product.id, displayQuantity + 1, stock)}
+                    >
                       <Icon name="plus" size={15} stroke={2.6} />
                     </button>
                     <button

@@ -252,9 +252,6 @@ export function ProductCatalog({
   const [cat, setCat] = useState("all");
   const [q, setQ] = useState("");
   const [openId, setOpenId] = useState<string | null>(null);
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => setMounted(true), []);
 
   const activeCats = useMemo(() => {
     const ids = new Set(products.map((p) => p.category_id).filter(Boolean));
@@ -317,7 +314,7 @@ export function ProductCatalog({
         </div>
       )}
 
-      {mounted && selected
+      {selected && typeof document !== "undefined"
         ? createPortal(
             <ProductDetail product={selected} discountPerItem={discountPerItem} onClose={() => setOpenId(null)} />,
             document.body,
