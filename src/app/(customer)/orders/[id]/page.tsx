@@ -2,10 +2,10 @@ import Image from "next/image";
 import { ClearCartOnMount } from "@/components/cart/clear-cart-on-mount";
 import { Icon } from "@/components/nak/icon";
 import { SubHeader } from "@/components/nak/sub-header";
-import { OrderProgress, Row, StatusBadge } from "@/components/nak/ui";
+import { Badge, OrderProgress, Row, StatusBadge } from "@/components/nak/ui";
 import { ButtonLink } from "@/components/ui/button";
 import { requireCustomer } from "@/lib/auth";
-import { compactDate, dateTime, money } from "@/lib/format";
+import { compactDate, dateTime, money, shippingMethodLabel } from "@/lib/format";
 import { getOrderDetail } from "@/lib/data/queries";
 import { signedUrls } from "@/lib/storage";
 
@@ -187,7 +187,11 @@ export default async function OrderDetailPage({
         <div className="nak-card" style={{ padding: 16, display: "grid", gap: 8 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
             <Icon name="pin" size={17} stroke={2.2} style={{ color: "var(--p)" }} />
-            <h3 style={{ margin: 0, fontSize: 14, fontWeight: 700 }}>ที่อยู่จัดส่ง</h3>
+            <h3 style={{ margin: 0, fontSize: 14, fontWeight: 700, flex: 1 }}>ที่อยู่จัดส่ง</h3>
+            <Badge tone="accent">
+              <Icon name={order.shipping_method === "grab" ? "bike" : "truck"} size={12} stroke={2.4} />
+              {shippingMethodLabel(order.shipping_method)}
+            </Badge>
           </div>
           {addressLines.length > 0 ? (
             <div style={{ fontSize: 13, lineHeight: 1.6, color: "var(--muted)" }}>

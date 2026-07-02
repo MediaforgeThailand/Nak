@@ -458,6 +458,25 @@ export async function shipOrderWithPhotoAction(formData: FormData) {
   revalidatePath(`/orders/${orderId}`);
 }
 
+// จัดส่ง stage (Flash only): staff handed the parcel to the courier.
+export async function confirmHandoffAction(formData: FormData) {
+  await requireStaff();
+  const supabase = await createSupabaseServerClient("admin");
+  const orderId = String(formData.get("order_id") ?? "");
+
+  const { error } = await supabase.rpc("update_order_status", {
+    target_order_id: orderId,
+    new_status: "shipping",
+    note: "ส่งให้ขนส่งแล้ว",
+  });
+
+  if (error) redirect(`/admin/orders?stage=handoff&error=${encodeURIComponent(error.message)}`);
+  revalidatePath("/admin/orders");
+  revalidatePath("/admin/home");
+  revalidatePath("/orders");
+  revalidatePath(`/orders/${orderId}`);
+}
+
 export async function approvePaymentAction(formData: FormData) {
   await requireAdmin();
   const supabase = await createSupabaseServerClient("admin");

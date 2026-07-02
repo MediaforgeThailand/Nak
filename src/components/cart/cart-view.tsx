@@ -87,6 +87,7 @@ export function CartView({
 
   const defaultAddress = addresses.find((a) => a.is_default) ?? addresses[0];
   const [addressId, setAddressId] = useState(defaultAddress?.id ?? "");
+  const [shippingMethod, setShippingMethod] = useState<"flash" | "grab">("flash");
   const selectedAddress = addresses.find((a) => a.id === addressId) ?? defaultAddress;
 
   const rows = useMemo(
@@ -186,6 +187,7 @@ export function CartView({
     <form action={createOrderAction}>
       <input type="hidden" name="items" value={JSON.stringify(items)} />
       <input type="hidden" name="shipping_address_id" value={addressId} />
+      <input type="hidden" name="shipping_method" value={shippingMethod} />
 
       <div style={{ display: "grid", gap: 12, padding: "14px 14px 24px" }}>
         {error ? (
@@ -333,6 +335,46 @@ export function CartView({
           ) : (
             <div style={{ fontSize: 12.5, color: "var(--muted)" }}>ไม่ระบุที่อยู่ ทีมงานจะติดต่อกลับเพื่อยืนยันการจัดส่ง</div>
           )}
+        </div>
+
+        <div className="nak-card" style={{ padding: 14, display: "grid", gap: 9 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+            <Icon name="truck" size={17} stroke={2.2} style={{ color: "var(--p)" }} />
+            <h3 style={{ margin: 0, fontSize: 14, fontWeight: 700 }}>เลือกขนส่ง</h3>
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 9 }}>
+            {(
+              [
+                { key: "flash" as const, icon: "truck", title: "Flash Express", sub: "ส่งทั่วประเทศ" },
+                { key: "grab" as const, icon: "bike", title: "Grab", sub: "ส่งด่วนในพื้นที่" },
+              ]
+            ).map((option) => {
+              const on = shippingMethod === option.key;
+              return (
+                <button
+                  key={option.key}
+                  type="button"
+                  onClick={() => setShippingMethod(option.key)}
+                  className="nak-press"
+                  style={{
+                    display: "grid",
+                    justifyItems: "center",
+                    gap: 5,
+                    padding: "13px 8px",
+                    borderRadius: "var(--r-sm)",
+                    border: on ? "1.5px solid var(--p)" : "1px solid var(--line)",
+                    background: on ? "var(--p-soft)" : "var(--surface)",
+                    color: on ? "var(--p-deep)" : "var(--muted)",
+                    cursor: "pointer",
+                  }}
+                >
+                  <Icon name={option.icon} size={22} stroke={on ? 2.3 : 2} />
+                  <span style={{ fontSize: 13.5, fontWeight: 700, color: on ? "var(--p-deep)" : "var(--ink)" }}>{option.title}</span>
+                  <span style={{ fontSize: 11, fontWeight: 500 }}>{option.sub}</span>
+                </button>
+              );
+            })}
+          </div>
         </div>
 
         <div className="nak-card" style={{ padding: 14, display: "grid", gap: 9 }}>

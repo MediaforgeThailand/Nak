@@ -18,7 +18,8 @@ function customerName(order: AdminOrder) {
 
 function stageMeta(status: string) {
   if (status === "pending_admin") return { label: "รออนุมัติ", color: "#a35a10" };
-  if (["approved", "packing", "ready_to_ship"].includes(status)) return { label: "จัดส่ง", color: "var(--p-deep)" };
+  if (["approved", "packing"].includes(status)) return { label: "จัดสินค้า", color: "var(--p-deep)" };
+  if (status === "ready_to_ship") return { label: "รอส่งขนส่ง", color: "var(--p-deep)" };
   if (["shipping", "delivered"].includes(status)) return { label: "ส่งแล้ว", color: "#1b7a4b" };
   return { label: "—", color: "var(--muted)" };
 }

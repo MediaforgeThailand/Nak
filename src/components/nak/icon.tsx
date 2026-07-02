@@ -284,6 +284,21 @@ const NAK_ICON_PATHS: Record<string, ReactNode> = {
       <path d="m22 7-10 6L2 7" />
     </>
   ),
+  copy: (
+    <>
+      <rect x="9" y="9" width="12" height="12" rx="2.5" />
+      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+    </>
+  ),
+  bike: (
+    <>
+      <circle cx="5.5" cy="17.5" r="3.2" />
+      <circle cx="18.5" cy="17.5" r="3.2" />
+      <path d="M12 17.5h-3l2-6h5" />
+      <path d="M13 7h3l2.5 10.5" />
+      <path d="M11 11.5 8.5 17.5" />
+    </>
+  ),
 };
 
 export type IconName = keyof typeof NAK_ICON_PATHS;

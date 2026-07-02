@@ -36,10 +36,14 @@ export function LiffAutoLogin() {
         const idToken = liff.getIDToken();
         if (!idToken) return;
 
+        // Which side of the app the user is logging into decides the session
+        // cookie scope (admins may use both sides with separate cookies).
+        const scope = window.location.pathname.startsWith("/admin") ? "admin" : "customer";
+
         const res = await fetch("/api/auth/line-liff", {
           method: "POST",
           headers: { "content-type": "application/json" },
-          body: JSON.stringify({ idToken }),
+          body: JSON.stringify({ idToken, scope }),
         });
         if (!res.ok) return;
 
