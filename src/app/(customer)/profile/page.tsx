@@ -6,24 +6,24 @@ import { Badge, InfoRow, NakField, SectionCard, StatCard } from "@/components/na
 import { Input, Textarea } from "@/components/ui/form";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { requireCustomer } from "@/lib/auth";
-import { getCustomerAddresses, getCustomerOrders, getPayments, getTransactions } from "@/lib/data/queries";
+import { getCustomerAddresses, getCustomerOrders, getPayments, getPriceProgramStatus, getTransactions } from "@/lib/data/queries";
 import { accountStatusLabel, compactDate, money, paymentStatusLabel, transactionLabel } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 
 export default async function ProfilePage() {
   const { profile } = await requireCustomer();
-  const [addresses, orders, transactions, payments] = await Promise.all([
+  const [addresses, orders, transactions, payments, priceProgram] = await Promise.all([
     getCustomerAddresses(),
     getCustomerOrders(),
     getTransactions(),
     getPayments(),
+    getPriceProgramStatus(),
   ]);
   const totalPurchased = orders
     .filter((order) => !["rejected", "cancelled"].includes(order.status))
     .reduce((sum, order) => sum + Number(order.subtotal ?? 0), 0);
   const defaultAddress = addresses.find((address) => address.is_default) ?? addresses[0];
-  const discountPerItem = Math.max(Number(profile.per_item_discount ?? 0), 0);
   const approved = profile.status === "approved";
 
   return (
@@ -60,7 +60,11 @@ export default async function ProfilePage() {
         <StatCard label="ออเดอร์" value={String(orders.length)} icon="receipt" />
       </div>
 
-      <div className="nak-card" style={{ padding: 14, display: "flex", alignItems: "center", gap: 11 }}>
+      <Link
+        href="/price-program"
+        className="nak-card nak-press"
+        style={{ padding: 14, display: "flex", alignItems: "center", gap: 11, textAlign: "left", width: "100%" }}
+      >
         <span
           style={{
             width: 38,
@@ -73,16 +77,16 @@ export default async function ProfilePage() {
             flexShrink: 0,
           }}
         >
-          <Icon name="percent" size={18} stroke={2.2} />
+          <Icon name="trending" size={18} stroke={2.2} />
         </span>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 11, fontWeight: 600, color: "var(--muted)" }}>ส่วนลดสมาชิก</div>
-          <div style={{ fontSize: 15, fontWeight: 700 }}>
-            {discountPerItem > 0 ? `ลด ${money(discountPerItem)} / ชิ้น` : "ยังไม่มีส่วนลด"}
+          <div style={{ fontSize: 14.5, fontWeight: 700 }}>Price Program — ราคาตามยอดซื้อ</div>
+          <div style={{ fontSize: 12, color: "var(--muted)" }}>
+            สะสมเดือนนี้ {Number(priceProgram.month_quantity ?? 0).toLocaleString("th-TH")} ชิ้น · ดูตารางราคาและ Level
           </div>
         </div>
-        <Badge tone={discountPerItem > 0 ? "success" : "neutral"}>{discountPerItem > 0 ? "เปิดใช้งาน" : "ไม่มีส่วนลด"}</Badge>
-      </div>
+        <Icon name="chevR" size={18} stroke={2.4} style={{ color: "var(--muted)" }} />
+      </Link>
 
       <Link
         href="/payments/new"

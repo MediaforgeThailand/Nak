@@ -1,10 +1,13 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { Icon } from "@/components/nak/icon";
 import { Badge, ProductImage } from "@/components/nak/ui";
 import { money } from "@/lib/format";
+import { effectiveUnitPrice, levelForQty, sortedTiers } from "@/lib/pricing";
+import type { PriceTier } from "@/lib/types";
 
 const CART_KEY = "nak_cart";
 
@@ -21,20 +24,13 @@ type Product = {
   imageUrl: string | null;
   created_at: string;
   category?: Category | null;
+  tiers?: PriceTier[] | null;
   inventory: { quantity_available: number } | { quantity_available: number }[] | null;
 };
 
 function stock(product: Product) {
   if (Array.isArray(product.inventory)) return product.inventory[0]?.quantity_available ?? 0;
   return product.inventory?.quantity_available ?? 0;
-}
-
-function discountPerUnit(price: number, discountPerItem: number) {
-  return Math.min(Math.max(Number(discountPerItem) || 0, 0), Number(price) || 0);
-}
-
-function discountedUnitPrice(price: number, discountPerItem: number) {
-  return Math.max((Number(price) || 0) - discountPerUnit(price, discountPerItem), 0);
 }
 
 function addToCart(productId: string) {
@@ -53,17 +49,25 @@ function addToCart(productId: string) {
 function ProductCard({
   product,
   discountPerItem,
+  floorQuantity,
   onOpen,
 }: {
   product: Product;
   discountPerItem: number;
+  floorQuantity: number;
   onOpen: (id: string) => void;
 }) {
   const qty = stock(product);
   const soldOut = qty <= 0;
   const low = qty > 0 && qty < 25;
-  const unitDiscount = discountPerUnit(product.price, discountPerItem);
-  const finalPrice = discountedUnitPrice(product.price, discountPerItem);
+  const hasTiers = (product.tiers?.length ?? 0) > 0;
+  const finalPrice = effectiveUnitPrice({
+    basePrice: product.price,
+    tiers: product.tiers,
+    quantity: 1,
+    floorQuantity,
+    personalDiscount: discountPerItem,
+  });
 
   return (
     <button
@@ -99,11 +103,13 @@ function ProductCard({
         </div>
         <div style={{ marginTop: "auto", display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 6 }}>
           <div>
-            {unitDiscount > 0 && (
-              <div style={{ fontSize: 11, color: "var(--muted)", textDecoration: "line-through" }}>{money(product.price)}</div>
-            )}
             <div style={{ fontSize: 17, fontWeight: 800, color: "var(--ink)", letterSpacing: "-.01em" }}>{money(finalPrice)}</div>
             <div style={{ fontSize: 10.5, color: "var(--muted)" }}>ต่อ {product.unit}</div>
+            {hasTiers ? (
+              <div style={{ marginTop: 3, display: "inline-flex", alignItems: "center", gap: 4, fontSize: 10.5, fontWeight: 700, color: "#1b7a4b" }}>
+                <Icon name="trending" size={11} stroke={2.6} /> ยิ่งซื้อมาก ยิ่งถูก
+              </div>
+            ) : null}
           </div>
           <span
             onClick={(e) => {
@@ -125,16 +131,25 @@ function ProductCard({
 function ProductDetail({
   product,
   discountPerItem,
+  floorQuantity,
   onClose,
 }: {
   product: Product;
   discountPerItem: number;
+  floorQuantity: number;
   onClose: () => void;
 }) {
   const qty = stock(product);
   const soldOut = qty <= 0;
-  const unitDiscount = discountPerUnit(product.price, discountPerItem);
-  const finalPrice = discountedUnitPrice(product.price, discountPerItem);
+  const tiers = sortedTiers(product.tiers);
+  const activeLevel = tiers.length > 0 ? levelForQty(tiers, Math.max(floorQuantity, 1)) : 0;
+  const finalPrice = effectiveUnitPrice({
+    basePrice: product.price,
+    tiers: product.tiers,
+    quantity: 1,
+    floorQuantity,
+    personalDiscount: discountPerItem,
+  });
 
   return (
     <div
@@ -184,18 +199,65 @@ function ProductDetail({
             <div style={{ fontSize: 12, color: "var(--muted)", fontWeight: 600 }}>{product.sku}</div>
             <h2 style={{ margin: 0, fontSize: 22, fontWeight: 800, lineHeight: 1.3, letterSpacing: "-.01em" }}>{product.name}</h2>
             <div style={{ display: "flex", alignItems: "flex-end", gap: 10 }}>
-              {unitDiscount > 0 && (
-                <span style={{ fontSize: 15, color: "var(--muted)", textDecoration: "line-through" }}>{money(product.price)}</span>
-              )}
               <span style={{ fontSize: 30, fontWeight: 800, letterSpacing: "-.02em" }}>{money(finalPrice)}</span>
               <span style={{ fontSize: 13, color: "var(--muted)", marginBottom: 4 }}>/ {product.unit}</span>
             </div>
-            {unitDiscount > 0 && (
-              <div style={{ display: "inline-flex", alignItems: "center", gap: 6, color: "#1b7a4b", fontSize: 13, fontWeight: 700 }}>
-                <Icon name="percent" size={14} stroke={2.4} /> ส่วนลดเฉพาะบัญชีคุณ {money(unitDiscount)} / ชิ้น
-              </div>
-            )}
           </div>
+
+          {tiers.length > 0 ? (
+            <div className="nak-card" style={{ padding: 15, display: "grid", gap: 10 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+                <Icon name="trending" size={16} stroke={2.2} style={{ color: "var(--p)" }} />
+                <h3 style={{ margin: 0, fontSize: 14, fontWeight: 700, flex: 1 }}>ราคาตามจำนวน — ยิ่งซื้อมาก ยิ่งถูก</h3>
+              </div>
+              <div style={{ display: "grid", gap: 4 }}>
+                {tiers.map((tier, i) => {
+                  const level = i + 1;
+                  const isActive = level === activeLevel;
+                  return (
+                    <div
+                      key={tier.min_quantity}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 8,
+                        padding: "7px 10px",
+                        borderRadius: 10,
+                        background: isActive ? "var(--p-soft)" : "transparent",
+                        border: isActive ? "1px solid var(--p)" : "1px solid transparent",
+                      }}
+                    >
+                      <span
+                        style={{
+                          fontSize: 10.5,
+                          fontWeight: 800,
+                          color: isActive ? "#fff" : "var(--muted)",
+                          background: isActive ? "var(--p)" : "var(--chip)",
+                          borderRadius: 999,
+                          padding: "3px 8px",
+                          flexShrink: 0,
+                        }}
+                      >
+                        Lv.{level}
+                      </span>
+                      <span style={{ flex: 1, fontSize: 12.5, fontWeight: 600, color: isActive ? "var(--p-deep)" : "var(--ink)" }}>
+                        {tier.min_quantity.toLocaleString("th-TH")}+ {product.unit}
+                      </span>
+                      <span style={{ fontSize: 13, fontWeight: 800, color: isActive ? "var(--p-deep)" : "var(--ink)" }}>
+                        {money(Math.max(Number(tier.unit_price) - Math.max(discountPerItem, 0), 0))}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+              <Link
+                href="/price-program"
+                style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 12.5, fontWeight: 700, color: "var(--p)" }}
+              >
+                ซื้อสะสมรายเดือนเพื่อล็อกราคาขั้นสูง <Icon name="arrowR" size={13} stroke={2.6} />
+              </Link>
+            </div>
+          ) : null}
 
           <div className="nak-card" style={{ padding: 15, display: "grid", gap: 8 }}>
             <h3 style={{ margin: 0, fontSize: 14, fontWeight: 700 }}>รายละเอียด</h3>
@@ -244,10 +306,12 @@ export function ProductCatalog({
   products,
   categories,
   discountPerItem,
+  floorQuantity = 0,
 }: {
   products: Product[];
   categories: Category[];
   discountPerItem: number;
+  floorQuantity?: number;
 }) {
   const [cat, setCat] = useState("all");
   const [q, setQ] = useState("");
@@ -305,7 +369,7 @@ export function ProductCatalog({
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 11 }}>
         {list.map((p) => (
-          <ProductCard key={p.id} product={p} discountPerItem={discountPerItem} onOpen={setOpenId} />
+          <ProductCard key={p.id} product={p} discountPerItem={discountPerItem} floorQuantity={floorQuantity} onOpen={setOpenId} />
         ))}
       </div>
       {list.length === 0 && (
@@ -316,7 +380,12 @@ export function ProductCatalog({
 
       {selected && typeof document !== "undefined"
         ? createPortal(
-            <ProductDetail product={selected} discountPerItem={discountPerItem} onClose={() => setOpenId(null)} />,
+            <ProductDetail
+              product={selected}
+              discountPerItem={discountPerItem}
+              floorQuantity={floorQuantity}
+              onClose={() => setOpenId(null)}
+            />,
             document.body,
           )
         : null}

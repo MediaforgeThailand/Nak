@@ -345,7 +345,7 @@ input[type="file"] {
   backdrop-filter: blur(18px);
   border-top: 1px solid var(--line);
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   padding-top: 9px;
   padding-bottom: calc(env(safe-area-inset-bottom) + 9px);
 }
@@ -368,6 +368,51 @@ input[type="file"] {
 }
 .nak-tab.is-on {
   color: var(--p);
+}
+
+/* ── price program progress ───────────────────────────────────── */
+.pp-track {
+  height: 12px;
+  border-radius: 999px;
+  background: var(--chip);
+  overflow: hidden;
+}
+.pp-fill {
+  height: 100%;
+  width: var(--pp-target, 0%);
+  min-width: 6px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--p), #f2755f);
+  box-shadow: 0 2px 8px -2px var(--p);
+  animation: pp-grow 0.9s cubic-bezier(0.22, 1, 0.36, 1) both;
+  position: relative;
+}
+.pp-fill::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  background: linear-gradient(110deg, transparent 30%, rgba(255, 255, 255, 0.45) 50%, transparent 70%);
+  background-size: 220% 100%;
+  animation: shimmer 2.2s ease-in-out infinite;
+}
+.pp-badge {
+  animation: pp-pop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+@keyframes pp-grow {
+  from {
+    width: 0;
+  }
+}
+@keyframes pp-pop {
+  0% {
+    transform: scale(0.6);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 
 .nak-logout {

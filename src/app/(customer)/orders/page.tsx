@@ -32,9 +32,6 @@ export default async function OrdersPage() {
               </div>
               <div style={{ textAlign: "right" }}>
                 <div style={{ fontSize: 16, fontWeight: 800, letterSpacing: "-.01em" }}>{money(order.subtotal)}</div>
-                {Number(order.total_discount ?? 0) > 0 ? (
-                  <div style={{ fontSize: 11, fontWeight: 700, color: "#1b7a4b" }}>ประหยัด {money(order.total_discount)}</div>
-                ) : null}
               </div>
             </div>
             <OrderProgress status={order.status} compact />

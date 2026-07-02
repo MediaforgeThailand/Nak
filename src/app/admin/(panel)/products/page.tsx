@@ -152,6 +152,11 @@ export default async function AdminProductsPage({
             </NakField>
           </div>
           <div style={{ gridColumn: "1 / -1" }}>
+            <NakField label="ราคาขั้นบันได (จำนวน=ราคา ต่อบรรทัด · เว้นว่าง = ราคาเดียว)" hint="เช่น 1=320 แล้วขึ้นบรรทัดใหม่ 5=310, 10=300 ...">
+              <textarea className="ad-input" name="price_tiers" rows={4} placeholder={"1=320\n5=310\n10=300"} style={{ resize: "vertical" }} />
+            </NakField>
+          </div>
+          <div style={{ gridColumn: "1 / -1" }}>
             <SubmitButton pendingLabel="กำลังเพิ่ม..." className="w-full">
               เพิ่มสินค้า
             </SubmitButton>
@@ -177,6 +182,10 @@ export default async function AdminProductsPage({
           const inv = Array.isArray(product.inventory) ? product.inventory[0] : product.inventory;
           const qty = inv?.quantity_available ?? 0;
           const imageUrl = product.image_path ? imageUrls.get(product.image_path) : null;
+          const tiersText = [...(product.tiers ?? [])]
+            .sort((a, b) => a.min_quantity - b.min_quantity)
+            .map((tier) => `${tier.min_quantity}=${Number(tier.unit_price)}`)
+            .join("\n");
           return (
             <details key={product.id} style={{ borderBottom: i < filtered.length - 1 ? "1px solid var(--line)" : "none" }}>
               <summary style={{ display: "flex", alignItems: "center", gap: 12, padding: 10, cursor: "pointer", listStyle: "none" }}>
@@ -227,6 +236,18 @@ export default async function AdminProductsPage({
                 <div style={{ gridColumn: "1 / -1" }}>
                   <NakField label="รายละเอียด">
                     <textarea className="ad-input" name="description" defaultValue={product.description ?? ""} rows={2} style={{ resize: "none" }} />
+                  </NakField>
+                </div>
+                <div style={{ gridColumn: "1 / -1" }}>
+                  <NakField label="ราคาขั้นบันได (จำนวน=ราคา ต่อบรรทัด · เว้นว่าง = ราคาเดียว)">
+                    <textarea
+                      className="ad-input"
+                      name="price_tiers"
+                      rows={4}
+                      defaultValue={tiersText}
+                      placeholder={"1=320\n5=310\n10=300"}
+                      style={{ resize: "vertical" }}
+                    />
                   </NakField>
                 </div>
                 <div style={{ gridColumn: "1 / -1" }}>

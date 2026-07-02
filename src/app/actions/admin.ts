@@ -28,6 +28,47 @@ function parseUserRole(value: FormDataEntryValue | null) {
   return userRoles.includes(role) ? role : null;
 }
 
+type ParsedTier = { min_quantity: number; unit_price: number };
+
+// Parse the "จำนวน=ราคา per line" textarea into ladder rows.
+function parsePriceTiers(raw: string): { tiers: ParsedTier[] } | { error: string } {
+  const tiers: ParsedTier[] = [];
+  const seen = new Set<number>();
+
+  for (const line of raw.split(/\r?\n/)) {
+    const text = line.trim();
+    if (!text) continue;
+    const match = text.match(/^([\d,]+)\s*[=:\/]\s*([\d,]+(?:\.\d+)?)$/);
+    if (!match) return { error: `รูปแบบไม่ถูกต้อง: "${text}" (ใช้ จำนวน=ราคา เช่น 10=300)` };
+
+    const minQuantity = Number(match[1].replace(/,/g, ""));
+    const unitPrice = Number(match[2].replace(/,/g, ""));
+    if (!Number.isInteger(minQuantity) || minQuantity < 1) return { error: `จำนวนขั้นต่ำไม่ถูกต้อง: "${text}"` };
+    if (!Number.isFinite(unitPrice) || unitPrice < 0) return { error: `ราคาไม่ถูกต้อง: "${text}"` };
+    if (seen.has(minQuantity)) return { error: `จำนวน ${minQuantity} ซ้ำกัน` };
+
+    seen.add(minQuantity);
+    tiers.push({ min_quantity: minQuantity, unit_price: unitPrice });
+  }
+
+  tiers.sort((a, b) => a.min_quantity - b.min_quantity);
+  return { tiers };
+}
+
+async function replaceProductTiers(
+  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  productId: string,
+  tiers: ParsedTier[],
+) {
+  const { error: deleteError } = await supabase.from("product_price_tiers").delete().eq("product_id", productId);
+  if (deleteError) return deleteError;
+  if (tiers.length === 0) return null;
+  const { error: insertError } = await supabase
+    .from("product_price_tiers")
+    .insert(tiers.map((tier) => ({ product_id: productId, ...tier })));
+  return insertError;
+}
+
 async function uploadImageFile(
   supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
   bucket: string,
@@ -162,7 +203,14 @@ export async function createProductAction(formData: FormData) {
     "/admin/products",
   );
 
-  const { error } = await supabase.rpc("create_product_with_inventory", {
+  const tiersRaw = String(formData.get("price_tiers") ?? "");
+  const parsedTiers = parsePriceTiers(tiersRaw);
+  if ("error" in parsedTiers) {
+    if (imagePath) await supabase.storage.from("product-images").remove([imagePath]);
+    redirect(`/admin/products?error=${encodeURIComponent(parsedTiers.error)}`);
+  }
+
+  const { data: newProductId, error } = await supabase.rpc("create_product_with_inventory", {
     sku,
     name: String(formData.get("name") ?? "").trim(),
     price: Number(formData.get("price") ?? 0),
@@ -178,6 +226,12 @@ export async function createProductAction(formData: FormData) {
     if (imagePath) await supabase.storage.from("product-images").remove([imagePath]);
     redirect(`/admin/products?error=${encodeURIComponent(error.message)}`);
   }
+
+  if (newProductId && parsedTiers.tiers.length > 0) {
+    const tierError = await replaceProductTiers(supabase, String(newProductId), parsedTiers.tiers);
+    if (tierError) redirect(`/admin/products?error=${encodeURIComponent(tierError.message)}`);
+  }
+
   revalidatePath("/admin/products");
   revalidatePath("/products");
   revalidatePath("/home");
@@ -233,6 +287,14 @@ export async function updateProductAction(formData: FormData) {
 
   if (imagePath) payload.image_path = imagePath;
 
+  const parsedTiers = formData.has("price_tiers")
+    ? parsePriceTiers(String(formData.get("price_tiers") ?? ""))
+    : null;
+  if (parsedTiers && "error" in parsedTiers) {
+    if (imagePath) await supabase.storage.from("product-images").remove([imagePath]);
+    redirect(`/admin/products?error=${encodeURIComponent(parsedTiers.error)}`);
+  }
+
   const { error } = await supabase
     .from("products")
     .update(payload)
@@ -241,6 +303,11 @@ export async function updateProductAction(formData: FormData) {
   if (error) {
     if (imagePath) await supabase.storage.from("product-images").remove([imagePath]);
     redirect(`/admin/products?error=${encodeURIComponent(error.message)}`);
+  }
+
+  if (parsedTiers && "tiers" in parsedTiers) {
+    const tierError = await replaceProductTiers(supabase, id, parsedTiers.tiers);
+    if (tierError) redirect(`/admin/products?error=${encodeURIComponent(tierError.message)}`);
   }
 
   if (

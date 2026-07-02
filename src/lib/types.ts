@@ -31,6 +31,16 @@ export type Profile = {
   updated_at: string;
 };
 
+export type PriceTier = {
+  min_quantity: number;
+  unit_price: number;
+};
+
+export type PriceProgramStatus = {
+  floor_quantity: number;
+  month_quantity: number;
+};
+
 export type Product = {
   id: string;
   category_id: string | null;
@@ -44,6 +54,7 @@ export type Product = {
   sort_order: number;
   created_at: string;
   category?: ProductCategory | null;
+  tiers?: PriceTier[] | null;
   inventory?: {
     quantity_available: number;
     low_stock_threshold: number;

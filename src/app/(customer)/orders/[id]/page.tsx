@@ -115,11 +115,6 @@ export default async function OrderDetailPage({
                     <div style={{ fontSize: 12, color: "var(--muted)", marginTop: 2 }}>
                       {it.sku} · {it.quantity} {it.unit} · {money(it.unit_price)}/{it.unit}
                     </div>
-                    {Number(it.discount_per_unit ?? 0) > 0 ? (
-                      <div style={{ fontSize: 11.5, fontWeight: 600, color: "#1b7a4b", marginTop: 2 }}>
-                        ลด {money(it.discount_per_unit)}/ชิ้น
-                      </div>
-                    ) : null}
                   </div>
                   <div style={{ fontSize: 14, fontWeight: 700, whiteSpace: "nowrap" }}>{money(it.line_total)}</div>
                 </div>
@@ -168,12 +163,6 @@ export default async function OrderDetailPage({
             <Icon name="card" size={17} stroke={2.2} style={{ color: "var(--p)" }} />
             <h3 style={{ margin: 0, fontSize: 14, fontWeight: 700 }}>ยอดเงิน</h3>
           </div>
-          {Number(order.total_discount ?? 0) > 0 ? (
-            <>
-              <Row label="ยอดก่อนลด" value={money(order.total_before_discount)} />
-              <Row label="ส่วนลดรวม" value={"-" + money(order.total_discount)} valColor="#1b7a4b" />
-            </>
-          ) : null}
           <Row label="ยอดออเดอร์สุทธิ" value={money(order.subtotal)} bold />
           <div style={{ height: 1, background: "var(--line)" }} />
           <Row label="ยอดค้างปัจจุบัน" value={money(profile.debt_balance)} valColor="#a35a10" bold />
