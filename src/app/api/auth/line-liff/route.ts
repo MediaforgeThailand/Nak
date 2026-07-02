@@ -34,9 +34,11 @@ export async function POST(request: Request) {
   }
 
   let idToken = "";
+  let requestedScope: "customer" | "admin" = "customer";
   try {
     const body = await request.json();
     idToken = String(body?.idToken ?? "");
+    if (body?.scope === "admin") requestedScope = "admin";
   } catch {
     return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
   }
@@ -94,7 +96,17 @@ export async function POST(request: Request) {
     .single<{ role: string; status: string }>();
 
   const isStaff = profile?.role === "admin" || profile?.role === "factory_staff";
-  const scope = isStaff ? "admin" : "customer";
+  // Honor the page the login started from: admins may use the customer side too
+  // (separate cookie per side). Factory staff belong to the admin side only, and
+  // plain customers never get an admin-scope session.
+  const scope =
+    requestedScope === "customer"
+      ? profile?.role === "factory_staff"
+        ? "admin"
+        : "customer"
+      : isStaff
+        ? "admin"
+        : "customer";
 
   // 4) Mint a session via magic-link OTP and let the scoped SSR client set the cookie.
   const { data: linkData, error: linkErr } = await admin.auth.admin.generateLink({
@@ -112,11 +124,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Could not establish session" }, { status: 500 });
   }
 
-  let redirect = "/home";
+  let redirect = scope === "admin" ? "/admin/home" : "/home";
   if (!profile || profile.status !== "approved") {
     redirect = `/pending?scope=${scope}`;
-  } else if (isStaff) {
-    redirect = "/admin/home";
   }
 
   return NextResponse.json({ redirect });

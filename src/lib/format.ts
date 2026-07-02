@@ -62,6 +62,10 @@ export function orderStatusMeta(status: string): OrderStatusMeta {
   return meta[status] ?? meta.pending_admin;
 }
 
+export function shippingMethodLabel(method: string | null | undefined) {
+  return method === "grab" ? "Grab" : "Flash Express";
+}
+
 export function paymentStatusLabel(status: string) {
   const labels: Record<string, string> = {
     pending: "รอตรวจสลิป",

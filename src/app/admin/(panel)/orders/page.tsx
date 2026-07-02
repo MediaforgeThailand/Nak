@@ -1,17 +1,18 @@
 import Image from "next/image";
-import { approveOrderAction, rejectOrderAction, shipOrderWithPhotoAction } from "@/app/actions/admin";
+import { approveOrderAction, confirmHandoffAction, rejectOrderAction, shipOrderWithPhotoAction } from "@/app/actions/admin";
 import { Icon } from "@/components/nak/icon";
 import { AdBadge, AdminTabs, Avatar } from "@/components/nak/ui";
+import { CopyButton } from "@/components/ui/copy-button";
 import { FileUploadPreview } from "@/components/ui/file-upload-preview";
 import { SubmitButton } from "@/components/ui/submit-button";
-import { dateTime, money } from "@/lib/format";
+import { dateTime, money, shippingMethodLabel } from "@/lib/format";
 import { getAdminOrders } from "@/lib/data/queries";
 import { signedUrls } from "@/lib/storage";
 
 export const dynamic = "force-dynamic";
 
 type AdminOrder = Awaited<ReturnType<typeof getAdminOrders>>[number];
-type StageKey = "approve" | "ship" | "shipped";
+type StageKey = "approve" | "pack" | "handoff" | "shipped";
 
 type OrderItem = {
   id: string;
@@ -33,12 +34,24 @@ type ShippingSnapshot = {
 
 const STAGES: { key: StageKey; statuses: string[] }[] = [
   { key: "approve", statuses: ["pending_admin"] },
-  { key: "ship", statuses: ["approved", "packing", "ready_to_ship"] },
+  { key: "pack", statuses: ["approved", "packing"] },
+  { key: "handoff", statuses: ["ready_to_ship"] },
   { key: "shipped", statuses: ["shipping", "delivered"] },
 ];
 
 function normalizeStage(value: string | undefined): StageKey {
-  return value === "ship" || value === "shipped" ? value : "approve";
+  if (value === "pack" || value === "handoff" || value === "shipped") return value;
+  if (value === "ship") return "pack"; // old bookmarked links
+  return "approve";
+}
+
+function MethodBadge({ order }: { order: AdminOrder }) {
+  const isGrab = order.shipping_method === "grab";
+  return (
+    <AdBadge tone={isGrab ? "success" : "accent"}>
+      <Icon name={isGrab ? "bike" : "truck"} size={13} stroke={2.4} /> {shippingMethodLabel(order.shipping_method)}
+    </AdBadge>
+  );
 }
 
 function customerName(order: AdminOrder) {
@@ -139,17 +152,21 @@ function ApproveCard({ order }: { order: AdminOrder }) {
   );
 }
 
-function ShipCard({ order }: { order: AdminOrder }) {
+function PackCard({ order }: { order: AdminOrder }) {
+  const isGrab = order.shipping_method === "grab";
   return (
     <div className="ad-card" style={{ padding: 16, display: "grid", gap: 13 }}>
       <OrderHead
         order={order}
         badge={
-          <AdBadge tone="accent">
-            <Icon name="truck" size={13} stroke={2.4} /> จัดส่ง
+          <AdBadge tone="warning">
+            <Icon name="package" size={13} stroke={2.4} /> จัดสินค้า
           </AdBadge>
         }
       />
+      <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+        <MethodBadge order={order} />
+      </div>
       <div style={{ background: "var(--p-soft)", borderRadius: "var(--r-sm)", padding: 12, display: "grid", gap: 7, fontSize: 13 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8, fontWeight: 700 }}>
           <Icon name="user" size={15} stroke={2.2} style={{ color: "var(--p-deep)" }} /> {customerName(order)}
@@ -164,10 +181,99 @@ function ShipCard({ order }: { order: AdminOrder }) {
       <ItemsBox order={order} />
       <form action={shipOrderWithPhotoAction} style={{ display: "grid", gap: 10 }}>
         <input type="hidden" name="order_id" value={order.id} />
-        <FileUploadPreview name="photo" accept="image/*" required hint="เลือกรูปสินค้าที่แพ็คก่อนยืนยันจัดส่ง" />
+        <FileUploadPreview name="photo" accept="image/*" required hint="ถ่าย/แนบรูปสินค้าที่แพ็คเสร็จ" />
         <input className="ad-input" name="caption" placeholder="หมายเหตุรูป (ไม่บังคับ)" />
+        <SubmitButton pendingLabel="กำลังบันทึก..." className="w-full">
+          <Icon name="check" size={17} stroke={2.4} /> จัดสินค้าเสร็จแล้ว
+        </SubmitButton>
+        <p style={{ margin: 0, fontSize: 11.5, color: "var(--muted)", textAlign: "center" }}>
+          {isGrab ? "ออเดอร์ Grab จะข้ามไป “ส่งแล้ว” ทันที" : "ออเดอร์ Flash จะไปขั้น “จัดส่ง” เพื่อส่งให้ขนส่ง"}
+        </p>
+      </form>
+    </div>
+  );
+}
+
+function HandoffCard({ order, photoUrls }: { order: AdminOrder; photoUrls: Map<string, string> }) {
+  const photos = order.order_photos ?? [];
+  return (
+    <div className="ad-card" style={{ padding: 16, display: "grid", gap: 13 }}>
+      <OrderHead
+        order={order}
+        badge={
+          <AdBadge tone="accent">
+            <Icon name="truck" size={13} stroke={2.4} /> รอส่งขนส่ง
+          </AdBadge>
+        }
+      />
+      <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+        <MethodBadge order={order} />
+      </div>
+
+      {/* order code front-and-center for the courier */}
+      <div
+        style={{
+          background: "var(--bg)",
+          border: "1px dashed var(--p)",
+          borderRadius: "var(--r-sm)",
+          padding: "13px 14px",
+          display: "grid",
+          gap: 3,
+          justifyItems: "center",
+        }}
+      >
+        <span style={{ fontSize: 11, fontWeight: 600, color: "var(--muted)" }}>รหัสออเดอร์สำหรับขนส่ง</span>
+        <span style={{ fontSize: 24, fontWeight: 800, letterSpacing: ".04em" }}>{order.order_number}</span>
+      </div>
+      <CopyButton text={order.order_number} />
+
+      <div style={{ background: "var(--p-soft)", borderRadius: "var(--r-sm)", padding: 12, display: "grid", gap: 7, fontSize: 13 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, fontWeight: 700 }}>
+          <Icon name="user" size={15} stroke={2.2} style={{ color: "var(--p-deep)" }} /> {customerName(order)}
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, color: "var(--muted)" }}>
+          <Icon name="phone" size={15} stroke={2.2} style={{ color: "var(--p-deep)" }} /> {order.customer?.phone ?? "-"}
+        </div>
+        <div style={{ display: "flex", alignItems: "flex-start", gap: 8, color: "var(--muted)" }}>
+          <Icon name="pin" size={15} stroke={2.2} style={{ color: "var(--p-deep)", flexShrink: 0, marginTop: 1 }} /> {shippingAddress(order)}
+        </div>
+      </div>
+
+      <ItemsBox order={order} />
+
+      {photos.length > 0 ? (
+        <div style={{ display: "grid", gap: 10 }}>
+          {photos.map((photo: { id: string; storage_path: string; caption: string | null }) => {
+            const url = photoUrls.get(photo.storage_path);
+            return (
+              <div
+                key={photo.id}
+                style={{
+                  position: "relative",
+                  aspectRatio: "4/3",
+                  borderRadius: "var(--r-sm)",
+                  overflow: "hidden",
+                  background: "var(--chip)",
+                  display: "grid",
+                  placeItems: "center",
+                  color: "rgba(0,0,0,.28)",
+                }}
+              >
+                {url ? (
+                  <Image src={url} alt={photo.caption ?? "รูปสินค้าที่แพ็ค"} fill sizes="440px" className="object-cover" />
+                ) : (
+                  <Icon name="camera" size={28} stroke={1.6} />
+                )}
+              </div>
+            );
+          })}
+        </div>
+      ) : null}
+
+      <form action={confirmHandoffAction}>
+        <input type="hidden" name="order_id" value={order.id} />
         <SubmitButton pendingLabel="กำลังยืนยัน..." className="w-full">
-          <Icon name="truck" size={17} stroke={2.4} /> ยืนยันจัดส่งแล้ว
+          <Icon name="truck" size={17} stroke={2.4} /> ส่งให้ขนส่งแล้ว
         </SubmitButton>
       </form>
     </div>
@@ -186,6 +292,9 @@ function ShippedCard({ order, photoUrls }: { order: AdminOrder; photoUrls: Map<s
           </AdBadge>
         }
       />
+      <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+        <MethodBadge order={order} />
+      </div>
       <div
         style={{
           display: "flex",
@@ -248,14 +357,15 @@ export default async function AdminOrdersPage({
   const current = STAGES.find((s) => s.key === activeStage) ?? STAGES[0];
   const visibleOrders = orders.filter((order) => current.statuses.includes(order.status));
   const photoPaths =
-    activeStage === "shipped"
+    activeStage === "shipped" || activeStage === "handoff"
       ? visibleOrders.flatMap((order) => (order.order_photos ?? []).map((p: { storage_path: string }) => p.storage_path))
       : [];
   const photoUrls = await signedUrls("order-photos", photoPaths, "admin");
 
   const tabs = [
     { key: "approve", label: "อนุมัติ", href: "/admin/orders?stage=approve", count: counts.approve },
-    { key: "ship", label: "จัดส่ง", href: "/admin/orders?stage=ship", count: counts.ship },
+    { key: "pack", label: "จัดสินค้า", href: "/admin/orders?stage=pack", count: counts.pack },
+    { key: "handoff", label: "จัดส่ง", href: "/admin/orders?stage=handoff", count: counts.handoff },
     { key: "shipped", label: "ส่งแล้ว", href: "/admin/orders?stage=shipped", count: 0 },
   ];
 
@@ -282,7 +392,8 @@ export default async function AdminOrdersPage({
         ) : null}
         {visibleOrders.map((order) => {
           if (activeStage === "approve") return <ApproveCard key={order.id} order={order} />;
-          if (activeStage === "ship") return <ShipCard key={order.id} order={order} />;
+          if (activeStage === "pack") return <PackCard key={order.id} order={order} />;
+          if (activeStage === "handoff") return <HandoffCard key={order.id} order={order} photoUrls={photoUrls} />;
           return <ShippedCard key={order.id} order={order} photoUrls={photoUrls} />;
         })}
       </div>

@@ -19,11 +19,13 @@ export async function createOrderAction(formData: FormData) {
   const items = z.array(cartItemSchema).parse(JSON.parse(rawItems));
   const shippingAddress = String(formData.get("shipping_address_id") ?? "");
   const note = String(formData.get("customer_note") ?? "").trim();
+  const shippingMethod = formData.get("shipping_method") === "grab" ? "grab" : "flash";
 
   const { data, error } = await supabase.rpc("create_order", {
     items,
     shipping_address_id: shippingAddress || null,
     customer_note: note || null,
+    shipping_method: shippingMethod,
   });
 
   if (error) redirect(`/cart?error=${encodeURIComponent(error.message)}`);
