@@ -4,10 +4,10 @@ import { money } from "@/lib/format";
 
 export function CreditSummary({
   debtBalance,
-  discountPerItem,
+  monthQuantity,
 }: {
   debtBalance: number;
-  discountPerItem: number;
+  monthQuantity: number;
 }) {
   return (
     <div className="nak-card" style={{ padding: 0, overflow: "hidden" }}>
@@ -41,7 +41,10 @@ export function CreditSummary({
           </Link>
         </div>
       </div>
-      <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "11px 16px", color: "var(--ink)" }}>
+      <Link
+        href="/price-program"
+        style={{ display: "flex", alignItems: "center", gap: 8, padding: "11px 16px", color: "var(--ink)" }}
+      >
         <span
           style={{
             display: "grid",
@@ -53,13 +56,14 @@ export function CreditSummary({
             color: "#1b7a4b",
           }}
         >
-          <Icon name="percent" size={14} stroke={2.4} />
+          <Icon name="trending" size={14} stroke={2.4} />
         </span>
-        <span style={{ fontSize: 13, fontWeight: 600 }}>ส่วนลดสมาชิก</span>
-        <span style={{ marginLeft: "auto", fontSize: 13.5, fontWeight: 700, color: "#1b7a4b" }}>
-          {discountPerItem > 0 ? `ลด ${money(discountPerItem)} / ชิ้น` : "ยังไม่มีส่วนลด"}
+        <span style={{ fontSize: 13, fontWeight: 600 }}>สิทธิ์ราคาสมาชิก</span>
+        <span style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 4, fontSize: 13.5, fontWeight: 700, color: "#1b7a4b" }}>
+          สะสมเดือนนี้ {monthQuantity.toLocaleString("th-TH")} ชิ้น
+          <Icon name="chevR" size={14} stroke={2.6} style={{ color: "var(--muted)" }} />
         </span>
-      </div>
+      </Link>
     </div>
   );
 }

@@ -1,6 +1,6 @@
 import { SubHeader } from "@/components/nak/sub-header";
 import { Badge, SectionCard } from "@/components/nak/ui";
-import { compactDate, money, paymentStatusLabel } from "@/lib/format";
+import { compactDate, money, paymentStatusLabel, transactionLabel } from "@/lib/format";
 import { getPayments, getTransactions } from "@/lib/data/queries";
 
 export const dynamic = "force-dynamic";
@@ -25,7 +25,7 @@ export default async function TransactionsPage() {
               }}
             >
               <div style={{ minWidth: 0 }}>
-                <div style={{ fontSize: 13.5, fontWeight: 600 }}>{tx.note ?? tx.type}</div>
+                <div style={{ fontSize: 13.5, fontWeight: 600 }}>{transactionLabel(tx.type, tx.note)}</div>
                 <div style={{ fontSize: 11.5, color: "var(--muted)" }}>{compactDate(tx.created_at)}</div>
               </div>
               <div style={{ textAlign: "right" }}>

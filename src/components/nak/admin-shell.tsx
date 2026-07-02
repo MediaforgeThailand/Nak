@@ -33,10 +33,15 @@ export function AdminShell({
 }) {
   const pathname = usePathname();
   const [drawer, setDrawer] = useState(false);
+  const [lastPath, setLastPath] = useState(pathname);
 
-  useEffect(() => {
+  // Close the drawer on navigation. Adjusting state during render (the React-
+  // recommended pattern for "reset on prop change") avoids a setState-in-effect
+  // and closes the drawer before paint.
+  if (pathname !== lastPath) {
+    setLastPath(pathname);
     setDrawer(false);
-  }, [pathname]);
+  }
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {

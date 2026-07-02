@@ -10,12 +10,14 @@ const CART_KEY = "nak_cart";
 const TABS = [
   { id: "shop", href: "/home", label: "สินค้า", icon: "bag" },
   { id: "orders", href: "/orders", label: "ออเดอร์", icon: "receipt" },
+  { id: "level", href: "/price-program", label: "เลเวล", icon: "trending" },
   { id: "profile", href: "/profile", label: "โปรไฟล์", icon: "user" },
 ] as const;
 
 const MAIN_TAB: Record<string, (typeof TABS)[number]["id"]> = {
   "/home": "shop",
   "/orders": "orders",
+  "/price-program": "level",
   "/profile": "profile",
 };
 
@@ -84,7 +86,7 @@ function AppBar({ tab, count }: { tab: (typeof TABS)[number]["id"]; count: numbe
       </div>
     );
   }
-  const titles: Record<string, string> = { orders: "ออเดอร์ของฉัน", profile: "โปรไฟล์" };
+  const titles: Record<string, string> = { orders: "ออเดอร์ของฉัน", level: "สิทธิ์ราคาสมาชิก", profile: "โปรไฟล์" };
   return (
     <div className="nak-appbar">
       <h1 style={{ margin: 0, fontSize: 19, fontWeight: 800, letterSpacing: "-.01em" }}>{titles[tab]}</h1>

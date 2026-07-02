@@ -52,6 +52,19 @@ function formScope(formData: FormData): AuthScope {
   return formData.get("scope") === "admin" ? "admin" : "customer";
 }
 
+// Supabase Auth returns English messages; map the common ones to Thai so the
+// UI stays consistent. Unknown messages fall through unchanged.
+function authErrorMessage(message: string) {
+  const m = message.toLowerCase();
+  if (m.includes("invalid login credentials")) return "อีเมลหรือรหัสผ่านไม่ถูกต้อง";
+  if (m.includes("email not confirmed")) return "อีเมลนี้ยังไม่ได้ยืนยัน";
+  if (m.includes("already registered") || m.includes("already been registered")) return "อีเมลนี้ถูกใช้สมัครแล้ว";
+  if (m.includes("password should be at least")) return "รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร";
+  if (m.includes("unable to validate email") || m.includes("invalid email")) return "รูปแบบอีเมลไม่ถูกต้อง";
+  if (m.includes("rate limit") || m.includes("too many requests")) return "พยายามหลายครั้งเกินไป กรุณาลองใหม่ภายหลัง";
+  return message;
+}
+
 function metadataString(metadata: Record<string, unknown>, keys: string[]) {
   for (const key of keys) {
     const value = metadata[key];
@@ -112,11 +125,14 @@ export async function signInAction(formData: FormData) {
   const supabase = await createSupabaseServerClient("customer");
 
   const { error } = await supabase.auth.signInWithPassword({ email, password });
-  if (error) redirect(`/login?error=${encodeURIComponent(error.message)}`);
+  if (error) {
+    redirect(`/login?error=${encodeURIComponent(authErrorMessage(error.message))}&email=${encodeURIComponent(email)}`);
+  }
 
   const profile = await getSignedInProfile(supabase);
   if (!profile || profile.status !== "approved") redirect("/pending?scope=customer");
-  if (profile.role !== "customer") {
+  // Admins are allowed on the customer side too (for testing); only block other roles.
+  if (profile.role !== "customer" && profile.role !== "admin") {
     await supabase.auth.signOut();
     redirect("/login?error=บัญชีนี้ไม่ใช่บัญชีลูกค้า กรุณาเข้าสู่ระบบผ่านหน้า Admin");
   }
@@ -157,7 +173,9 @@ export async function signInAdminAction(formData: FormData) {
   const supabase = await createSupabaseServerClient("admin");
 
   const { error } = await supabase.auth.signInWithPassword({ email, password });
-  if (error) redirect(`/admin/login?error=${encodeURIComponent(error.message)}`);
+  if (error) {
+    redirect(`/admin/login?error=${encodeURIComponent(authErrorMessage(error.message))}&email=${encodeURIComponent(email)}`);
+  }
 
   const profile = await getSignedInProfile(supabase);
   if (!profile || profile.status !== "approved") redirect("/pending?scope=admin");
@@ -189,7 +207,11 @@ export async function signUpAction(formData: FormData) {
     },
   });
 
-  if (error) redirect(`/login?error=${encodeURIComponent(error.message)}`);
+  if (error) {
+    redirect(
+      `/login?mode=signup&error=${encodeURIComponent(authErrorMessage(error.message))}&email=${encodeURIComponent(email)}`,
+    );
+  }
   redirect("/pending?scope=customer");
 }
 
@@ -214,7 +236,11 @@ export async function signUpStaffAction(formData: FormData) {
     },
   });
 
-  if (error) redirect(`/admin/login?mode=signup&error=${encodeURIComponent(error.message)}`);
+  if (error) {
+    redirect(
+      `/admin/login?mode=signup&error=${encodeURIComponent(authErrorMessage(error.message))}&email=${encodeURIComponent(email)}`,
+    );
+  }
   redirect("/pending?scope=admin");
 }
 

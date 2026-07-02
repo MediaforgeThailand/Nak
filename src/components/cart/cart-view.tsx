@@ -7,6 +7,8 @@ import { Icon } from "@/components/nak/icon";
 import { ProductImage } from "@/components/nak/ui";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { money } from "@/lib/format";
+import { effectiveUnitPrice, nextTier } from "@/lib/pricing";
+import type { PriceTier } from "@/lib/types";
 
 const CART_KEY = "nak_cart";
 
@@ -18,6 +20,7 @@ type ProductRow = {
   price: number;
   image_path?: string | null;
   imageUrl?: string | null;
+  tiers?: PriceTier[] | null;
   inventory: { quantity_available: number } | { quantity_available: number }[] | null;
 };
 
@@ -58,23 +61,17 @@ function qtyAvailable(product: ProductRow) {
   return product.inventory?.quantity_available ?? 0;
 }
 
-function discountPerUnit(price: number, discountPerItem: number) {
-  return Math.min(Math.max(Number(discountPerItem) || 0, 0), Number(price) || 0);
-}
-
-function discountedUnitPrice(price: number, discountPerItem: number) {
-  return Math.max((Number(price) || 0) - discountPerUnit(price, discountPerItem), 0);
-}
-
 export function CartView({
   products,
   addresses,
   discountPerItem,
+  floorQuantity = 0,
   error,
 }: {
   products: ProductRow[];
   addresses: AddressRow[];
   discountPerItem: number;
+  floorQuantity?: number;
   error?: string;
 }) {
   const snapshot = useSyncExternalStore(subscribeCart, cartSnapshot, () => "{}");
@@ -108,12 +105,17 @@ export function CartView({
     })
     .filter(Boolean) as { product: ProductRow; quantity: number; stock: number }[];
 
+  const unitPriceFor = (product: ProductRow, quantity: number) =>
+    effectiveUnitPrice({
+      basePrice: product.price,
+      tiers: product.tiers,
+      quantity,
+      floorQuantity,
+      personalDiscount: discountPerItem,
+    });
+
   const subtotal = orderableRows.reduce(
-    (sum, row) => sum + discountedUnitPrice(row.product.price, discountPerItem) * row.quantity,
-    0,
-  );
-  const totalDiscount = orderableRows.reduce(
-    (sum, row) => sum + discountPerUnit(row.product.price, discountPerItem) * row.quantity,
+    (sum, row) => sum + unitPriceFor(row.product, row.quantity) * row.quantity,
     0,
   );
   const items = orderableRows.map((row) => ({ product_id: row.product.id, quantity: row.quantity }));
@@ -202,7 +204,10 @@ export function CartView({
             const stock = qtyAvailable(row.product);
             const isSoldOut = stock <= 0;
             const displayQuantity = isSoldOut ? row.quantity : Math.min(row.quantity, stock);
-            const finalPrice = discountedUnitPrice(row.product.price, discountPerItem);
+            const finalPrice = unitPriceFor(row.product, displayQuantity);
+            const effQty = Math.max(displayQuantity, floorQuantity);
+            const upNext = nextTier(row.product.tiers, effQty);
+            const qtyToNext = upNext ? upNext.min_quantity - effQty : 0;
             return (
               <div
                 key={row.product.id}
@@ -236,12 +241,30 @@ export function CartView({
                     {money(finalPrice)} <span style={{ fontSize: 11, fontWeight: 500, color: "var(--muted)" }}>/ {row.product.unit}</span>
                     {isSoldOut ? <span style={{ marginLeft: 6, fontSize: 11, fontWeight: 700, color: "#b42318" }}>สินค้าหมด</span> : null}
                   </div>
+                  {!isSoldOut && upNext && qtyToNext > 0 && qtyToNext <= stock ? (
+                    <div style={{ fontSize: 11, fontWeight: 600, color: "#1b7a4b" }}>
+                      เพิ่มอีก {qtyToNext.toLocaleString("th-TH")} {row.product.unit} → เหลือ{" "}
+                      {money(Math.max(Number(upNext.unit_price) - Math.max(discountPerItem, 0), 0))}/{row.product.unit}
+                    </div>
+                  ) : null}
                   <div style={{ display: "flex", alignItems: "center", gap: 0, marginTop: 2 }}>
-                    <button type="button" className="nak-step" onClick={() => updateQuantity(row.product.id, displayQuantity - 1, stock)}>
+                    <button
+                      type="button"
+                      className="nak-step"
+                      disabled={isSoldOut}
+                      style={{ opacity: isSoldOut ? 0.4 : 1 }}
+                      onClick={() => updateQuantity(row.product.id, displayQuantity - 1, stock)}
+                    >
                       <Icon name="minus" size={15} stroke={2.6} />
                     </button>
                     <span style={{ width: 34, textAlign: "center", fontSize: 14, fontWeight: 700 }}>{displayQuantity}</span>
-                    <button type="button" className="nak-step" onClick={() => updateQuantity(row.product.id, displayQuantity + 1, stock)}>
+                    <button
+                      type="button"
+                      className="nak-step"
+                      disabled={isSoldOut}
+                      style={{ opacity: isSoldOut ? 0.4 : 1 }}
+                      onClick={() => updateQuantity(row.product.id, displayQuantity + 1, stock)}
+                    >
                       <Icon name="plus" size={15} stroke={2.6} />
                     </button>
                     <button
@@ -299,17 +322,6 @@ export function CartView({
         </div>
 
         <div className="nak-card" style={{ padding: 14, display: "grid", gap: 9 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13.5 }}>
-            <span style={{ color: "var(--muted)" }}>ยอดก่อนลด</span>
-            <span style={{ fontWeight: 600 }}>{money(subtotal + totalDiscount)}</span>
-          </div>
-          {totalDiscount > 0 ? (
-            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13.5 }}>
-              <span style={{ color: "var(--muted)" }}>ส่วนลดสมาชิก</span>
-              <span style={{ fontWeight: 700, color: "#1b7a4b" }}>-{money(totalDiscount)}</span>
-            </div>
-          ) : null}
-          <div style={{ height: 1, background: "var(--line)" }} />
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <span style={{ fontSize: 14, fontWeight: 700 }}>ยอดออเดอร์สุทธิ</span>
             <span style={{ fontSize: 20, fontWeight: 800, letterSpacing: "-.01em" }}>{money(subtotal)}</span>

@@ -60,7 +60,8 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(new URL("/admin/home", request.url));
   }
 
-  if (profile.role !== "customer") {
+  // Admins may also sign in on the customer side (for testing); block other roles only.
+  if (profile.role !== "customer" && profile.role !== "admin") {
     await supabase.auth.signOut();
     return callbackError(request, scope, "บัญชีนี้ไม่ใช่บัญชีลูกค้า");
   }

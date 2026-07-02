@@ -8,7 +8,9 @@ export async function getProductsWithInventory(
   const supabase = await createSupabaseServerClient(scope);
   let query = supabase
     .from("products")
-    .select("*, category:product_categories(id, name, description, sort_order, created_at), inventory(quantity_available, low_stock_threshold)")
+    .select(
+      "*, category:product_categories(id, name, description, sort_order, created_at), tiers:product_price_tiers(min_quantity, unit_price), inventory(quantity_available, low_stock_threshold)",
+    )
     .order("sort_order", { ascending: true })
     .order("name", { ascending: true });
 
@@ -29,6 +31,13 @@ export async function getProductCategories(scope: AuthScope = "customer") {
 
   if (error) throw error;
   return data ?? [];
+}
+
+export async function getPriceProgramStatus() {
+  const supabase = await createSupabaseServerClient("customer");
+  const { data, error } = await supabase.rpc("price_program_status");
+  if (error || !data) return { floor_quantity: 0, month_quantity: 0 };
+  return data as { floor_quantity: number; month_quantity: number };
 }
 
 export async function getCustomerAddresses() {

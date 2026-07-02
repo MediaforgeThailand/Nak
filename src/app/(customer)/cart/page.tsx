@@ -1,7 +1,7 @@
 import { CartView } from "@/components/cart/cart-view";
 import { SubHeader } from "@/components/nak/sub-header";
 import { requireCustomer } from "@/lib/auth";
-import { getCustomerAddresses, getProductsWithInventory } from "@/lib/data/queries";
+import { getCustomerAddresses, getPriceProgramStatus, getProductsWithInventory } from "@/lib/data/queries";
 import { signedUrls } from "@/lib/storage";
 
 export const dynamic = "force-dynamic";
@@ -12,10 +12,11 @@ export default async function CartPage({
   searchParams: Promise<{ error?: string }>;
 }) {
   const params = await searchParams;
-  const [{ profile }, products, addresses] = await Promise.all([
+  const [{ profile }, products, addresses, priceProgram] = await Promise.all([
     requireCustomer(),
     getProductsWithInventory(false),
     getCustomerAddresses(),
+    getPriceProgramStatus(),
   ]);
   const discountPerItem = Number(profile.per_item_discount ?? 0);
   const productImageUrls = await signedUrls(
@@ -33,6 +34,7 @@ export default async function CartPage({
         }))}
         addresses={addresses}
         discountPerItem={discountPerItem}
+        floorQuantity={priceProgram.floor_quantity}
         error={params.error}
       />
     </>
