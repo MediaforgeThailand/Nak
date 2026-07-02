@@ -131,7 +131,8 @@ export async function signInAction(formData: FormData) {
 
   const profile = await getSignedInProfile(supabase);
   if (!profile || profile.status !== "approved") redirect("/pending?scope=customer");
-  if (profile.role !== "customer") {
+  // Admins are allowed on the customer side too (for testing); only block other roles.
+  if (profile.role !== "customer" && profile.role !== "admin") {
     await supabase.auth.signOut();
     redirect("/login?error=บัญชีนี้ไม่ใช่บัญชีลูกค้า กรุณาเข้าสู่ระบบผ่านหน้า Admin");
   }

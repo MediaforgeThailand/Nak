@@ -36,7 +36,8 @@ export async function requireApprovedProfile(scope: AuthScope = "customer") {
 
 export async function requireCustomer() {
   const session = await requireApprovedProfile("customer");
-  if (session.profile.role !== "customer") {
+  // Admins may also use the customer side (e.g. to test customer flows).
+  if (session.profile.role !== "customer" && session.profile.role !== "admin") {
     redirect("/login?error=กรุณาเข้าสู่ระบบด้วยบัญชีลูกค้า");
   }
   return session;
