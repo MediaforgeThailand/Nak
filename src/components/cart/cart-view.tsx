@@ -8,7 +8,7 @@ import { ProductImage } from "@/components/nak/ui";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { money } from "@/lib/format";
 import { effectiveUnitPrice, nextTier } from "@/lib/pricing";
-import type { PriceTier } from "@/lib/types";
+import type { PriceTier, ProductDiscountMap } from "@/lib/types";
 
 const CART_KEY = "nak_cart";
 
@@ -65,12 +65,14 @@ export function CartView({
   products,
   addresses,
   discountPerItem,
+  productDiscounts = {},
   floorQuantity = 0,
   error,
 }: {
   products: ProductRow[];
   addresses: AddressRow[];
   discountPerItem: number;
+  productDiscounts?: ProductDiscountMap;
   floorQuantity?: number;
   error?: string;
 }) {
@@ -112,12 +114,18 @@ export function CartView({
       quantity,
       floorQuantity,
       personalDiscount: discountPerItem,
+      productDiscount: Number(productDiscounts[product.id] ?? 0),
     });
 
   const subtotal = orderableRows.reduce(
     (sum, row) => sum + unitPriceFor(row.product, row.quantity) * row.quantity,
     0,
   );
+  const totalBeforeDiscount = orderableRows.reduce(
+    (sum, row) => sum + Number(row.product.price) * row.quantity,
+    0,
+  );
+  const totalDiscount = Math.max(totalBeforeDiscount - subtotal, 0);
   const items = orderableRows.map((row) => ({ product_id: row.product.id, quantity: row.quantity }));
 
   function updateQuantity(id: string, quantity: number, max?: number) {
@@ -205,9 +213,11 @@ export function CartView({
             const isSoldOut = stock <= 0;
             const displayQuantity = isSoldOut ? row.quantity : Math.min(row.quantity, stock);
             const finalPrice = unitPriceFor(row.product, displayQuantity);
+            const perUnitDiscount = Math.max(Number(row.product.price) - finalPrice, 0);
             const effQty = Math.max(displayQuantity, floorQuantity);
             const upNext = nextTier(row.product.tiers, effQty);
             const qtyToNext = upNext ? upNext.min_quantity - effQty : 0;
+            const nextUnitPrice = upNext ? unitPriceFor(row.product, upNext.min_quantity) : 0;
             return (
               <div
                 key={row.product.id}
@@ -241,10 +251,14 @@ export function CartView({
                     {money(finalPrice)} <span style={{ fontSize: 11, fontWeight: 500, color: "var(--muted)" }}>/ {row.product.unit}</span>
                     {isSoldOut ? <span style={{ marginLeft: 6, fontSize: 11, fontWeight: 700, color: "#b42318" }}>สินค้าหมด</span> : null}
                   </div>
+                  {perUnitDiscount > 0 ? (
+                    <div style={{ fontSize: 11, fontWeight: 600, color: "#1b7a4b" }}>
+                      ลด {money(perUnitDiscount)}/{row.product.unit}
+                    </div>
+                  ) : null}
                   {!isSoldOut && upNext && qtyToNext > 0 && qtyToNext <= stock ? (
                     <div style={{ fontSize: 11, fontWeight: 600, color: "#1b7a4b" }}>
-                      เพิ่มอีก {qtyToNext.toLocaleString("th-TH")} {row.product.unit} → เหลือ{" "}
-                      {money(Math.max(Number(upNext.unit_price) - Math.max(discountPerItem, 0), 0))}/{row.product.unit}
+                      เพิ่มอีก {qtyToNext.toLocaleString("th-TH")} {row.product.unit} → เหลือ {money(nextUnitPrice)}/{row.product.unit}
                     </div>
                   ) : null}
                   <div style={{ display: "flex", alignItems: "center", gap: 0, marginTop: 2 }}>
@@ -322,6 +336,19 @@ export function CartView({
         </div>
 
         <div className="nak-card" style={{ padding: 14, display: "grid", gap: 9 }}>
+          {totalDiscount > 0 ? (
+            <>
+              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13.5 }}>
+                <span style={{ color: "var(--muted)" }}>ยอดก่อนลด</span>
+                <span style={{ fontWeight: 600 }}>{money(totalBeforeDiscount)}</span>
+              </div>
+              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13.5 }}>
+                <span style={{ color: "var(--muted)" }}>ส่วนลดรวม</span>
+                <span style={{ fontWeight: 700, color: "#1b7a4b" }}>-{money(totalDiscount)}</span>
+              </div>
+              <div style={{ height: 1, background: "var(--line)" }} />
+            </>
+          ) : null}
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <span style={{ fontSize: 14, fontWeight: 700 }}>ยอดออเดอร์สุทธิ</span>
             <span style={{ fontSize: 20, fontWeight: 800, letterSpacing: "-.01em" }}>{money(subtotal)}</span>

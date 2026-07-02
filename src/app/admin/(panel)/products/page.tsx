@@ -152,8 +152,11 @@ export default async function AdminProductsPage({
             </NakField>
           </div>
           <div style={{ gridColumn: "1 / -1" }}>
-            <NakField label="ราคาขั้นบันได (จำนวน=ราคา ต่อบรรทัด · เว้นว่าง = ราคาเดียว)" hint="เช่น 1=320 แล้วขึ้นบรรทัดใหม่ 5=310, 10=300 ...">
-              <textarea className="ad-input" name="price_tiers" rows={4} placeholder={"1=320\n5=310\n10=300"} style={{ resize: "vertical" }} />
+            <NakField
+              label="ส่วนลดขั้นบันได (จำนวน=ส่วนลดบาท ต่อบรรทัด · เว้นว่าง = ราคาเดียว)"
+              hint="ลดจากราคากลาง เช่น 1=0, 5=10, 10=20 — ปรับราคากลางภายหลังได้โดยส่วนลดไม่เปลี่ยน"
+            >
+              <textarea className="ad-input" name="price_tiers" rows={4} placeholder={"1=0\n5=10\n10=20"} style={{ resize: "vertical" }} />
             </NakField>
           </div>
           <div style={{ gridColumn: "1 / -1" }}>
@@ -184,7 +187,7 @@ export default async function AdminProductsPage({
           const imageUrl = product.image_path ? imageUrls.get(product.image_path) : null;
           const tiersText = [...(product.tiers ?? [])]
             .sort((a, b) => a.min_quantity - b.min_quantity)
-            .map((tier) => `${tier.min_quantity}=${Number(tier.unit_price)}`)
+            .map((tier) => `${tier.min_quantity}=${Number(tier.discount_amount)}`)
             .join("\n");
           return (
             <details key={product.id} style={{ borderBottom: i < filtered.length - 1 ? "1px solid var(--line)" : "none" }}>
@@ -239,13 +242,13 @@ export default async function AdminProductsPage({
                   </NakField>
                 </div>
                 <div style={{ gridColumn: "1 / -1" }}>
-                  <NakField label="ราคาขั้นบันได (จำนวน=ราคา ต่อบรรทัด · เว้นว่าง = ราคาเดียว)">
+                  <NakField label="ส่วนลดขั้นบันได (จำนวน=ส่วนลดบาทจากราคากลาง · เว้นว่าง = ราคาเดียว)">
                     <textarea
                       className="ad-input"
                       name="price_tiers"
                       rows={4}
                       defaultValue={tiersText}
-                      placeholder={"1=320\n5=310\n10=300"}
+                      placeholder={"1=0\n5=10\n10=20"}
                       style={{ resize: "vertical" }}
                     />
                   </NakField>

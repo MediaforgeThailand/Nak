@@ -33,8 +33,11 @@ export type Profile = {
 
 export type PriceTier = {
   min_quantity: number;
-  unit_price: number;
+  discount_amount: number;
 };
+
+/** product_id → per-unit special discount for the signed-in customer. */
+export type ProductDiscountMap = Record<string, number>;
 
 export type PriceProgramStatus = {
   floor_quantity: number;

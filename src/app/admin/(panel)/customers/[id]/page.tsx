@@ -1,10 +1,16 @@
 import { notFound } from "next/navigation";
-import { adjustCustomerDebtAction, updateCustomerDiscountAction } from "@/app/actions/admin";
+import {
+  adjustCustomerDebtAction,
+  deleteCustomerProductDiscountAction,
+  updateCustomerDiscountAction,
+  upsertCustomerProductDiscountAction,
+} from "@/app/actions/admin";
+import { Icon } from "@/components/nak/icon";
 import { AdBadge, Avatar, BackHead, InfoRow, MiniStat, NakField, SectionCard } from "@/components/nak/ui";
-import { Input, Textarea } from "@/components/ui/form";
+import { Input, Select, Textarea } from "@/components/ui/form";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { requireAdmin } from "@/lib/auth";
-import { getAdminCustomerDetail } from "@/lib/data/queries";
+import { getAdminCustomerDetail, getProductsWithInventory } from "@/lib/data/queries";
 import { accountStatusLabel, compactDate, money, orderStatusLabel, paymentStatusLabel, transactionLabel } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
@@ -22,8 +28,13 @@ export default async function AdminCustomerDetailPage({
   params: Promise<{ id: string }>;
   searchParams: Promise<{ error?: string }>;
 }) {
-  const [{ id }, query, { profile: adminProfile }] = await Promise.all([params, searchParams, requireAdmin()]);
-  const { profile, addresses, orders, payments, transactions } = await getAdminCustomerDetail(id);
+  const [{ id }, query, { profile: adminProfile }, allProducts] = await Promise.all([
+    params,
+    searchParams,
+    requireAdmin(),
+    getProductsWithInventory(true, "admin"),
+  ]);
+  const { profile, addresses, orders, payments, transactions, productDiscounts } = await getAdminCustomerDetail(id);
   if (!profile) notFound();
 
   const canAdjustDebt = adminProfile.is_owner;
@@ -71,7 +82,7 @@ export default async function AdminCustomerDetailPage({
           </div>
         </div>
 
-        <SectionCard title="ปรับส่วนลดต่อชิ้น" icon="percent">
+        <SectionCard title="ปรับส่วนลดต่อชิ้น (ทุกสินค้า)" icon="percent">
           <form action={updateCustomerDiscountAction} style={{ display: "grid", gap: 10, marginTop: 4 }}>
             <input type="hidden" name="user_id" value={profile.id} />
             <input type="hidden" name="return_to" value={returnTo} />
@@ -80,6 +91,83 @@ export default async function AdminCustomerDetailPage({
             </NakField>
             <SubmitButton variant="secondary" pendingLabel="กำลังบันทึก...">
               บันทึกส่วนลด
+            </SubmitButton>
+          </form>
+        </SectionCard>
+
+        <SectionCard title="ส่วนลดพิเศษรายสินค้า" icon="star">
+          {productDiscounts.length > 0 ? (
+            <div style={{ display: "grid", gap: 6, marginTop: 2 }}>
+              {productDiscounts.map(
+                (row: { id: string; discount_amount: number; product: { name: string; sku: string; unit: string } | null }) => (
+                  <div
+                    key={row.id}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 9,
+                      padding: "8px 10px",
+                      borderRadius: 10,
+                      border: "1px solid var(--line)",
+                      background: "var(--surface)",
+                    }}
+                  >
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 13, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        {row.product?.name ?? "สินค้าถูกลบ"}
+                      </div>
+                      <div style={{ fontSize: 11, color: "var(--muted)" }}>{row.product?.sku ?? "—"}</div>
+                    </div>
+                    <span style={{ fontSize: 13.5, fontWeight: 800, color: "#1b7a4b", whiteSpace: "nowrap" }}>
+                      -{money(row.discount_amount)}/{row.product?.unit ?? "ชิ้น"}
+                    </span>
+                    <form action={deleteCustomerProductDiscountAction}>
+                      <input type="hidden" name="discount_id" value={row.id} />
+                      <input type="hidden" name="return_to" value={returnTo} />
+                      <button
+                        type="submit"
+                        aria-label="ลบส่วนลด"
+                        style={{
+                          display: "grid",
+                          placeItems: "center",
+                          width: 28,
+                          height: 28,
+                          borderRadius: 8,
+                          border: "1px solid var(--line)",
+                          background: "transparent",
+                          color: "#b42318",
+                          cursor: "pointer",
+                        }}
+                      >
+                        <Icon name="trash" size={13} stroke={2.2} />
+                      </button>
+                    </form>
+                  </div>
+                ),
+              )}
+            </div>
+          ) : (
+            <p style={{ fontSize: 12.5, color: "var(--muted)", margin: "4px 0" }}>ยังไม่มีส่วนลดรายสินค้า</p>
+          )}
+
+          <form action={upsertCustomerProductDiscountAction} style={{ display: "grid", gap: 10, marginTop: 10 }}>
+            <input type="hidden" name="customer_id" value={profile.id} />
+            <input type="hidden" name="return_to" value={returnTo} />
+            <NakField label="สินค้า">
+              <Select name="product_id" required>
+                <option value="">เลือกสินค้า</option>
+                {allProducts.map((product) => (
+                  <option key={product.id} value={product.id}>
+                    {product.name} ({product.sku})
+                  </option>
+                ))}
+              </Select>
+            </NakField>
+            <NakField label="ส่วนลดเพิ่มต่อชิ้น (บาท)" hint="ซ้อนเพิ่มจากส่วนลดขั้นบันไดและส่วนลดทุกสินค้า · ใส่สินค้าซ้ำ = แก้ยอดเดิม">
+              <Input name="discount_amount" type="number" inputMode="decimal" min="0" step="0.01" required />
+            </NakField>
+            <SubmitButton variant="secondary" pendingLabel="กำลังบันทึก...">
+              เพิ่ม / แก้ไขส่วนลดสินค้า
             </SubmitButton>
           </form>
         </SectionCard>

@@ -4,8 +4,8 @@ import Link from "next/link";
 import { Icon } from "@/components/nak/icon";
 import { ProductImage } from "@/components/nak/ui";
 import { money } from "@/lib/format";
-import { levelForQty, nextTier, sortedTiers, tierForQty } from "@/lib/pricing";
-import type { PriceTier } from "@/lib/types";
+import { effectiveUnitPrice, levelForQty, nextTier, sortedTiers, tierRelativeDiscount } from "@/lib/pricing";
+import type { PriceTier, ProductDiscountMap } from "@/lib/types";
 
 type LadderProduct = {
   id: string;
@@ -46,19 +46,31 @@ export function PriceProgramView({
   floorQuantity,
   monthQuantity,
   discountPerItem,
+  productDiscounts = {},
   products,
 }: {
   floorQuantity: number;
   monthQuantity: number;
   discountPerItem: number;
+  productDiscounts?: ProductDiscountMap;
   products: LadderProduct[];
 }) {
   const flagship = products[0] ?? null;
   const flagTiers = flagship ? sortedTiers(flagship.tiers) : [];
 
+  const finalPriceAt = (product: LadderProduct, quantity: number) =>
+    effectiveUnitPrice({
+      basePrice: product.price,
+      tiers: product.tiers,
+      quantity,
+      floorQuantity: 0,
+      personalDiscount: discountPerItem,
+      productDiscount: Number(productDiscounts[product.id] ?? 0),
+    });
+
   // Active rank this month (from last month's volume) on the flagship ladder.
   const activeLevel = flagship ? levelForQty(flagTiers, Math.max(floorQuantity, 1)) : 0;
-  const activeTier = flagship ? tierForQty(flagTiers, Math.max(floorQuantity, 1)) : null;
+  const activePrice = flagship ? finalPriceAt(flagship, Math.max(floorQuantity, 1)) : 0;
 
   // Progress this month toward next month's rank.
   const reachedLevel = flagship ? levelForQty(flagTiers, monthQuantity) : 0;
@@ -70,9 +82,6 @@ export function PriceProgramView({
       : 100;
   const qtyToNext = upcoming ? upcoming.min_quantity - monthQuantity : 0;
   const nextMonthName = thaiNextMonth();
-
-  const finalTierPrice = (tier: PriceTier) =>
-    money(Math.max(Number(tier.unit_price) - Math.max(discountPerItem, 0), 0));
 
   return (
     <div style={{ display: "grid", gap: 13, padding: "14px 14px 24px" }}>
@@ -108,10 +117,10 @@ export function PriceProgramView({
               </span>
             ) : null}
           </div>
-          {flagship && activeTier ? (
+          {flagship ? (
             <div>
               <div style={{ fontSize: 26, fontWeight: 800, letterSpacing: "-.02em" }}>
-                {finalTierPrice(activeTier)} <span style={{ fontSize: 13, fontWeight: 600, opacity: 0.85 }}>/ {flagship.unit}</span>
+                {money(activePrice)} <span style={{ fontSize: 13, fontWeight: 600, opacity: 0.85 }}>/ {flagship.unit}</span>
               </div>
               <div style={{ fontSize: 12.5, opacity: 0.88, marginTop: 3, lineHeight: 1.5 }}>
                 {floorQuantity > 0
@@ -140,8 +149,13 @@ export function PriceProgramView({
               {upcoming ? (
                 <>
                   อีก <b style={{ color: "var(--ink)" }}>{qtyToNext.toLocaleString("th-TH")} ชิ้น</b> ถึง{" "}
-                  <b style={{ color: "var(--p)" }}>Lv.{reachedLevel + 1}</b> ({finalTierPrice(upcoming)}/{flagship.unit}) —
-                  ใช้เป็นราคาประจำเดือน{nextMonthName}
+                  <b style={{ color: "var(--p)" }}>Lv.{reachedLevel + 1}</b>{" "}
+                  {tierRelativeDiscount(flagTiers, upcoming) > 0
+                    ? `(ลดเพิ่มเป็น -${money(tierRelativeDiscount(flagTiers, upcoming))})`
+                    : flagship
+                      ? `(ราคาเริ่ม ${money(finalPriceAt(flagship, upcoming.min_quantity))})`
+                      : ""}{" "}
+                  — ใช้เป็นราคาประจำเดือน{nextMonthName}
                 </>
               ) : (
                 <>สุดยอด! คุณสะสมถึงขั้นสูงสุดแล้ว 🎉</>
@@ -201,8 +215,17 @@ export function PriceProgramView({
                     {reached ? (
                       <Icon name="checkCircle" size={14} stroke={2.4} style={{ color: "#1b7a4b" }} />
                     ) : null}
-                    <span style={{ fontSize: 13.5, fontWeight: 800, color: isActive ? "var(--p-deep)" : "var(--ink)", whiteSpace: "nowrap" }}>
-                      {finalTierPrice(tier)}
+                    <span
+                      style={{
+                        fontSize: 13.5,
+                        fontWeight: 800,
+                        color: i === 0 ? (isActive ? "var(--p-deep)" : "var(--ink)") : "#1b7a4b",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {i === 0
+                        ? `ราคาเริ่ม ${money(finalPriceAt(product, tier.min_quantity))}`
+                        : `-${money(tierRelativeDiscount(tiers, tier))}`}
                     </span>
                   </div>
                 );

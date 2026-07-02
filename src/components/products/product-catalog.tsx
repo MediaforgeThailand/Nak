@@ -6,8 +6,8 @@ import { createPortal } from "react-dom";
 import { Icon } from "@/components/nak/icon";
 import { Badge, ProductImage } from "@/components/nak/ui";
 import { money } from "@/lib/format";
-import { effectiveUnitPrice, levelForQty, sortedTiers } from "@/lib/pricing";
-import type { PriceTier } from "@/lib/types";
+import { effectiveUnitPrice, levelForQty, sortedTiers, tierRelativeDiscount } from "@/lib/pricing";
+import type { PriceTier, ProductDiscountMap } from "@/lib/types";
 
 const CART_KEY = "nak_cart";
 
@@ -49,11 +49,13 @@ function addToCart(productId: string) {
 function ProductCard({
   product,
   discountPerItem,
+  productDiscount,
   floorQuantity,
   onOpen,
 }: {
   product: Product;
   discountPerItem: number;
+  productDiscount: number;
   floorQuantity: number;
   onOpen: (id: string) => void;
 }) {
@@ -67,6 +69,7 @@ function ProductCard({
     quantity: 1,
     floorQuantity,
     personalDiscount: discountPerItem,
+    productDiscount,
   });
 
   return (
@@ -131,11 +134,13 @@ function ProductCard({
 function ProductDetail({
   product,
   discountPerItem,
+  productDiscount,
   floorQuantity,
   onClose,
 }: {
   product: Product;
   discountPerItem: number;
+  productDiscount: number;
   floorQuantity: number;
   onClose: () => void;
 }) {
@@ -143,12 +148,24 @@ function ProductDetail({
   const soldOut = qty <= 0;
   const tiers = sortedTiers(product.tiers);
   const activeLevel = tiers.length > 0 ? levelForQty(tiers, Math.max(floorQuantity, 1)) : 0;
+  const startPrice =
+    tiers.length > 0
+      ? effectiveUnitPrice({
+          basePrice: product.price,
+          tiers: product.tiers,
+          quantity: tiers[0].min_quantity,
+          floorQuantity: 0,
+          personalDiscount: discountPerItem,
+          productDiscount,
+        })
+      : 0;
   const finalPrice = effectiveUnitPrice({
     basePrice: product.price,
     tiers: product.tiers,
     quantity: 1,
     floorQuantity,
     personalDiscount: discountPerItem,
+    productDiscount,
   });
 
   return (
@@ -243,8 +260,14 @@ function ProductDetail({
                       <span style={{ flex: 1, fontSize: 12.5, fontWeight: 600, color: isActive ? "var(--p-deep)" : "var(--ink)" }}>
                         {tier.min_quantity.toLocaleString("th-TH")}+ {product.unit}
                       </span>
-                      <span style={{ fontSize: 13, fontWeight: 800, color: isActive ? "var(--p-deep)" : "var(--ink)" }}>
-                        {money(Math.max(Number(tier.unit_price) - Math.max(discountPerItem, 0), 0))}
+                      <span
+                        style={{
+                          fontSize: 13,
+                          fontWeight: 800,
+                          color: i === 0 ? (isActive ? "var(--p-deep)" : "var(--ink)") : "#1b7a4b",
+                        }}
+                      >
+                        {i === 0 ? `ราคาเริ่ม ${money(startPrice)}` : `-${money(tierRelativeDiscount(tiers, tier))}`}
                       </span>
                     </div>
                   );
@@ -306,11 +329,13 @@ export function ProductCatalog({
   products,
   categories,
   discountPerItem,
+  productDiscounts = {},
   floorQuantity = 0,
 }: {
   products: Product[];
   categories: Category[];
   discountPerItem: number;
+  productDiscounts?: ProductDiscountMap;
   floorQuantity?: number;
 }) {
   const [cat, setCat] = useState("all");
@@ -369,7 +394,14 @@ export function ProductCatalog({
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 11 }}>
         {list.map((p) => (
-          <ProductCard key={p.id} product={p} discountPerItem={discountPerItem} floorQuantity={floorQuantity} onOpen={setOpenId} />
+          <ProductCard
+            key={p.id}
+            product={p}
+            discountPerItem={discountPerItem}
+            productDiscount={Number(productDiscounts[p.id] ?? 0)}
+            floorQuantity={floorQuantity}
+            onOpen={setOpenId}
+          />
         ))}
       </div>
       {list.length === 0 && (
@@ -383,6 +415,7 @@ export function ProductCatalog({
             <ProductDetail
               product={selected}
               discountPerItem={discountPerItem}
+              productDiscount={Number(productDiscounts[selected.id] ?? 0)}
               floorQuantity={floorQuantity}
               onClose={() => setOpenId(null)}
             />,

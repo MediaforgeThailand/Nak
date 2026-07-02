@@ -28,9 +28,10 @@ function parseUserRole(value: FormDataEntryValue | null) {
   return userRoles.includes(role) ? role : null;
 }
 
-type ParsedTier = { min_quantity: number; unit_price: number };
+type ParsedTier = { min_quantity: number; discount_amount: number };
 
-// Parse the "จำนวน=ราคา per line" textarea into ladder rows.
+// Parse the "จำนวน=ส่วนลด per line" textarea into ladder rows. Tiers are
+// discounts from the base price so the ladder survives base-price changes.
 function parsePriceTiers(raw: string): { tiers: ParsedTier[] } | { error: string } {
   const tiers: ParsedTier[] = [];
   const seen = new Set<number>();
@@ -39,16 +40,16 @@ function parsePriceTiers(raw: string): { tiers: ParsedTier[] } | { error: string
     const text = line.trim();
     if (!text) continue;
     const match = text.match(/^([\d,]+)\s*[=:\/]\s*([\d,]+(?:\.\d+)?)$/);
-    if (!match) return { error: `รูปแบบไม่ถูกต้อง: "${text}" (ใช้ จำนวน=ราคา เช่น 10=300)` };
+    if (!match) return { error: `รูปแบบไม่ถูกต้อง: "${text}" (ใช้ จำนวน=ส่วนลด เช่น 10=20)` };
 
     const minQuantity = Number(match[1].replace(/,/g, ""));
-    const unitPrice = Number(match[2].replace(/,/g, ""));
+    const discountAmount = Number(match[2].replace(/,/g, ""));
     if (!Number.isInteger(minQuantity) || minQuantity < 1) return { error: `จำนวนขั้นต่ำไม่ถูกต้อง: "${text}"` };
-    if (!Number.isFinite(unitPrice) || unitPrice < 0) return { error: `ราคาไม่ถูกต้อง: "${text}"` };
+    if (!Number.isFinite(discountAmount) || discountAmount < 0) return { error: `ส่วนลดไม่ถูกต้อง: "${text}"` };
     if (seen.has(minQuantity)) return { error: `จำนวน ${minQuantity} ซ้ำกัน` };
 
     seen.add(minQuantity);
-    tiers.push({ min_quantity: minQuantity, unit_price: unitPrice });
+    tiers.push({ min_quantity: minQuantity, discount_amount: discountAmount });
   }
 
   tiers.sort((a, b) => a.min_quantity - b.min_quantity);
@@ -59,13 +60,19 @@ async function replaceProductTiers(
   supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
   productId: string,
   tiers: ParsedTier[],
+  basePrice: number,
 ) {
   const { error: deleteError } = await supabase.from("product_price_tiers").delete().eq("product_id", productId);
   if (deleteError) return deleteError;
   if (tiers.length === 0) return null;
-  const { error: insertError } = await supabase
-    .from("product_price_tiers")
-    .insert(tiers.map((tier) => ({ product_id: productId, ...tier })));
+  const { error: insertError } = await supabase.from("product_price_tiers").insert(
+    tiers.map((tier) => ({
+      product_id: productId,
+      ...tier,
+      // Legacy column kept in sync for older deployed builds.
+      unit_price: Math.max(basePrice - tier.discount_amount, 0),
+    })),
+  );
   return insertError;
 }
 
@@ -228,7 +235,12 @@ export async function createProductAction(formData: FormData) {
   }
 
   if (newProductId && parsedTiers.tiers.length > 0) {
-    const tierError = await replaceProductTiers(supabase, String(newProductId), parsedTiers.tiers);
+    const tierError = await replaceProductTiers(
+      supabase,
+      String(newProductId),
+      parsedTiers.tiers,
+      Number(formData.get("price") ?? 0),
+    );
     if (tierError) redirect(`/admin/products?error=${encodeURIComponent(tierError.message)}`);
   }
 
@@ -306,7 +318,7 @@ export async function updateProductAction(formData: FormData) {
   }
 
   if (parsedTiers && "tiers" in parsedTiers) {
-    const tierError = await replaceProductTiers(supabase, id, parsedTiers.tiers);
+    const tierError = await replaceProductTiers(supabase, id, parsedTiers.tiers, payload.price);
     if (tierError) redirect(`/admin/products?error=${encodeURIComponent(tierError.message)}`);
   }
 
@@ -567,6 +579,48 @@ export async function recordManualPaymentAction(formData: FormData) {
   revalidatePath("/admin/customers");
   revalidatePath("/profile");
   revalidatePath("/transactions");
+}
+
+export async function upsertCustomerProductDiscountAction(formData: FormData) {
+  await requireAdmin();
+  const supabase = await createSupabaseServerClient("admin");
+  const returnTo = customerReturnPath(formData);
+  const customerId = String(formData.get("customer_id") ?? "");
+  const productId = String(formData.get("product_id") ?? "");
+  const amount = Number(formData.get("discount_amount") ?? 0);
+
+  if (!customerId || !productId) redirect(withError(returnTo, "กรุณาเลือกสินค้า"));
+  if (!Number.isFinite(amount) || amount < 0) redirect(withError(returnTo, "ส่วนลดต้องเป็น 0 หรือมากกว่า"));
+
+  const { error } = await supabase
+    .from("customer_product_discounts")
+    .upsert(
+      { customer_id: customerId, product_id: productId, discount_amount: amount },
+      { onConflict: "customer_id,product_id" },
+    );
+
+  if (error) redirect(withError(returnTo, error.message));
+  revalidatePath(returnTo);
+  revalidatePath("/home");
+  revalidatePath("/cart");
+  revalidatePath("/price-program");
+}
+
+export async function deleteCustomerProductDiscountAction(formData: FormData) {
+  await requireAdmin();
+  const supabase = await createSupabaseServerClient("admin");
+  const returnTo = customerReturnPath(formData);
+  const discountId = String(formData.get("discount_id") ?? "");
+
+  if (!discountId) redirect(withError(returnTo, "ไม่พบรายการส่วนลด"));
+
+  const { error } = await supabase.from("customer_product_discounts").delete().eq("id", discountId);
+
+  if (error) redirect(withError(returnTo, error.message));
+  revalidatePath(returnTo);
+  revalidatePath("/home");
+  revalidatePath("/cart");
+  revalidatePath("/price-program");
 }
 
 export async function approveUserAction(formData: FormData) {
