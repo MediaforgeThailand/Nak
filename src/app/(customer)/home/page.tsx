@@ -1,17 +1,18 @@
 import { CreditSummary } from "@/components/nak/credit-summary";
 import { ProductCatalog } from "@/components/products/product-catalog";
-import { getPriceProgramStatus, getProductCategories, getProductsWithInventory } from "@/lib/data/queries";
+import { getMyProductDiscounts, getPriceProgramStatus, getProductCategories, getProductsWithInventory } from "@/lib/data/queries";
 import { requireCustomer } from "@/lib/auth";
 import { signedUrls } from "@/lib/storage";
 
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
-  const [{ profile }, products, categories, priceProgram] = await Promise.all([
+  const [{ profile }, products, categories, priceProgram, productDiscounts] = await Promise.all([
     requireCustomer(),
     getProductsWithInventory(false),
     getProductCategories(),
     getPriceProgramStatus(),
+    getMyProductDiscounts(),
   ]);
   const discountPerItem = Number(profile.per_item_discount ?? 0);
   const productImageUrls = await signedUrls(
@@ -28,6 +29,7 @@ export default async function HomePage() {
       <ProductCatalog
         categories={categories}
         discountPerItem={discountPerItem}
+        productDiscounts={productDiscounts}
         floorQuantity={priceProgram.floor_quantity}
         products={products.map((product) => ({
           ...product,

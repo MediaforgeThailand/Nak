@@ -9,7 +9,7 @@ export async function getProductsWithInventory(
   let query = supabase
     .from("products")
     .select(
-      "*, category:product_categories(id, name, description, sort_order, created_at), tiers:product_price_tiers(min_quantity, unit_price), inventory(quantity_available, low_stock_threshold)",
+      "*, category:product_categories(id, name, description, sort_order, created_at), tiers:product_price_tiers(min_quantity, discount_amount), inventory(quantity_available, low_stock_threshold)",
     )
     .order("sort_order", { ascending: true })
     .order("name", { ascending: true });
@@ -38,6 +38,26 @@ export async function getPriceProgramStatus() {
   const { data, error } = await supabase.rpc("price_program_status");
   if (error || !data) return { floor_quantity: 0, month_quantity: 0 };
   return data as { floor_quantity: number; month_quantity: number };
+}
+
+// Per-product special discounts for the signed-in customer. Filter by the
+// caller's id explicitly: RLS also allows staff/admin to read every row, so an
+// admin browsing the customer side must not inherit other customers' discounts.
+export async function getMyProductDiscounts() {
+  const supabase = await createSupabaseServerClient("customer");
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return {} as Record<string, number>;
+
+  const { data, error } = await supabase
+    .from("customer_product_discounts")
+    .select("product_id, discount_amount")
+    .eq("customer_id", user.id);
+  if (error) return {} as Record<string, number>;
+  const map: Record<string, number> = {};
+  for (const row of data ?? []) map[row.product_id] = Number(row.discount_amount);
+  return map;
 }
 
 export async function getCustomerAddresses() {
@@ -114,7 +134,7 @@ export async function getProfiles() {
 
 export async function getAdminCustomerDetail(customerId: string) {
   const supabase = await createSupabaseServerClient("admin");
-  const [profileResult, addressResult, ordersResult, paymentsResult, transactionsResult] = await Promise.all([
+  const [profileResult, addressResult, ordersResult, paymentsResult, transactionsResult, productDiscountsResult] = await Promise.all([
     supabase
       .from("profiles")
       .select("*")
@@ -145,6 +165,11 @@ export async function getAdminCustomerDetail(customerId: string) {
       .eq("customer_id", customerId)
       .order("created_at", { ascending: false })
       .limit(8),
+    supabase
+      .from("customer_product_discounts")
+      .select("*, product:products(id, name, sku, unit)")
+      .eq("customer_id", customerId)
+      .order("created_at", { ascending: false }),
   ]);
 
   if (profileResult.error) throw profileResult.error;
@@ -152,6 +177,7 @@ export async function getAdminCustomerDetail(customerId: string) {
   if (ordersResult.error) throw ordersResult.error;
   if (paymentsResult.error) throw paymentsResult.error;
   if (transactionsResult.error) throw transactionsResult.error;
+  if (productDiscountsResult.error) throw productDiscountsResult.error;
 
   return {
     profile: profileResult.data,
@@ -159,6 +185,7 @@ export async function getAdminCustomerDetail(customerId: string) {
     orders: ordersResult.data ?? [],
     payments: paymentsResult.data ?? [],
     transactions: transactionsResult.data ?? [],
+    productDiscounts: productDiscountsResult.data ?? [],
   };
 }
 
