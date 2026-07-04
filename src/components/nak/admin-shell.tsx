@@ -9,6 +9,7 @@ import { Avatar } from "@/components/nak/ui";
 
 const NAV = [
   { href: "/admin/home", label: "แดชบอร์ด", icon: "dash", badge: "" },
+  { href: "/admin/sales", label: "ยอดขาย", icon: "trending", badge: "" },
   { href: "/admin/products", label: "สินค้า", icon: "package", badge: "" },
   { href: "/admin/stock", label: "สต็อก", icon: "warehouse", badge: "" },
   { href: "/admin/orders", label: "ออเดอร์", icon: "clipboard", badge: "orders" },

@@ -200,6 +200,21 @@ export async function getAdminCustomerDetail(customerId: string) {
   };
 }
 
+// Approved sales (debt applied) since `sinceISO`, with line items for
+// top-product breakdowns. Small shop volumes → aggregate in JS.
+export async function getSalesOrders(sinceISO: string) {
+  const supabase = await createSupabaseServerClient("admin");
+  const { data, error } = await supabase
+    .from("orders")
+    .select("id, subtotal, debt_applied_at, order_items(product_id, product_name, quantity, line_total, unit)")
+    .not("debt_applied_at", "is", null)
+    .gte("debt_applied_at", sinceISO)
+    .not("status", "in", "(rejected,cancelled)")
+    .order("debt_applied_at", { ascending: true });
+  if (error) throw error;
+  return data ?? [];
+}
+
 export async function getInventoryMovements() {
   const supabase = await createSupabaseServerClient("admin");
   const { data, error } = await supabase
