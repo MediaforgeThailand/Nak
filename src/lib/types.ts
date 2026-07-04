@@ -57,7 +57,6 @@ export type Product = {
   sort_order: number;
   created_at: string;
   category?: ProductCategory | null;
-  tiers?: PriceTier[] | null;
   inventory?: {
     quantity_available: number;
     low_stock_threshold: number;

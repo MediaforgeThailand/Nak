@@ -20,7 +20,6 @@ type ProductRow = {
   price: number;
   image_path?: string | null;
   imageUrl?: string | null;
-  tiers?: PriceTier[] | null;
   inventory: { quantity_available: number } | { quantity_available: number }[] | null;
 };
 
@@ -64,6 +63,7 @@ function qtyAvailable(product: ProductRow) {
 export function CartView({
   products,
   addresses,
+  tiers = [],
   discountPerItem,
   productDiscounts = {},
   floorQuantity = 0,
@@ -71,6 +71,7 @@ export function CartView({
 }: {
   products: ProductRow[];
   addresses: AddressRow[];
+  tiers?: PriceTier[];
   discountPerItem: number;
   productDiscounts?: ProductDiscountMap;
   floorQuantity?: number;
@@ -108,18 +109,23 @@ export function CartView({
     })
     .filter(Boolean) as { product: ProductRow; quantity: number; stock: number }[];
 
-  const unitPriceFor = (product: ProductRow, quantity: number) =>
+  // The global ladder tier comes from ALL pieces in the order combined (or the
+  // monthly floor) and applies to every line — mirrors create_order.
+  const totalPieces = orderableRows.reduce((sum, row) => sum + row.quantity, 0);
+  const ladderQty = Math.max(totalPieces, floorQuantity);
+
+  const unitPriceFor = (product: ProductRow) =>
     effectiveUnitPrice({
       basePrice: product.price,
-      tiers: product.tiers,
-      quantity,
+      tiers,
+      quantity: ladderQty,
       floorQuantity,
       personalDiscount: discountPerItem,
       productDiscount: Number(productDiscounts[product.id] ?? 0),
     });
 
   const subtotal = orderableRows.reduce(
-    (sum, row) => sum + unitPriceFor(row.product, row.quantity) * row.quantity,
+    (sum, row) => sum + unitPriceFor(row.product) * row.quantity,
     0,
   );
   const totalBeforeDiscount = orderableRows.reduce(
@@ -127,6 +133,8 @@ export function CartView({
     0,
   );
   const totalDiscount = Math.max(totalBeforeDiscount - subtotal, 0);
+  const upNext = nextTier(tiers, ladderQty);
+  const qtyToNextTier = upNext ? upNext.min_quantity - ladderQty : 0;
   const items = orderableRows.map((row) => ({ product_id: row.product.id, quantity: row.quantity }));
 
   function updateQuantity(id: string, quantity: number, max?: number) {
@@ -214,12 +222,8 @@ export function CartView({
             const stock = qtyAvailable(row.product);
             const isSoldOut = stock <= 0;
             const displayQuantity = isSoldOut ? row.quantity : Math.min(row.quantity, stock);
-            const finalPrice = unitPriceFor(row.product, displayQuantity);
+            const finalPrice = unitPriceFor(row.product);
             const perUnitDiscount = Math.max(Number(row.product.price) - finalPrice, 0);
-            const effQty = Math.max(displayQuantity, floorQuantity);
-            const upNext = nextTier(row.product.tiers, effQty);
-            const qtyToNext = upNext ? upNext.min_quantity - effQty : 0;
-            const nextUnitPrice = upNext ? unitPriceFor(row.product, upNext.min_quantity) : 0;
             return (
               <div
                 key={row.product.id}
@@ -256,11 +260,6 @@ export function CartView({
                   {perUnitDiscount > 0 ? (
                     <div style={{ fontSize: 11, fontWeight: 600, color: "#1b7a4b" }}>
                       ลด {money(perUnitDiscount)}/{row.product.unit}
-                    </div>
-                  ) : null}
-                  {!isSoldOut && upNext && qtyToNext > 0 && qtyToNext <= stock ? (
-                    <div style={{ fontSize: 11, fontWeight: 600, color: "#1b7a4b" }}>
-                      เพิ่มอีก {qtyToNext.toLocaleString("th-TH")} {row.product.unit} → เหลือ {money(nextUnitPrice)}/{row.product.unit}
                     </div>
                   ) : null}
                   <div style={{ display: "flex", alignItems: "center", gap: 0, marginTop: 2 }}>
@@ -395,6 +394,11 @@ export function CartView({
             <span style={{ fontSize: 14, fontWeight: 700 }}>ยอดออเดอร์สุทธิ</span>
             <span style={{ fontSize: 20, fontWeight: 800, letterSpacing: "-.01em" }}>{money(subtotal)}</span>
           </div>
+          {upNext && qtyToNextTier > 0 ? (
+            <div style={{ fontSize: 12, fontWeight: 600, color: "#1b7a4b" }}>
+              เพิ่มรวมอีก {qtyToNextTier.toLocaleString("th-TH")} ชิ้น → ลดเพิ่มเป็น -{money(upNext.discount_amount)}/ชิ้น ทุกสินค้า
+            </div>
+          ) : null}
           <label style={{ display: "grid", gap: 5, marginTop: 2 }}>
             <span style={{ fontSize: 12, color: "var(--muted)", fontWeight: 600 }}>หมายเหตุถึงแอดมิน (ถ้ามี)</span>
             <textarea name="customer_note" rows={2} className="nak-input" style={{ resize: "none" }} />

@@ -1,7 +1,7 @@
 import { CartView } from "@/components/cart/cart-view";
 import { SubHeader } from "@/components/nak/sub-header";
 import { requireCustomer } from "@/lib/auth";
-import { getCustomerAddresses, getMyProductDiscounts, getPriceProgramStatus, getProductsWithInventory } from "@/lib/data/queries";
+import { getCustomerAddresses, getMyProductDiscounts, getPriceProgramStatus, getPriceTiers, getProductsWithInventory } from "@/lib/data/queries";
 import { signedUrls } from "@/lib/storage";
 
 export const dynamic = "force-dynamic";
@@ -12,12 +12,13 @@ export default async function CartPage({
   searchParams: Promise<{ error?: string }>;
 }) {
   const params = await searchParams;
-  const [{ profile }, products, addresses, priceProgram, productDiscounts] = await Promise.all([
+  const [{ profile }, products, addresses, priceProgram, productDiscounts, tiers] = await Promise.all([
     requireCustomer(),
     getProductsWithInventory(false),
     getCustomerAddresses(),
     getPriceProgramStatus(),
     getMyProductDiscounts(),
+    getPriceTiers(),
   ]);
   const discountPerItem = Number(profile.per_item_discount ?? 0);
   const productImageUrls = await signedUrls(
@@ -34,6 +35,7 @@ export default async function CartPage({
           imageUrl: product.image_path ? productImageUrls.get(product.image_path) ?? null : null,
         }))}
         addresses={addresses}
+        tiers={tiers}
         discountPerItem={discountPerItem}
         productDiscounts={productDiscounts}
         floorQuantity={priceProgram.floor_quantity}

@@ -9,7 +9,7 @@ export async function getProductsWithInventory(
   let query = supabase
     .from("products")
     .select(
-      "*, category:product_categories(id, name, description, sort_order, created_at), tiers:product_price_tiers(min_quantity, discount_amount), inventory(quantity_available, low_stock_threshold)",
+      "*, category:product_categories(id, name, description, sort_order, created_at), inventory(quantity_available, low_stock_threshold)",
     )
     .order("sort_order", { ascending: true })
     .order("name", { ascending: true });
@@ -30,6 +30,17 @@ export async function getProductCategories(scope: AuthScope = "customer") {
     .order("name", { ascending: true });
 
   if (error) throw error;
+  return data ?? [];
+}
+
+// Global discount ladder (applies to every product).
+export async function getPriceTiers(scope: AuthScope = "customer") {
+  const supabase = await createSupabaseServerClient(scope);
+  const { data, error } = await supabase
+    .from("price_tiers")
+    .select("min_quantity, discount_amount")
+    .order("min_quantity", { ascending: true });
+  if (error) return [];
   return data ?? [];
 }
 

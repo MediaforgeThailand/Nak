@@ -2,10 +2,13 @@ import type { AccountStatus, UserRole } from "@/lib/types";
 
 export function money(value: number | string | null | undefined) {
   const amount = Number(value ?? 0);
+  // Whole amounts render without ".00" (฿300, ฿1,845); satang shows only when present.
+  const hasSatang = Math.abs(amount % 1) >= 0.005;
   return new Intl.NumberFormat("th-TH", {
     style: "currency",
     currency: "THB",
-    maximumFractionDigits: 2,
+    minimumFractionDigits: 0,
+    maximumFractionDigits: hasSatang ? 2 : 0,
   }).format(amount);
 }
 

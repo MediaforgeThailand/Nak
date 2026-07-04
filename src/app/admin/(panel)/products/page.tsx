@@ -3,6 +3,7 @@ import {
   createProductAction,
   deleteCategoryAction,
   deleteProductAction,
+  updatePriceTiersAction,
   updateProductAction,
 } from "@/app/actions/admin";
 import { Icon } from "@/components/nak/icon";
@@ -11,7 +12,7 @@ import { FileUploadPreview } from "@/components/ui/file-upload-preview";
 import { Select } from "@/components/ui/form";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { money } from "@/lib/format";
-import { getProductCategories, getProductsWithInventory } from "@/lib/data/queries";
+import { getPriceTiers, getProductCategories, getProductsWithInventory } from "@/lib/data/queries";
 import { signedUrls } from "@/lib/storage";
 
 export const dynamic = "force-dynamic";
@@ -24,10 +25,14 @@ export default async function AdminProductsPage({
   const params = await searchParams;
   const query = (params.q ?? "").trim();
   const normalizedQuery = query.toLowerCase();
-  const [products, categories] = await Promise.all([
+  const [products, categories, priceTiers] = await Promise.all([
     getProductsWithInventory(true, "admin"),
     getProductCategories("admin"),
+    getPriceTiers("admin"),
   ]);
+  const priceTiersText = priceTiers
+    .map((tier) => `${tier.min_quantity}=${Number(tier.discount_amount)}`)
+    .join("\n");
   const filtered = normalizedQuery
     ? products.filter((product) =>
         [product.name, product.sku, product.category?.name, product.description]
@@ -100,6 +105,33 @@ export default async function AdminProductsPage({
         </div>
       </details>
 
+      {/* global-ladder */}
+      <details className="ad-card" style={{ padding: 16 }}>
+        <summary style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", listStyle: "none" }}>
+          <Icon name="trending" size={16} stroke={2.2} style={{ color: "var(--p)" }} />
+          <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700, flex: 1 }}>ส่วนลดขั้นบันได (ทุกสินค้า)</h3>
+          <Icon name="chevD" size={16} stroke={2.4} style={{ color: "var(--muted)" }} />
+        </summary>
+        <form action={updatePriceTiersAction} style={{ marginTop: 12, display: "grid", gap: 10 }}>
+          <NakField
+            label="จำนวนรวมทั้งออเดอร์=ส่วนลดบาทต่อชิ้น (ต่อบรรทัด)"
+            hint="ลดจากราคากลางของทุกสินค้า เช่น 5=10 คือรวม 5 ชิ้นขึ้นไป ลดชิ้นละ 10 บาท — ปรับราคาสินค้าภายหลังได้โดยส่วนลดไม่เปลี่ยน"
+          >
+            <textarea
+              className="ad-input"
+              name="price_tiers"
+              rows={6}
+              defaultValue={priceTiersText}
+              placeholder={"1=0\n5=10\n10=20"}
+              style={{ resize: "vertical" }}
+            />
+          </NakField>
+          <SubmitButton pendingLabel="กำลังบันทึก..." className="w-full">
+            บันทึกส่วนลดขั้นบันได
+          </SubmitButton>
+        </form>
+      </details>
+
       {/* add product */}
       <details className="ad-card" style={{ padding: 16 }}>
         <summary style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", listStyle: "none" }}>
@@ -152,14 +184,6 @@ export default async function AdminProductsPage({
             </NakField>
           </div>
           <div style={{ gridColumn: "1 / -1" }}>
-            <NakField
-              label="ส่วนลดขั้นบันได (จำนวน=ส่วนลดบาท ต่อบรรทัด · เว้นว่าง = ราคาเดียว)"
-              hint="ลดจากราคากลาง เช่น 1=0, 5=10, 10=20 — ปรับราคากลางภายหลังได้โดยส่วนลดไม่เปลี่ยน"
-            >
-              <textarea className="ad-input" name="price_tiers" rows={4} placeholder={"1=0\n5=10\n10=20"} style={{ resize: "vertical" }} />
-            </NakField>
-          </div>
-          <div style={{ gridColumn: "1 / -1" }}>
             <SubmitButton pendingLabel="กำลังเพิ่ม..." className="w-full">
               เพิ่มสินค้า
             </SubmitButton>
@@ -185,10 +209,6 @@ export default async function AdminProductsPage({
           const inv = Array.isArray(product.inventory) ? product.inventory[0] : product.inventory;
           const qty = inv?.quantity_available ?? 0;
           const imageUrl = product.image_path ? imageUrls.get(product.image_path) : null;
-          const tiersText = [...(product.tiers ?? [])]
-            .sort((a, b) => a.min_quantity - b.min_quantity)
-            .map((tier) => `${tier.min_quantity}=${Number(tier.discount_amount)}`)
-            .join("\n");
           return (
             <details key={product.id} style={{ borderBottom: i < filtered.length - 1 ? "1px solid var(--line)" : "none" }}>
               <summary style={{ display: "flex", alignItems: "center", gap: 12, padding: 10, cursor: "pointer", listStyle: "none" }}>
@@ -239,18 +259,6 @@ export default async function AdminProductsPage({
                 <div style={{ gridColumn: "1 / -1" }}>
                   <NakField label="รายละเอียด">
                     <textarea className="ad-input" name="description" defaultValue={product.description ?? ""} rows={2} style={{ resize: "none" }} />
-                  </NakField>
-                </div>
-                <div style={{ gridColumn: "1 / -1" }}>
-                  <NakField label="ส่วนลดขั้นบันได (จำนวน=ส่วนลดบาทจากราคากลาง · เว้นว่าง = ราคาเดียว)">
-                    <textarea
-                      className="ad-input"
-                      name="price_tiers"
-                      rows={4}
-                      defaultValue={tiersText}
-                      placeholder={"1=0\n5=10\n10=20"}
-                      style={{ resize: "vertical" }}
-                    />
                   </NakField>
                 </div>
                 <div style={{ gridColumn: "1 / -1" }}>
