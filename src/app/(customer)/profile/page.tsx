@@ -2,7 +2,7 @@ import Link from "next/link";
 import { signOutCustomerAction } from "@/app/actions/auth";
 import { saveAddressAction, updateProfileAction } from "@/app/actions/customer";
 import { Icon } from "@/components/nak/icon";
-import { Badge, InfoRow, NakField, SectionCard, StatCard } from "@/components/nak/ui";
+import { Badge, InfoRow, NakField, SectionCard } from "@/components/nak/ui";
 import { Input, Textarea } from "@/components/ui/form";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { requireCustomer } from "@/lib/auth";
@@ -54,10 +54,29 @@ export default async function ProfilePage() {
         </Badge>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 9 }}>
-        <StatCard label="ยอดค้าง" value={money(profile.debt_balance)} tone="warning" icon="wallet" />
-        <StatCard label="ซื้อทั้งหมด" value={money(totalPurchased)} tone="success" icon="bag" />
-        <StatCard label="ออเดอร์" value={String(orders.length)} icon="receipt" />
+      <div className="nak-card" style={{ padding: "6px 16px" }}>
+        {[
+          { icon: "wallet", label: "ยอดค้างชำระ", value: money(profile.debt_balance), color: "#a35a10" },
+          { icon: "bag", label: "ซื้อทั้งหมด", value: money(totalPurchased), color: "#1b7a4b" },
+          { icon: "receipt", label: "ออเดอร์ทั้งหมด", value: `${orders.length.toLocaleString("th-TH")} รายการ`, color: "var(--ink)" },
+        ].map((row, i, arr) => (
+          <div
+            key={row.label}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 10,
+              padding: "11px 0",
+              borderBottom: i < arr.length - 1 ? "1px solid var(--line)" : "none",
+            }}
+          >
+            <Icon name={row.icon} size={16} stroke={2.2} style={{ color: "var(--muted)", flexShrink: 0 }} />
+            <span style={{ flex: 1, fontSize: 13, fontWeight: 600, color: "var(--muted)" }}>{row.label}</span>
+            <span style={{ fontSize: 17, fontWeight: 800, letterSpacing: "-.01em", color: row.color, whiteSpace: "nowrap" }}>
+              {row.value}
+            </span>
+          </div>
+        ))}
       </div>
 
       <Link

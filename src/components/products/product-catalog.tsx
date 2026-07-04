@@ -24,7 +24,6 @@ type Product = {
   imageUrl: string | null;
   created_at: string;
   category?: Category | null;
-  tiers?: PriceTier[] | null;
   inventory: { quantity_available: number } | { quantity_available: number }[] | null;
 };
 
@@ -33,14 +32,14 @@ function stock(product: Product) {
   return product.inventory?.quantity_available ?? 0;
 }
 
-function addToCart(productId: string) {
+function addToCart(productId: string, quantity = 1) {
   let cart: Record<string, number> = {};
   try {
     cart = JSON.parse(window.localStorage.getItem(CART_KEY) ?? "{}") as Record<string, number>;
   } catch {
     cart = {};
   }
-  cart[productId] = (cart[productId] ?? 0) + 1;
+  cart[productId] = (cart[productId] ?? 0) + quantity;
   window.localStorage.setItem(CART_KEY, JSON.stringify(cart));
   window.dispatchEvent(new Event("nak-cart-updated"));
   window.dispatchEvent(new CustomEvent("nak-toast", { detail: "เพิ่มลงตะกร้าแล้ว" }));
@@ -48,12 +47,14 @@ function addToCart(productId: string) {
 
 function ProductCard({
   product,
+  tiers,
   discountPerItem,
   productDiscount,
   floorQuantity,
   onOpen,
 }: {
   product: Product;
+  tiers: PriceTier[];
   discountPerItem: number;
   productDiscount: number;
   floorQuantity: number;
@@ -62,10 +63,10 @@ function ProductCard({
   const qty = stock(product);
   const soldOut = qty <= 0;
   const low = qty > 0 && qty < 25;
-  const hasTiers = (product.tiers?.length ?? 0) > 0;
+  const hasTiers = tiers.length > 0;
   const finalPrice = effectiveUnitPrice({
     basePrice: product.price,
-    tiers: product.tiers,
+    tiers,
     quantity: 1,
     floorQuantity,
     personalDiscount: discountPerItem,
@@ -133,12 +134,14 @@ function ProductCard({
 
 function ProductDetail({
   product,
+  tiers: rawTiers,
   discountPerItem,
   productDiscount,
   floorQuantity,
   onClose,
 }: {
   product: Product;
+  tiers: PriceTier[];
   discountPerItem: number;
   productDiscount: number;
   floorQuantity: number;
@@ -146,13 +149,16 @@ function ProductDetail({
 }) {
   const qty = stock(product);
   const soldOut = qty <= 0;
-  const tiers = sortedTiers(product.tiers);
-  const activeLevel = tiers.length > 0 ? levelForQty(tiers, Math.max(floorQuantity, 1)) : 0;
+  const tiers = sortedTiers(rawTiers);
+  const [orderQty, setOrderQty] = useState(1);
+  const clampedQty = Math.min(Math.max(orderQty, 1), Math.max(qty, 1));
+  const effQty = Math.max(clampedQty, floorQuantity);
+  const activeLevel = tiers.length > 0 ? levelForQty(tiers, Math.max(effQty, 1)) : 0;
   const startPrice =
     tiers.length > 0
       ? effectiveUnitPrice({
           basePrice: product.price,
-          tiers: product.tiers,
+          tiers,
           quantity: tiers[0].min_quantity,
           floorQuantity: 0,
           personalDiscount: discountPerItem,
@@ -161,12 +167,13 @@ function ProductDetail({
       : 0;
   const finalPrice = effectiveUnitPrice({
     basePrice: product.price,
-    tiers: product.tiers,
-    quantity: 1,
+    tiers,
+    quantity: clampedQty,
     floorQuantity,
     personalDiscount: discountPerItem,
     productDiscount,
   });
+  const lineTotal = finalPrice * clampedQty;
 
   return (
     <div
@@ -220,6 +227,50 @@ function ProductDetail({
               <span style={{ fontSize: 13, color: "var(--muted)", marginBottom: 4 }}>/ {product.unit}</span>
             </div>
           </div>
+
+          {/* quantity picker — price updates live with the ladder */}
+          {!soldOut ? (
+            <div className="nak-card" style={{ padding: 14, display: "grid", gap: 10 }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
+                <span style={{ fontSize: 14, fontWeight: 700 }}>จำนวนที่สั่ง</span>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <button
+                    type="button"
+                    className="nak-step"
+                    style={{ width: 38, height: 38 }}
+                    onClick={() => setOrderQty(Math.max(clampedQty - 1, 1))}
+                    aria-label="ลดจำนวน"
+                  >
+                    <Icon name="minus" size={16} stroke={2.6} />
+                  </button>
+                  <input
+                    className="nak-input"
+                    inputMode="numeric"
+                    value={clampedQty}
+                    onChange={(e) => {
+                      const v = Number(e.target.value.replace(/\D/g, ""));
+                      setOrderQty(Number.isFinite(v) && v > 0 ? v : 1);
+                    }}
+                    style={{ width: 72, textAlign: "center", padding: "9px 4px", fontSize: 16, fontWeight: 700 }}
+                  />
+                  <button
+                    type="button"
+                    className="nak-step"
+                    style={{ width: 38, height: 38 }}
+                    onClick={() => setOrderQty(Math.min(clampedQty + 1, qty))}
+                    aria-label="เพิ่มจำนวน"
+                  >
+                    <Icon name="plus" size={16} stroke={2.6} />
+                  </button>
+                </div>
+              </div>
+              {tiers.length > 0 && activeLevel > 0 ? (
+                <div style={{ fontSize: 12, fontWeight: 600, color: "#1b7a4b" }}>
+                  ตอนนี้อยู่ Lv.{activeLevel} — ราคา {money(finalPrice)}/{product.unit}
+                </div>
+              ) : null}
+            </div>
+          ) : null}
 
           {tiers.length > 0 ? (
             <div className="nak-card" style={{ padding: 15, display: "grid", gap: 10 }}>
@@ -292,13 +343,15 @@ function ProductDetail({
 
         <div className="nak-bottombar">
           <div style={{ display: "grid" }}>
-            <span style={{ fontSize: 11, color: "var(--muted)" }}>ราคาต่อ {product.unit}</span>
-            <span style={{ fontSize: 19, fontWeight: 800, letterSpacing: "-.01em" }}>{money(finalPrice)}</span>
+            <span style={{ fontSize: 11, color: "var(--muted)" }}>
+              รวม {clampedQty.toLocaleString("th-TH")} {product.unit}
+            </span>
+            <span style={{ fontSize: 19, fontWeight: 800, letterSpacing: "-.01em" }}>{money(lineTotal)}</span>
           </div>
           <button
             type="button"
             disabled={soldOut}
-            onClick={() => addToCart(product.id)}
+            onClick={() => addToCart(product.id, clampedQty)}
             style={{
               display: "inline-flex",
               alignItems: "center",
@@ -328,12 +381,14 @@ function ProductDetail({
 export function ProductCatalog({
   products,
   categories,
+  tiers = [],
   discountPerItem,
   productDiscounts = {},
   floorQuantity = 0,
 }: {
   products: Product[];
   categories: Category[];
+  tiers?: PriceTier[];
   discountPerItem: number;
   productDiscounts?: ProductDiscountMap;
   floorQuantity?: number;
@@ -397,6 +452,7 @@ export function ProductCatalog({
           <ProductCard
             key={p.id}
             product={p}
+            tiers={tiers}
             discountPerItem={discountPerItem}
             productDiscount={Number(productDiscounts[p.id] ?? 0)}
             floorQuantity={floorQuantity}
@@ -413,7 +469,9 @@ export function ProductCatalog({
       {selected && typeof document !== "undefined"
         ? createPortal(
             <ProductDetail
+              key={selected.id}
               product={selected}
+              tiers={tiers}
               discountPerItem={discountPerItem}
               productDiscount={Number(productDiscounts[selected.id] ?? 0)}
               floorQuantity={floorQuantity}
