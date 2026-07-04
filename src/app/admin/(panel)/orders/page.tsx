@@ -196,6 +196,12 @@ function PackCard({ order }: { order: AdminOrder }) {
 
 function HandoffCard({ order, photoUrls }: { order: AdminOrder; photoUrls: Map<string, string> }) {
   const photos = order.order_photos ?? [];
+  // Courier handoff message: order code + phone + delivery address (no customer name).
+  const handoffPhone = shippingSnapshot(order)?.phone || order.customer?.phone || "";
+  const address = shippingAddress(order);
+  const copyText = [order.order_number, handoffPhone, address !== "ไม่ระบุที่อยู่" ? address : ""]
+    .filter(Boolean)
+    .join("\n");
   return (
     <div className="ad-card" style={{ padding: 16, display: "grid", gap: 13 }}>
       <OrderHead
@@ -225,7 +231,7 @@ function HandoffCard({ order, photoUrls }: { order: AdminOrder; photoUrls: Map<s
         <span style={{ fontSize: 11, fontWeight: 600, color: "var(--muted)" }}>รหัสออเดอร์สำหรับขนส่ง</span>
         <span style={{ fontSize: 24, fontWeight: 800, letterSpacing: ".04em" }}>{order.order_number}</span>
       </div>
-      <CopyButton text={order.order_number} />
+      <CopyButton text={copyText} label="คัดลอกรหัส · เบอร์ · ที่อยู่" />
 
       <div style={{ background: "var(--p-soft)", borderRadius: "var(--r-sm)", padding: 12, display: "grid", gap: 7, fontSize: 13 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8, fontWeight: 700 }}>
