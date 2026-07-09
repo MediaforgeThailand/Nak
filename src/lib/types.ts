@@ -27,6 +27,8 @@ export type Profile = {
   debt_balance: number;
   is_owner: boolean;
   per_item_discount: number;
+  /** Admin-set minimum pricing floor (quantity). 0 = no lock. */
+  locked_floor_quantity: number;
   created_at: string;
   updated_at: string;
 };
@@ -40,8 +42,13 @@ export type PriceTier = {
 export type ProductDiscountMap = Record<string, number>;
 
 export type PriceProgramStatus = {
+  /** Effective floor = max(rolling 2-month floor, admin lock). */
   floor_quantity: number;
   month_quantity: number;
+  /** Floor earned by the rolling two-month purchase volume. */
+  rolling_floor_quantity: number;
+  /** Admin-set locked floor (0 = no lock). */
+  locked_floor_quantity: number;
 };
 
 export type Product = {

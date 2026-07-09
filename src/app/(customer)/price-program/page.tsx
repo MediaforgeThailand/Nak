@@ -23,6 +23,7 @@ export default async function PriceProgramPage() {
     <PriceProgramView
       floorQuantity={Number(status.floor_quantity ?? 0)}
       monthQuantity={Number(status.month_quantity ?? 0)}
+      lockedFloorQuantity={Number(status.locked_floor_quantity ?? 0)}
       discountPerItem={Number(profile.per_item_discount ?? 0)}
       productDiscounts={productDiscounts}
       products={ladderProducts.map((product) => ({

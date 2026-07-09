@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import {
   adjustCustomerDebtAction,
   deleteCustomerProductDiscountAction,
+  setCustomerPriceLockAction,
   updateCustomerDiscountAction,
   upsertCustomerProductDiscountAction,
 } from "@/app/actions/admin";
@@ -12,6 +13,7 @@ import { SubmitButton } from "@/components/ui/submit-button";
 import { requireAdmin } from "@/lib/auth";
 import { getAdminCustomerDetail, getProductsWithInventory } from "@/lib/data/queries";
 import { accountStatusLabel, compactDate, money, orderStatusLabel, paymentStatusLabel, transactionLabel } from "@/lib/format";
+import { levelForQty, sortedTiers } from "@/lib/pricing";
 
 export const dynamic = "force-dynamic";
 
@@ -41,6 +43,17 @@ export default async function AdminCustomerDetailPage({
   const returnTo = `/admin/customers/${profile.id}`;
   const totalOrdered = orders.reduce((sum, order) => sum + Number(order.subtotal ?? 0), 0);
   const defaultAddress = addresses.find((a) => a.is_default) ?? addresses[0];
+
+  // Price-level lock: build the level picker from the flagship ladder (the same
+  // product the customer sees ranked on the Price Program page). The lock is a
+  // quantity floor that applies across every product's ladder. allProducts
+  // includes inactive items (for the discount dropdown below), so filter to the
+  // first ACTIVE tiered product — mirroring the customer view's products[0].
+  const flagship = allProducts.find((product) => product.is_active && (product.tiers?.length ?? 0) > 0) ?? null;
+  const flagshipTiers = flagship ? sortedTiers(flagship.tiers) : [];
+  const lockedQuantity = Number(profile.locked_floor_quantity ?? 0);
+  const lockedLevel = lockedQuantity > 0 ? levelForQty(flagshipTiers, lockedQuantity) : 0;
+  const lockMatchesTier = flagshipTiers.some((tier) => tier.min_quantity === lockedQuantity);
 
   return (
     <div style={{ display: "grid", gap: 13 }}>
@@ -91,6 +104,67 @@ export default async function AdminCustomerDetailPage({
             </NakField>
             <SubmitButton variant="secondary" pendingLabel="กำลังบันทึก...">
               บันทึกส่วนลด
+            </SubmitButton>
+          </form>
+        </SectionCard>
+
+        <SectionCard title="ล็อกระดับราคา (Price Program)" icon="trending">
+          <div
+            style={{
+              fontSize: 12.5,
+              lineHeight: 1.55,
+              padding: "9px 11px",
+              borderRadius: 10,
+              marginBottom: 10,
+              background: lockedQuantity > 0 ? "var(--p-soft)" : "var(--surface)",
+              border: `1px solid ${lockedQuantity > 0 ? "var(--p)" : "var(--line)"}`,
+              color: lockedQuantity > 0 ? "var(--p-deep)" : "var(--muted)",
+            }}
+          >
+            {lockedQuantity > 0 ? (
+              <>
+                <Icon name="shield" size={13} stroke={2.4} style={{ verticalAlign: -2 }} />{" "}
+                ล็อกไว้ที่{lockedLevel > 0 ? ` Lv.${lockedLevel}` : ""} (ตั้งแต่ {lockedQuantity.toLocaleString("th-TH")} ชิ้นขึ้นไป) —
+                ลูกค้าได้ราคาระดับนี้ทุกออเดอร์ ไม่หลุดแม้ยอดสะสมไม่ถึง
+              </>
+            ) : (
+              "ยังไม่ได้ล็อก — ราคาเป็นไปตามยอดสะสม 2 เดือนล่าสุดตามปกติ"
+            )}
+          </div>
+          <form action={setCustomerPriceLockAction} style={{ display: "grid", gap: 10 }}>
+            <input type="hidden" name="user_id" value={profile.id} />
+            <input type="hidden" name="return_to" value={returnTo} />
+            {flagshipTiers.length > 0 ? (
+              <NakField
+                label="ระดับที่ล็อก"
+                hint={`อ้างอิงขั้นบันไดของ ${flagship?.name ?? "สินค้าหลัก"} · เป็นพื้นราคาขั้นต่ำ ถ้าลูกค้าซื้อถึงขั้นสูงกว่าก็ยังได้ขั้นสูงกว่า`}
+              >
+                <Select name="locked_floor_quantity" defaultValue={String(lockedQuantity)}>
+                  <option value="0">ไม่ล็อก (ให้เป็นไปตามยอดสะสม)</option>
+                  {flagshipTiers.map((tier, i) => (
+                    <option key={tier.min_quantity} value={String(tier.min_quantity)}>
+                      Lv.{i + 1} · ตั้งแต่ {tier.min_quantity.toLocaleString("th-TH")} ชิ้นขึ้นไป
+                    </option>
+                  ))}
+                  {lockedQuantity > 0 && !lockMatchesTier ? (
+                    <option value={String(lockedQuantity)}>กำหนดเอง · {lockedQuantity.toLocaleString("th-TH")} ชิ้น</option>
+                  ) : null}
+                </Select>
+              </NakField>
+            ) : (
+              <NakField label="จำนวนล็อกขั้นต่ำ (ชิ้น)" hint="ใส่ 0 = ไม่ล็อก · เป็นพื้นราคาขั้นต่ำข้ามทุกสินค้า">
+                <Input
+                  name="locked_floor_quantity"
+                  type="number"
+                  inputMode="numeric"
+                  min="0"
+                  step="1"
+                  defaultValue={lockedQuantity}
+                />
+              </NakField>
+            )}
+            <SubmitButton variant="secondary" pendingLabel="กำลังบันทึก...">
+              บันทึกการล็อกระดับ
             </SubmitButton>
           </form>
         </SectionCard>
