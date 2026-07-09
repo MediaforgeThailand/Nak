@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireAdmin, requireOwner, requireStaff } from "@/lib/auth";
+import { getLinkedGroupId, lineServiceClient, pushLineText } from "@/lib/line";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { safeFileName } from "@/lib/storage";
 import type { UserRole } from "@/lib/types";
@@ -382,6 +383,24 @@ export async function addStockAction(formData: FormData) {
   revalidatePath("/products");
   revalidatePath("/home");
   redirect("/admin/stock?ok=1");
+}
+
+// Send a test message to the linked LINE staff group so admins can confirm setup.
+export async function testLineNotifyAction() {
+  await requireAdmin();
+  const client = lineServiceClient();
+  if (!client) {
+    redirect(`/admin/settings?error=${encodeURIComponent("ยังไม่ได้ตั้งค่า SUPABASE_SERVICE_ROLE_KEY บนเซิร์ฟเวอร์")}`);
+  }
+  const groupId = await getLinkedGroupId(client);
+  if (!groupId) {
+    redirect(`/admin/settings?error=${encodeURIComponent("ยังไม่ได้เชื่อมกลุ่ม — เพิ่ม OA เข้ากลุ่มทีมงาน แล้วพิมพ์ข้อความในกลุ่ม 1 ครั้ง")}`);
+  }
+  const push = await pushLineText(groupId, "🔔 ทดสอบแจ้งเตือนจากระบบ NAK — เชื่อมต่อกลุ่มสำเร็จ ✅");
+  if (!push.ok) {
+    redirect(`/admin/settings?error=${encodeURIComponent(push.error ?? "ส่งไม่สำเร็จ")}`);
+  }
+  redirect("/admin/settings?ok=1");
 }
 
 export async function approveOrderAction(formData: FormData) {
