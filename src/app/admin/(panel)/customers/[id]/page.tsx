@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import {
   adjustCustomerDebtAction,
   deleteCustomerProductDiscountAction,
+  setCustomerPriceLockAction,
   updateCustomerDiscountAction,
   upsertCustomerProductDiscountAction,
 } from "@/app/actions/admin";
@@ -10,8 +11,9 @@ import { AdBadge, Avatar, BackHead, InfoRow, MiniStat, NakField, SectionCard } f
 import { Input, Select, Textarea } from "@/components/ui/form";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { requireAdmin } from "@/lib/auth";
-import { getAdminCustomerDetail, getProductsWithInventory } from "@/lib/data/queries";
+import { getAdminCustomerDetail, getPriceTiers, getProductsWithInventory } from "@/lib/data/queries";
 import { accountStatusLabel, compactDate, money, orderStatusLabel, paymentStatusLabel, transactionLabel } from "@/lib/format";
+import { levelForQty, sortedTiers } from "@/lib/pricing";
 
 export const dynamic = "force-dynamic";
 
@@ -28,11 +30,12 @@ export default async function AdminCustomerDetailPage({
   params: Promise<{ id: string }>;
   searchParams: Promise<{ error?: string }>;
 }) {
-  const [{ id }, query, { profile: adminProfile }, allProducts] = await Promise.all([
+  const [{ id }, query, { profile: adminProfile }, allProducts, globalTiers] = await Promise.all([
     params,
     searchParams,
     requireAdmin(),
     getProductsWithInventory(true, "admin"),
+    getPriceTiers("admin"),
   ]);
   const { profile, addresses, orders, payments, transactions, productDiscounts } = await getAdminCustomerDetail(id);
   if (!profile) notFound();
@@ -41,6 +44,14 @@ export default async function AdminCustomerDetailPage({
   const returnTo = `/admin/customers/${profile.id}`;
   const totalOrdered = orders.reduce((sum, order) => sum + Number(order.subtotal ?? 0), 0);
   const defaultAddress = addresses.find((a) => a.is_default) ?? addresses[0];
+
+  // Price-level lock: the picker mirrors the ONE global discount ladder every
+  // product shares (price_tiers). The lock is a quantity floor applied to that
+  // ladder, so a locked customer never drops below the chosen tier.
+  const priceTiers = sortedTiers(globalTiers);
+  const lockedQuantity = Number(profile.locked_floor_quantity ?? 0);
+  const lockedLevel = lockedQuantity > 0 ? levelForQty(priceTiers, lockedQuantity) : 0;
+  const lockMatchesTier = priceTiers.some((tier) => tier.min_quantity === lockedQuantity);
 
   return (
     <div style={{ display: "grid", gap: 13 }}>
@@ -91,6 +102,68 @@ export default async function AdminCustomerDetailPage({
             </NakField>
             <SubmitButton variant="secondary" pendingLabel="กำลังบันทึก...">
               บันทึกส่วนลด
+            </SubmitButton>
+          </form>
+        </SectionCard>
+
+        <SectionCard title="ล็อกระดับราคา (Price Program)" icon="trending">
+          <div
+            style={{
+              fontSize: 12.5,
+              lineHeight: 1.55,
+              padding: "9px 11px",
+              borderRadius: 10,
+              marginBottom: 10,
+              background: lockedQuantity > 0 ? "var(--p-soft)" : "var(--surface)",
+              border: `1px solid ${lockedQuantity > 0 ? "var(--p)" : "var(--line)"}`,
+              color: lockedQuantity > 0 ? "var(--p-deep)" : "var(--muted)",
+            }}
+          >
+            {lockedQuantity > 0 ? (
+              <>
+                <Icon name="shield" size={13} stroke={2.4} style={{ verticalAlign: -2 }} />{" "}
+                ล็อกไว้ที่{lockedLevel > 0 ? ` Lv.${lockedLevel}` : ""} (ตั้งแต่ {lockedQuantity.toLocaleString("th-TH")} ชิ้นขึ้นไป) —
+                ลูกค้าได้ส่วนลดระดับนี้ทุกออเดอร์ ไม่หลุดแม้ยอดสะสมไม่ถึง
+              </>
+            ) : (
+              "ยังไม่ได้ล็อก — ราคาเป็นไปตามยอดสะสม 2 เดือนล่าสุดตามปกติ"
+            )}
+          </div>
+          <form action={setCustomerPriceLockAction} style={{ display: "grid", gap: 10 }}>
+            <input type="hidden" name="user_id" value={profile.id} />
+            <input type="hidden" name="return_to" value={returnTo} />
+            {priceTiers.length > 0 ? (
+              <NakField
+                label="ระดับที่ล็อก"
+                hint="อ้างอิงตารางส่วนลดรวม (ทุกสินค้า) · เป็นพื้นขั้นต่ำ ถ้าลูกค้าซื้อถึงขั้นสูงกว่าก็ยังได้ขั้นสูงกว่า"
+              >
+                <Select name="locked_floor_quantity" defaultValue={String(lockedQuantity)}>
+                  <option value="0">ไม่ล็อก (ให้เป็นไปตามยอดสะสม)</option>
+                  {priceTiers.map((tier, i) => (
+                    <option key={tier.min_quantity} value={String(tier.min_quantity)}>
+                      Lv.{i + 1} · ตั้งแต่ {tier.min_quantity.toLocaleString("th-TH")} ชิ้นขึ้นไป
+                      {Number(tier.discount_amount) > 0 ? ` (ลด ${money(tier.discount_amount)}/ชิ้น)` : ""}
+                    </option>
+                  ))}
+                  {lockedQuantity > 0 && !lockMatchesTier ? (
+                    <option value={String(lockedQuantity)}>กำหนดเอง · {lockedQuantity.toLocaleString("th-TH")} ชิ้น</option>
+                  ) : null}
+                </Select>
+              </NakField>
+            ) : (
+              <NakField label="จำนวนล็อกขั้นต่ำ (ชิ้น)" hint="ใส่ 0 = ไม่ล็อก · เป็นพื้นราคาขั้นต่ำตามตารางส่วนลดรวม">
+                <Input
+                  name="locked_floor_quantity"
+                  type="number"
+                  inputMode="numeric"
+                  min="0"
+                  step="1"
+                  defaultValue={lockedQuantity}
+                />
+              </NakField>
+            )}
+            <SubmitButton variant="secondary" pendingLabel="กำลังบันทึก...">
+              บันทึกการล็อกระดับ
             </SubmitButton>
           </form>
         </SectionCard>

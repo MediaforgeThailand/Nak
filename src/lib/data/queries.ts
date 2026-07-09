@@ -1,5 +1,6 @@
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { AuthScope } from "@/lib/supabase/server";
+import type { PriceProgramStatus } from "@/lib/types";
 
 export async function getProductsWithInventory(
   includeInactive = false,
@@ -44,11 +45,17 @@ export async function getPriceTiers(scope: AuthScope = "customer") {
   return data ?? [];
 }
 
-export async function getPriceProgramStatus() {
+export async function getPriceProgramStatus(): Promise<PriceProgramStatus> {
   const supabase = await createSupabaseServerClient("customer");
   const { data, error } = await supabase.rpc("price_program_status");
-  if (error || !data) return { floor_quantity: 0, month_quantity: 0 };
-  return data as { floor_quantity: number; month_quantity: number };
+  const fallback: PriceProgramStatus = {
+    floor_quantity: 0,
+    month_quantity: 0,
+    rolling_floor_quantity: 0,
+    locked_floor_quantity: 0,
+  };
+  if (error || !data) return fallback;
+  return { ...fallback, ...(data as Partial<PriceProgramStatus>) };
 }
 
 // Per-product special discounts for the signed-in customer. Filter by the

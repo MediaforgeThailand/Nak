@@ -506,6 +506,31 @@ export async function updateCustomerDiscountAction(formData: FormData) {
   revalidatePath("/profile");
 }
 
+export async function setCustomerPriceLockAction(formData: FormData) {
+  await requireAdmin();
+  const supabase = await createSupabaseServerClient("admin");
+  const returnTo = customerReturnPath(formData);
+  const userId = String(formData.get("user_id") ?? "");
+  const lockedQuantity = Number(formData.get("locked_floor_quantity") ?? 0);
+
+  if (!Number.isInteger(lockedQuantity) || lockedQuantity < 0) {
+    redirect(withError(returnTo, "จำนวนล็อกต้องเป็นจำนวนเต็ม 0 หรือมากกว่า"));
+  }
+
+  const { error } = await supabase.rpc("admin_set_customer_price_lock", {
+    target_customer_id: userId,
+    locked_quantity: lockedQuantity,
+  });
+
+  if (error) redirect(withError(returnTo, error.message));
+  revalidatePath("/admin/customers");
+  revalidatePath(returnTo);
+  revalidatePath("/home");
+  revalidatePath("/products");
+  revalidatePath("/cart");
+  revalidatePath("/price-program");
+}
+
 export async function adjustCustomerDebtAction(formData: FormData) {
   await requireOwner();
   const supabase = await createSupabaseServerClient("admin");
