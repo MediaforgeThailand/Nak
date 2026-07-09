@@ -331,25 +331,6 @@ export async function deleteProductAction(formData: FormData) {
   revalidatePath("/home");
 }
 
-export async function adjustInventoryAction(formData: FormData) {
-  await requireAdmin();
-  const supabase = await createSupabaseServerClient("admin");
-  const productId = String(formData.get("product_id") ?? "");
-  const delta = Number(formData.get("quantity_delta") ?? 0);
-  const note = String(formData.get("note") ?? "").trim() || null;
-
-  const { error } = await supabase.rpc("adjust_inventory", {
-    target_product_id: productId,
-    quantity_delta: delta,
-    note,
-  });
-
-  if (error) redirect(`/admin/stock?error=${encodeURIComponent(error.message)}`);
-  revalidatePath("/admin/stock");
-  revalidatePath("/products");
-  revalidatePath("/home");
-}
-
 // Add-stock flow: quantity (positive = รับเข้า, negative = ปรับลด) with an
 // optional goods-received photo kept on the movement for later review.
 export async function addStockAction(formData: FormData) {
@@ -369,8 +350,10 @@ export async function addStockAction(formData: FormData) {
   let photoPath: string | null = null;
   const file = formData.get("photo");
   if (file instanceof File && file.size > 0) {
-    if (!file.type.startsWith("image/")) {
-      redirect(`${back}&error=${encodeURIComponent("กรุณาอัปโหลดไฟล์รูปภาพเท่านั้น")}`);
+    // Match the stock-photos bucket allowlist so the failure is a clear Thai
+    // message instead of a raw Supabase rejection.
+    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+      redirect(`${back}&error=${encodeURIComponent("รองรับเฉพาะไฟล์ JPG, PNG หรือ WebP เท่านั้น")}`);
     }
     const path = `receipts/${safeFileName(productId)}/${Date.now()}-${safeFileName(file.name)}`;
     const buffer = Buffer.from(await file.arrayBuffer());

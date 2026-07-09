@@ -25,6 +25,7 @@ export function StockAddForm({ products, preselectId }: { products: StockProduct
   const [query, setQuery] = useState(preset?.name ?? "");
   const [open, setOpen] = useState(false);
   const [qty, setQty] = useState("0");
+  const [photoProcessing, setPhotoProcessing] = useState(false);
 
   const selected = useMemo(() => products.find((p) => p.id === selectedId) ?? null, [products, selectedId]);
 
@@ -199,10 +200,16 @@ export function StockAddForm({ products, preselectId }: { products: StockProduct
       {/* optional photo */}
       <div style={{ display: "grid", gap: 6 }}>
         <span style={labelStyle}>รูปของเข้า (ถ้ามี)</span>
-        <FileUploadPreview name="photo" capture accept="image/*" hint="แนบรูปเพื่อยืนยันว่าของเข้า — เก็บไว้ดูย้อนหลังได้" />
+        <FileUploadPreview
+          name="photo"
+          capture
+          accept="image/jpeg,image/png,image/webp"
+          hint="แนบรูปเพื่อยืนยันว่าของเข้า — เก็บไว้ดูย้อนหลังได้"
+          onProcessingChange={setPhotoProcessing}
+        />
       </div>
 
-      <SubmitButton variant="primary" className="w-full" pendingLabel="กำลังบันทึก..." disabled={!canSubmit}>
+      <SubmitButton variant="primary" className="w-full" pendingLabel="กำลังบันทึก..." disabled={!canSubmit || photoProcessing}>
         <Icon name="check" size={16} stroke={2.6} /> บันทึกรับเข้าสต็อก
       </SubmitButton>
     </form>

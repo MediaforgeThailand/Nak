@@ -10,6 +10,7 @@ type FileUploadPreviewProps = {
   capture?: boolean | "user" | "environment";
   required?: boolean;
   hint?: string;
+  onProcessingChange?: (processing: boolean) => void;
 };
 
 // Downscale + re-encode camera photos so uploads stay well under the Server
@@ -52,6 +53,7 @@ export function FileUploadPreview({
   capture,
   required,
   hint,
+  onProcessingChange,
 }: FileUploadPreviewProps) {
   const inputId = useId();
   const inputRef = useRef<HTMLInputElement>(null);
@@ -97,6 +99,7 @@ export function FileUploadPreview({
     }
 
     setProcessing(true);
+    onProcessingChange?.(true);
     const file = await compressImage(original);
 
     // Put the (possibly compressed) file back so the form submits it.
@@ -109,6 +112,7 @@ export function FileUploadPreview({
     setFileName(file.name);
     setPreviewUrl(file.type.startsWith("image/") ? URL.createObjectURL(file) : null);
     setProcessing(false);
+    onProcessingChange?.(false);
   }
 
   return (
