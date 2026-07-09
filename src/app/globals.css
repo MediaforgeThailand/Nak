@@ -139,6 +139,12 @@ input[type="file"] {
   flex: 1;
 }
 
+/* Reserve room for the fixed bottom tab bar so page content is never hidden
+   behind it. Only applied on main tabs, where the tab bar is rendered. */
+.nak-shell.has-tabbar .nak-shell-body {
+  padding-bottom: calc(env(safe-area-inset-bottom) + 68px);
+}
+
 /* ── cards ─────────────────────────────────────────────────────── */
 .nak-card {
   min-width: 0;
@@ -354,8 +360,13 @@ input[type="file"] {
 
 /* ── tab bar ──────────────────────────────────────────────────── */
 .nak-tabbar {
-  position: sticky;
+  position: fixed;
+  left: 0;
+  right: 0;
   bottom: 0;
+  margin: 0 auto;
+  width: 100%;
+  max-width: 480px;
   z-index: 9;
   background: rgba(255, 248, 249, 0.94);
   backdrop-filter: blur(18px);
