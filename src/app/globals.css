@@ -122,14 +122,19 @@ input[type="file"] {
 }
 
 /* ── phone column ─────────────────────────────────────────────── */
+/* App-shell layout: the shell is exactly one viewport tall and clips its own
+   overflow, so the app bar and tab bar stay fixed in place while ONLY the body
+   scrolls internally. This pins the bottom tab bar without position: fixed, so
+   it works even inside a scaled/transformed device-preview frame (where fixed
+   would anchor to the transformed ancestor instead of the viewport). */
 .nak-shell {
   position: relative;
   margin: 0 auto;
   width: 100%;
   max-width: 480px;
-  overflow-x: clip;
-  min-height: 100vh;
-  min-height: 100dvh;
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.16), transparent 22%);
@@ -137,6 +142,9 @@ input[type="file"] {
 
 .nak-shell-body {
   flex: 1;
+  min-height: 0; /* let the flex child shrink so it can scroll */
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 /* ── cards ─────────────────────────────────────────────────────── */
@@ -157,6 +165,7 @@ input[type="file"] {
 
 /* ── top app bar ──────────────────────────────────────────────── */
 .nak-appbar {
+  flex-shrink: 0;
   position: sticky;
   top: 0;
   z-index: 8;
@@ -353,9 +362,11 @@ input[type="file"] {
 }
 
 /* ── tab bar ──────────────────────────────────────────────────── */
+/* A normal-flow flex item at the bottom of the app-shell column. Because the
+   shell is exactly one viewport tall and only .nak-shell-body scrolls, this bar
+   stays pinned to the bottom of the screen without position: fixed. */
 .nak-tabbar {
-  position: sticky;
-  bottom: 0;
+  flex-shrink: 0;
   z-index: 9;
   background: rgba(255, 248, 249, 0.94);
   backdrop-filter: blur(18px);

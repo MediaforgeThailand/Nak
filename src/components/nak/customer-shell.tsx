@@ -147,7 +147,7 @@ export function CustomerShell({ children }: { children: React.ReactNode }) {
   const isMain = Boolean(tab);
 
   return (
-    <div className="nak-shell">
+    <div className={"nak-shell" + (isMain ? " has-tabbar" : "")}>
       {isMain ? <AppBar tab={tab} count={count} /> : null}
       <div key={pathname} className="nak-shell-body motion-page">
         {children}
