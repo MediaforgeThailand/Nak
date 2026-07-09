@@ -350,6 +350,57 @@ export async function adjustInventoryAction(formData: FormData) {
   revalidatePath("/home");
 }
 
+// Add-stock flow: quantity (positive = รับเข้า, negative = ปรับลด) with an
+// optional goods-received photo kept on the movement for later review.
+export async function addStockAction(formData: FormData) {
+  await requireAdmin();
+  const supabase = await createSupabaseServerClient("admin");
+  const productId = String(formData.get("product_id") ?? "");
+  const delta = Number(formData.get("quantity_delta") ?? 0);
+  const note = String(formData.get("note") ?? "").trim() || null;
+
+  const back = productId ? `/admin/stock/add?product=${productId}` : "/admin/stock/add";
+
+  if (!productId) redirect(`/admin/stock/add?error=${encodeURIComponent("กรุณาเลือกสินค้า")}`);
+  if (!Number.isInteger(delta) || delta === 0) {
+    redirect(`${back}&error=${encodeURIComponent("จำนวนต้องเป็นจำนวนเต็มและไม่เท่ากับ 0")}`);
+  }
+
+  let photoPath: string | null = null;
+  const file = formData.get("photo");
+  if (file instanceof File && file.size > 0) {
+    if (!file.type.startsWith("image/")) {
+      redirect(`${back}&error=${encodeURIComponent("กรุณาอัปโหลดไฟล์รูปภาพเท่านั้น")}`);
+    }
+    const path = `receipts/${safeFileName(productId)}/${Date.now()}-${safeFileName(file.name)}`;
+    const buffer = Buffer.from(await file.arrayBuffer());
+    const { error: uploadError } = await supabase.storage.from("stock-photos").upload(path, buffer, {
+      contentType: file.type || "application/octet-stream",
+      upsert: false,
+    });
+    if (uploadError) redirect(`${back}&error=${encodeURIComponent(uploadError.message)}`);
+    photoPath = path;
+  }
+
+  const { error } = await supabase.rpc("adjust_inventory", {
+    target_product_id: productId,
+    quantity_delta: delta,
+    note,
+    photo_path: photoPath,
+  });
+
+  if (error) {
+    if (photoPath) await supabase.storage.from("stock-photos").remove([photoPath]);
+    redirect(`${back}&error=${encodeURIComponent(error.message)}`);
+  }
+
+  revalidatePath("/admin/stock");
+  revalidatePath("/admin/home");
+  revalidatePath("/products");
+  revalidatePath("/home");
+  redirect("/admin/stock?ok=1");
+}
+
 export async function approveOrderAction(formData: FormData) {
   await requireAdmin();
   const supabase = await createSupabaseServerClient("admin");
