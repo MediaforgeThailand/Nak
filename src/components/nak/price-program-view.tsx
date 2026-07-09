@@ -6,12 +6,6 @@ import { money } from "@/lib/format";
 import { levelForQty, nextTier, sortedTiers, tierDiscountForQty, tierRelativeDiscount } from "@/lib/pricing";
 import type { PriceTier } from "@/lib/types";
 
-function thaiNextMonth() {
-  const now = new Date();
-  const next = new Date(now.getFullYear(), now.getMonth() + 1, 1);
-  return new Intl.DateTimeFormat("th-TH", { month: "long", timeZone: "Asia/Bangkok" }).format(next);
-}
-
 function LevelChip({ level, active }: { level: number; active?: boolean }) {
   return (
     <span
@@ -34,13 +28,19 @@ function LevelChip({ level, active }: { level: number; active?: boolean }) {
 export function PriceProgramView({
   floorQuantity,
   monthQuantity,
+  lockedFloorQuantity = 0,
   tiers: rawTiers,
 }: {
   floorQuantity: number;
   monthQuantity: number;
+  lockedFloorQuantity?: number;
   tiers: PriceTier[];
 }) {
   const tiers = sortedTiers(rawTiers);
+  // The lock only "binds" (drives the shown level) when it meets or exceeds the
+  // rolling floor. floorQuantity = greatest(rolling 2-month, locked), so the lock
+  // is the binding constraint exactly when lockedFloorQuantity >= floorQuantity.
+  const lockBinds = lockedFloorQuantity > 0 && lockedFloorQuantity >= floorQuantity;
 
   // Active rank this month (from last month's volume).
   const activeLevel = levelForQty(tiers, Math.max(floorQuantity, 1));
@@ -53,7 +53,6 @@ export function PriceProgramView({
     ? Math.min(Math.round((monthQuantity / upcoming.min_quantity) * 100), 100)
     : 100;
   const qtyToNext = upcoming ? upcoming.min_quantity - monthQuantity : 0;
-  const nextMonthName = thaiNextMonth();
 
   return (
     <div style={{ display: "grid", gap: 13, padding: "14px 14px 24px" }}>
@@ -69,8 +68,27 @@ export function PriceProgramView({
           }}
         >
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
-            <div style={{ fontSize: 12, fontWeight: 600, opacity: 0.85, display: "flex", alignItems: "center", gap: 6 }}>
-              <Icon name="trending" size={14} stroke={2.2} /> Level ของฉันเดือนนี้
+            <div style={{ fontSize: 12, fontWeight: 600, opacity: 0.85, display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+              <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <Icon name="trending" size={14} stroke={2.2} /> Level ของฉันเดือนนี้
+              </span>
+              {lockBinds ? (
+                <span
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 4,
+                    background: "rgba(255,255,255,.2)",
+                    border: "1px solid rgba(255,255,255,.35)",
+                    borderRadius: 999,
+                    padding: "2px 8px",
+                    fontSize: 10.5,
+                    fontWeight: 800,
+                  }}
+                >
+                  <Icon name="shield" size={11} stroke={2.6} /> ล็อกโดยร้าน
+                </span>
+              ) : null}
             </div>
             <span
               className="pp-badge"
@@ -100,9 +118,11 @@ export function PriceProgramView({
               )}
             </div>
             <div style={{ fontSize: 12.5, opacity: 0.88, marginTop: 3, lineHeight: 1.5 }}>
-              {floorQuantity > 0
-                ? `เดือนที่แล้วซื้อสะสม ${floorQuantity.toLocaleString("th-TH")} ชิ้น — เดือนนี้สั่งกี่ชิ้นก็ได้ส่วนลดนี้ทุกสินค้า`
-                : "สั่งครั้งเดียวเยอะ หรือทยอยสะสมทั้งเดือน ก็ได้ส่วนลดขั้นสูงขึ้น"}
+              {lockBinds
+                ? "ร้านล็อกส่วนลดระดับนี้ให้คุณ — สั่งกี่ชิ้นก็ได้ส่วนลดนี้ทุกสินค้า ไม่หลุดแม้ยอดไม่ถึง"
+                : floorQuantity > 0
+                  ? `ยอดสะสม 2 เดือนล่าสุดถึง ${floorQuantity.toLocaleString("th-TH")} ชิ้น — สั่งกี่ชิ้นก็ได้ส่วนลดนี้ทุกสินค้า`
+                  : "สั่งครั้งเดียวเยอะ หรือทยอยสะสมทั้งเดือน ก็ได้ส่วนลดขั้นสูงขึ้น"}
             </div>
           </div>
         </div>
@@ -126,7 +146,7 @@ export function PriceProgramView({
                 {tierRelativeDiscount(tiers, upcoming) > 0
                   ? `(ลด ${money(tierRelativeDiscount(tiers, upcoming))}/ชิ้น)`
                   : ""}{" "}
-                — ใช้เป็นส่วนลดประจำเดือน{nextMonthName}
+                — ได้ส่วนลดนี้ต่อเนื่อง 2 เดือนถัดไป
               </>
             ) : (
               <>สุดยอด! คุณสะสมถึงขั้นสูงสุดแล้ว 🎉</>
@@ -134,7 +154,7 @@ export function PriceProgramView({
             {reachedLevel > 0 ? (
               <div style={{ marginTop: 3, color: "#1b7a4b", fontWeight: 600 }}>
                 <Icon name="checkCircle" size={12} stroke={2.4} style={{ verticalAlign: -2 }} /> ตอนนี้ทำได้ Lv.{reachedLevel} แล้ว
-                สำหรับเดือน{nextMonthName}
+                ใช้ต่อได้อีก 2 เดือน
               </div>
             ) : null}
           </div>
@@ -206,9 +226,9 @@ export function PriceProgramView({
           { icon: "cart", text: "สั่งครั้งเดียวเยอะ ได้ส่วนลดขั้นนั้นทันที — นับจำนวนรวมทุกสินค้าในออเดอร์" },
           {
             icon: "trending",
-            text: "ทยอยซื้อก็ได้! ยอดที่อนุมัติแล้วสะสมรวมทั้งเดือน — เดือนถัดไปได้ส่วนลดขั้นนั้นทุกออเดอร์ แม้สั่งครั้งละน้อย",
+            text: "ทยอยซื้อก็ได้! ยอดที่อนุมัติแล้วสะสมรวมทั้งเดือน — ซื้อถึงขั้นในเดือนไหน ได้ส่วนลดขั้นนั้นทุกออเดอร์ต่อเนื่อง 2 เดือน แม้สั่งครั้งละน้อย",
           },
-          { icon: "clock", text: "ตัดรอบทุกสิ้นเดือน — Level เดือนหน้าอิงยอดสะสมเดือนนี้เท่านั้น รักษายอดเพื่อคงระดับ" },
+          { icon: "clock", text: "Level อิงยอดสะสมสูงสุดใน 2 เดือนล่าสุด — ซื้อถึงเดือนเดียวก็ได้ส่วนลดยาวไป 2 เดือน" },
         ].map((rule) => (
           <div key={rule.icon} style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
             <span

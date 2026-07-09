@@ -11,6 +11,7 @@ export default async function PriceProgramPage() {
     <PriceProgramView
       floorQuantity={Number(status.floor_quantity ?? 0)}
       monthQuantity={Number(status.month_quantity ?? 0)}
+      lockedFloorQuantity={Number(status.locked_floor_quantity ?? 0)}
       tiers={tiers}
     />
   );
