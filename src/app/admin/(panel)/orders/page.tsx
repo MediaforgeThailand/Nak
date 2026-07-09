@@ -1,8 +1,8 @@
 import Image from "next/image";
-import { approveOrderAction, confirmHandoffAction, rejectOrderAction, shipOrderWithPhotoAction } from "@/app/actions/admin";
+import { approveOrderAction, rejectOrderAction, shipOrderWithPhotoAction } from "@/app/actions/admin";
+import { HandoffList, type HandoffOrder } from "@/components/nak/handoff-list";
 import { Icon } from "@/components/nak/icon";
 import { AdBadge, AdminTabs, Avatar } from "@/components/nak/ui";
-import { CopyButton } from "@/components/ui/copy-button";
 import { FileUploadPreview } from "@/components/ui/file-upload-preview";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { dateTime, money, shippingMethodLabel } from "@/lib/format";
@@ -194,98 +194,6 @@ function PackCard({ order }: { order: AdminOrder }) {
   );
 }
 
-function HandoffCard({ order, photoUrls }: { order: AdminOrder; photoUrls: Map<string, string> }) {
-  const photos = order.order_photos ?? [];
-  // Courier handoff message: order code + phone + delivery address (no customer name).
-  const handoffPhone = shippingSnapshot(order)?.phone || order.customer?.phone || "";
-  const address = shippingAddress(order);
-  const copyText = [order.order_number, handoffPhone, address !== "ไม่ระบุที่อยู่" ? address : ""]
-    .filter(Boolean)
-    .join("\n");
-  return (
-    <div className="ad-card" style={{ padding: 16, display: "grid", gap: 13 }}>
-      <OrderHead
-        order={order}
-        badge={
-          <AdBadge tone="accent">
-            <Icon name="truck" size={13} stroke={2.4} /> รอส่งขนส่ง
-          </AdBadge>
-        }
-      />
-      <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-        <MethodBadge order={order} />
-      </div>
-
-      {/* order code front-and-center for the courier */}
-      <div
-        style={{
-          background: "var(--bg)",
-          border: "1px dashed var(--p)",
-          borderRadius: "var(--r-sm)",
-          padding: "13px 14px",
-          display: "grid",
-          gap: 3,
-          justifyItems: "center",
-        }}
-      >
-        <span style={{ fontSize: 11, fontWeight: 600, color: "var(--muted)" }}>รหัสออเดอร์สำหรับขนส่ง</span>
-        <span style={{ fontSize: 24, fontWeight: 800, letterSpacing: ".04em" }}>{order.order_number}</span>
-      </div>
-      <CopyButton text={copyText} label="คัดลอกรหัส · เบอร์ · ที่อยู่" />
-
-      <div style={{ background: "var(--p-soft)", borderRadius: "var(--r-sm)", padding: 12, display: "grid", gap: 7, fontSize: 13 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, fontWeight: 700 }}>
-          <Icon name="user" size={15} stroke={2.2} style={{ color: "var(--p-deep)" }} /> {customerName(order)}
-        </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, color: "var(--muted)" }}>
-          <Icon name="phone" size={15} stroke={2.2} style={{ color: "var(--p-deep)" }} /> {order.customer?.phone ?? "-"}
-        </div>
-        <div style={{ display: "flex", alignItems: "flex-start", gap: 8, color: "var(--muted)" }}>
-          <Icon name="pin" size={15} stroke={2.2} style={{ color: "var(--p-deep)", flexShrink: 0, marginTop: 1 }} /> {shippingAddress(order)}
-        </div>
-      </div>
-
-      <ItemsBox order={order} />
-
-      {photos.length > 0 ? (
-        <div style={{ display: "grid", gap: 10 }}>
-          {photos.map((photo: { id: string; storage_path: string; caption: string | null }) => {
-            const url = photoUrls.get(photo.storage_path);
-            return (
-              <div
-                key={photo.id}
-                style={{
-                  position: "relative",
-                  aspectRatio: "4/3",
-                  borderRadius: "var(--r-sm)",
-                  overflow: "hidden",
-                  background: "var(--chip)",
-                  display: "grid",
-                  placeItems: "center",
-                  color: "rgba(0,0,0,.28)",
-                }}
-              >
-                {url ? (
-                  <Image src={url} alt={photo.caption ?? "รูปสินค้าที่แพ็ค"} fill sizes="440px" className="object-cover" />
-                ) : (
-                  <Icon name="camera" size={28} stroke={1.6} />
-                )}
-              </div>
-            );
-          })}
-        </div>
-      ) : null}
-
-      <form action={confirmHandoffAction}>
-        <input type="hidden" name="order_id" value={order.id} />
-        <SubmitButton pendingLabel="กำลังยืนยัน..." className="w-full">
-          <Icon name="truck" size={17} stroke={2.4} /> ส่งให้ขนส่งแล้ว
-        </SubmitButton>
-      </form>
-    </div>
-  );
-}
-
 function ShippedCard({ order, photoUrls }: { order: AdminOrder; photoUrls: Map<string, string> }) {
   const photos = order.order_photos ?? [];
   return (
@@ -368,6 +276,38 @@ export default async function AdminOrdersPage({
       : [];
   const photoUrls = await signedUrls("order-photos", photoPaths, "admin");
 
+  const handoffOrders: HandoffOrder[] =
+    activeStage === "handoff"
+      ? visibleOrders.map((order) => {
+          const phone = shippingSnapshot(order)?.phone || order.customer?.phone || "";
+          const address = shippingAddress(order);
+          const copyText = [order.order_number, phone, address !== "ไม่ระบุที่อยู่" ? address : ""]
+            .filter(Boolean)
+            .join("\n");
+          return {
+            id: order.id,
+            orderNumber: order.order_number,
+            createdAt: dateTime(order.created_at),
+            isGrab: order.shipping_method === "grab",
+            methodLabel: shippingMethodLabel(order.shipping_method),
+            customerName: customerName(order),
+            phone,
+            address,
+            copyText,
+            items: (order.order_items ?? []).map((it: OrderItem) => ({
+              id: it.id,
+              label: `${it.product_name} × ${it.quantity} ${it.unit}`,
+              total: money(it.line_total),
+            })),
+            photos: (order.order_photos ?? []).map((p: { id: string; storage_path: string; caption: string | null }) => ({
+              id: p.id,
+              url: photoUrls.get(p.storage_path) ?? null,
+              caption: p.caption,
+            })),
+          };
+        })
+      : [];
+
   const tabs = [
     { key: "approve", label: "อนุมัติ", href: "/admin/orders?stage=approve", count: counts.approve },
     { key: "pack", label: "จัดสินค้า", href: "/admin/orders?stage=pack", count: counts.pack },
@@ -390,19 +330,21 @@ export default async function AdminOrdersPage({
         </div>
       ) : null}
 
-      <div style={{ display: "grid", gap: 12 }}>
-        {visibleOrders.length === 0 ? (
-          <div className="ad-card" style={{ padding: 26, textAlign: "center", color: "var(--muted)", fontSize: 14 }}>
-            ไม่มีออเดอร์ในหมวดนี้
-          </div>
-        ) : null}
-        {visibleOrders.map((order) => {
-          if (activeStage === "approve") return <ApproveCard key={order.id} order={order} />;
-          if (activeStage === "pack") return <PackCard key={order.id} order={order} />;
-          if (activeStage === "handoff") return <HandoffCard key={order.id} order={order} photoUrls={photoUrls} />;
-          return <ShippedCard key={order.id} order={order} photoUrls={photoUrls} />;
-        })}
-      </div>
+      {visibleOrders.length === 0 ? (
+        <div className="ad-card" style={{ padding: 26, textAlign: "center", color: "var(--muted)", fontSize: 14 }}>
+          ไม่มีออเดอร์ในหมวดนี้
+        </div>
+      ) : activeStage === "handoff" ? (
+        <HandoffList orders={handoffOrders} />
+      ) : (
+        <div style={{ display: "grid", gap: 12 }}>
+          {visibleOrders.map((order) => {
+            if (activeStage === "approve") return <ApproveCard key={order.id} order={order} />;
+            if (activeStage === "pack") return <PackCard key={order.id} order={order} />;
+            return <ShippedCard key={order.id} order={order} photoUrls={photoUrls} />;
+          })}
+        </div>
+      )}
     </div>
   );
 }
