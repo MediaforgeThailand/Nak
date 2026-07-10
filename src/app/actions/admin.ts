@@ -3,7 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireAdmin, requireOwner, requireStaff } from "@/lib/auth";
-import { getLinkedGroupId, lineServiceClient, pushLineText } from "@/lib/line";
+import { getLineQuota, getLinkedGroupId, lineServiceClient, pushLineFlex } from "@/lib/line";
+import { buildDailyBubble, gatherDaily } from "@/lib/line-report";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { safeFileName } from "@/lib/storage";
 import type { UserRole } from "@/lib/types";
@@ -385,7 +386,9 @@ export async function addStockAction(formData: FormData) {
   redirect("/admin/stock?ok=1");
 }
 
-// Send a test message to the linked LINE staff group so admins can confirm setup.
+// Send today's daily report (flex card) to the linked LINE staff group so
+// admins can preview the report UI. Leaves the scheduled-report dedupe markers
+// untouched, so the nightly 20:00 report still goes out as usual.
 export async function testLineNotifyAction() {
   await requireAdmin();
   const client = lineServiceClient();
@@ -396,7 +399,16 @@ export async function testLineNotifyAction() {
   if (!groupId) {
     redirect(`/admin/settings?error=${encodeURIComponent("ยังไม่ได้เชื่อมกลุ่ม — เพิ่ม OA เข้ากลุ่มทีมงาน แล้วพิมพ์ข้อความในกลุ่ม 1 ครั้ง")}`);
   }
-  const push = await pushLineText(groupId, "🔔 ทดสอบแจ้งเตือนจากระบบ NAK — เชื่อมต่อกลุ่มสำเร็จ ✅");
+  const quota = await getLineQuota();
+  if (!quota) {
+    redirect(`/admin/settings?error=${encodeURIComponent("เช็คโควต้า LINE ไม่ได้ — ยังไม่ส่งเพื่อความปลอดภัย ลองใหม่อีกครั้ง")}`);
+  }
+  const limit = Math.min(quota.limit ?? 195, 195);
+  if (quota.used >= limit) {
+    redirect(`/admin/settings?error=${encodeURIComponent(`โควต้าข้อความเดือนนี้เต็มแล้ว (${quota.used}/${limit})`)}`);
+  }
+  const bubble = buildDailyBubble(await gatherDaily(client));
+  const push = await pushLineFlex(groupId, "ตัวอย่างรายงาน NAK Wholesale", bubble);
   if (!push.ok) {
     redirect(`/admin/settings?error=${encodeURIComponent(push.error ?? "ส่งไม่สำเร็จ")}`);
   }

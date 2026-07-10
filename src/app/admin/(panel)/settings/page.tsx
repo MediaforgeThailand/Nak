@@ -32,7 +32,7 @@ export default async function AdminSettingsPage({
 
       {params.ok ? (
         <div style={{ background: "#e7f4ec", border: "1px solid #bfe3cd", padding: "11px 12px", borderRadius: "var(--r-sm)", color: "#1b7a4b", fontSize: 12.5, display: "flex", alignItems: "center", gap: 7 }}>
-          <Icon name="checkCircle" size={15} stroke={2.4} /> ส่งข้อความทดสอบเข้ากลุ่มแล้ว
+          <Icon name="checkCircle" size={15} stroke={2.4} /> ส่งรายงานทดสอบเข้ากลุ่มแล้ว — เปิด LINE ดูการ์ดรายงานได้เลย
         </div>
       ) : null}
       {params.error ? (
@@ -65,7 +65,7 @@ export default async function AdminSettingsPage({
             </p>
             <form action={testLineNotifyAction}>
               <SubmitButton variant="secondary" pendingLabel="กำลังส่ง...">
-                <Icon name="bell" size={15} stroke={2.4} /> ส่งข้อความทดสอบ
+                <Icon name="bell" size={15} stroke={2.4} /> ส่งรายงานทดสอบ (การ์ดรายงานวันนี้)
               </SubmitButton>
             </form>
           </div>
