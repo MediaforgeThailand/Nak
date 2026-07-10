@@ -3,8 +3,8 @@
   "regions": ["sin1"],
   "crons": [
     {
-      "path": "/api/cron/line-outbox",
-      "schedule": "0 * * * *"
+      "path": "/api/cron/line-report",
+      "schedule": "0 13 * * *"
     }
   ]
 }

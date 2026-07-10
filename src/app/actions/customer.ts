@@ -4,7 +4,6 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { requireCustomer } from "@/lib/auth";
-import { deliverLineOutbox } from "@/lib/line-notify";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { safeFileName } from "@/lib/storage";
 
@@ -30,8 +29,6 @@ export async function createOrderAction(formData: FormData) {
   });
 
   if (error) redirect(`/cart?error=${encodeURIComponent(error.message)}`);
-  // Alert the staff LINE group about the new order (guarded — never blocks checkout).
-  await deliverLineOutbox();
   redirect(`/orders/${data}?ordered=1`);
 }
 
@@ -123,7 +120,5 @@ export async function submitPaymentAction(formData: FormData) {
     await supabase.storage.from("payment-slips").remove([path]);
     redirect(`/payments/new?error=${encodeURIComponent(error.message)}`);
   }
-  // Alert the staff LINE group about the new payment slip (guarded).
-  await deliverLineOutbox();
   redirect("/profile");
 }

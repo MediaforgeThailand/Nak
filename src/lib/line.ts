@@ -36,8 +36,7 @@ export function verifyLineSignature(rawBody: string, signature: string | null) {
   return a.length === b.length && crypto.timingSafeEqual(a, b);
 }
 
-/** Push a plain-text message to a LINE user/group/room. Returns ok + error text. */
-export async function pushLineText(to: string, text: string): Promise<{ ok: boolean; error?: string }> {
+async function pushLineMessages(to: string, messages: unknown[]): Promise<{ ok: boolean; error?: string }> {
   const token = getLineToken();
   if (!token) return { ok: false, error: "LINE_OA_ACCESS_TOKEN is not set" };
   if (!to) return { ok: false, error: "No recipient (group not linked yet)" };
@@ -49,7 +48,7 @@ export async function pushLineText(to: string, text: string): Promise<{ ok: bool
         "content-type": "application/json",
         authorization: `Bearer ${token}`,
       },
-      body: JSON.stringify({ to, messages: [{ type: "text", text: text.slice(0, 4900) }] }),
+      body: JSON.stringify({ to, messages }),
     });
     if (!res.ok) {
       const body = await res.text().catch(() => "");
@@ -58,6 +57,42 @@ export async function pushLineText(to: string, text: string): Promise<{ ok: bool
     return { ok: true };
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : "LINE push error" };
+  }
+}
+
+/** Push a plain-text message to a LINE user/group/room. Returns ok + error text. */
+export async function pushLineText(to: string, text: string) {
+  return pushLineMessages(to, [{ type: "text", text: text.slice(0, 4900) }]);
+}
+
+/** Push a Flex message (rich card UI). `contents` is a bubble or carousel object. */
+export async function pushLineFlex(to: string, altText: string, contents: unknown) {
+  return pushLineMessages(to, [{ type: "flex", altText: altText.slice(0, 390), contents }]);
+}
+
+/**
+ * This month's push-message usage straight from LINE (authoritative — includes
+ * messages sent outside this app). Returns null when the API can't be reached.
+ */
+export async function getLineQuota(): Promise<{ used: number; limit: number | null } | null> {
+  const token = getLineToken();
+  if (!token) return null;
+  const headers = { authorization: `Bearer ${token}` };
+  try {
+    const [consRes, quotaRes] = await Promise.all([
+      fetch("https://api.line.me/v2/bot/message/quota/consumption", { headers }),
+      fetch("https://api.line.me/v2/bot/message/quota", { headers }),
+    ]);
+    if (!consRes.ok) return null;
+    const cons = (await consRes.json()) as { totalUsage?: number };
+    let limit: number | null = null;
+    if (quotaRes.ok) {
+      const quota = (await quotaRes.json()) as { type?: string; value?: number };
+      limit = quota.type === "limited" && typeof quota.value === "number" ? quota.value : null;
+    }
+    return { used: Number(cons.totalUsage ?? 0), limit };
+  } catch {
+    return null;
   }
 }
 

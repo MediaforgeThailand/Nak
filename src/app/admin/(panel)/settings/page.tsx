@@ -3,6 +3,7 @@ import { Icon } from "@/components/nak/icon";
 import { AdBadge, PageHead, SectionCard } from "@/components/nak/ui";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { getSettings } from "@/lib/data/queries";
+import { getLineQuota } from "@/lib/line";
 
 export const dynamic = "force-dynamic";
 
@@ -21,7 +22,7 @@ export default async function AdminSettingsPage({
 }: {
   searchParams: Promise<{ ok?: string; error?: string }>;
 }) {
-  const [params, settings] = await Promise.all([searchParams, getSettings()]);
+  const [params, settings, quota] = await Promise.all([searchParams, getSettings(), getLineQuota()]);
   const groupSetting = settings.find((s) => s.key === "line_group_id");
   const groupId = (groupSetting?.value as { id?: string } | null)?.id ?? null;
 
@@ -48,9 +49,19 @@ export default async function AdminSettingsPage({
         {groupId ? (
           <div style={{ display: "grid", gap: 10, marginTop: 2 }}>
             <p style={{ margin: 0, fontSize: 12.5, color: "var(--muted)", lineHeight: 1.55 }}>
-              ระบบจะส่งแจ้งเตือน <b style={{ color: "var(--ink)" }}>ออเดอร์ใหม่</b> และ <b style={{ color: "var(--ink)" }}>สลิปใหม่</b> เข้ากลุ่มทีมงานนี้อัตโนมัติ
+              ระบบส่ง <b style={{ color: "var(--ink)" }}>รายงานประจำวัน</b> เข้ากลุ่มทุก 20:00 น. · วันอาทิตย์แถม
+              <b style={{ color: "var(--ink)" }}> สรุปสัปดาห์</b> · วันที่ 1 แถม<b style={{ color: "var(--ink)" }}>สรุปเดือน</b> (รวมเป็นข้อความเดียว ประหยัดโควต้า)
               <br />
               Group ID: <span style={{ fontFamily: "monospace" }}>{maskGroupId(groupId)}</span>
+              {quota ? (
+                <>
+                  {" · "}โควต้าเดือนนี้{" "}
+                  <b style={{ color: quota.used > 150 ? "#b42318" : "var(--ink)" }}>
+                    {quota.used}/{quota.limit ?? "∞"}
+                  </b>{" "}
+                  ข้อความ
+                </>
+              ) : null}
             </p>
             <form action={testLineNotifyAction}>
               <SubmitButton variant="secondary" pendingLabel="กำลังส่ง...">
