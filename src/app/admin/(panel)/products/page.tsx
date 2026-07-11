@@ -2,16 +2,17 @@ import {
   createCategoryAction,
   createProductAction,
   deleteCategoryAction,
-  deleteProductAction,
   updatePriceTiersAction,
   updateProductAction,
 } from "@/app/actions/admin";
 import { Icon } from "@/components/nak/icon";
+import { DeleteProductConfirm } from "@/components/nak/delete-product-confirm";
 import { AdBadge, AdThumb, NakField, PageHead } from "@/components/nak/ui";
 import { FileUploadPreview } from "@/components/ui/file-upload-preview";
 import { Select } from "@/components/ui/form";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { money } from "@/lib/format";
+import { requireStaff } from "@/lib/auth";
 import { getPriceTiers, getProductCategories, getProductsWithInventory } from "@/lib/data/queries";
 import { signedUrls } from "@/lib/storage";
 
@@ -20,9 +21,10 @@ export const dynamic = "force-dynamic";
 export default async function AdminProductsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string; q?: string }>;
+  searchParams: Promise<{ error?: string; notice?: string; q?: string }>;
 }) {
-  const params = await searchParams;
+  const [params, { profile }] = await Promise.all([searchParams, requireStaff()]);
+  const canDelete = profile.role === "admin";
   const query = (params.q ?? "").trim();
   const normalizedQuery = query.toLowerCase();
   const [products, categories, priceTiers] = await Promise.all([
@@ -55,6 +57,11 @@ export default async function AdminProductsPage({
       {params.error ? (
         <div style={{ background: "#fbe6e3", border: "1px solid #f3c8c2", padding: "11px 12px", borderRadius: "var(--r-sm)", color: "#b42318", fontSize: 12.5 }}>
           {params.error}
+        </div>
+      ) : null}
+      {params.notice ? (
+        <div style={{ background: "#e7f4ec", border: "1px solid #bfe3cd", padding: "11px 12px", borderRadius: "var(--r-sm)", color: "#1b7a4b", fontSize: 12.5 }}>
+          {params.notice}
         </div>
       ) : null}
 
@@ -266,13 +273,13 @@ export default async function AdminProductsPage({
                     <FileUploadPreview name="image" accept="image/*" capture="environment" />
                   </NakField>
                 </div>
-                <SubmitButton variant="secondary" pendingLabel="..." className="w-full">
-                  บันทึก
-                </SubmitButton>
-                <SubmitButton variant="danger" formAction={deleteProductAction} pendingLabel="..." className="w-full">
-                  ปิดการขาย
-                </SubmitButton>
+                <div style={{ gridColumn: "1 / -1" }}>
+                  <SubmitButton variant="secondary" pendingLabel="..." className="w-full">
+                    บันทึก
+                  </SubmitButton>
+                </div>
               </form>
+              {canDelete ? <DeleteProductConfirm productId={product.id} productName={product.name} /> : null}
             </details>
           );
         })}

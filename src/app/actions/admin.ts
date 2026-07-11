@@ -313,24 +313,50 @@ export async function updateProductAction(formData: FormData) {
   revalidatePath("/home");
 }
 
-export async function deleteProductAction(formData: FormData) {
+// Permanent delete behind a typed confirmation. The admin_delete_product RPC
+// hard-deletes only when the product has no order history; otherwise it
+// deactivates and returns 'deactivated' so we can tell the admin what happened.
+export async function deleteProductPermanentlyAction(formData: FormData) {
   await requireAdmin();
   const supabase = await createSupabaseServerClient("admin");
   const id = String(formData.get("id") ?? "");
+  const confirmText = String(formData.get("confirm_text") ?? "").trim();
 
   if (!id) {
-    redirect(`/admin/products?error=${encodeURIComponent("Product is required")}`);
+    redirect(`/admin/products?error=${encodeURIComponent("ไม่พบสินค้าที่ต้องการลบ")}`);
+  }
+  if (confirmText !== "ยืนยันการลบ") {
+    redirect(`/admin/products?error=${encodeURIComponent('ต้องพิมพ์ "ยืนยันการลบ" ให้ตรงก่อนลบสินค้า')}`);
   }
 
-  const { error } = await supabase
+  const { data: product } = await supabase
     .from("products")
-    .update({ is_active: false })
-    .eq("id", id);
+    .select("image_path")
+    .eq("id", id)
+    .maybeSingle();
 
+  const { data, error } = await supabase.rpc("admin_delete_product", { p_product_id: id });
   if (error) redirect(`/admin/products?error=${encodeURIComponent(error.message)}`);
+
+  const oldImagePath = product?.image_path ?? null;
+  if (
+    data === "deleted" &&
+    oldImagePath &&
+    !oldImagePath.startsWith("/") &&
+    !oldImagePath.startsWith("http://") &&
+    !oldImagePath.startsWith("https://")
+  ) {
+    await supabase.storage.from("product-images").remove([oldImagePath]);
+  }
+
   revalidatePath("/admin/products");
+  revalidatePath("/admin/stock");
   revalidatePath("/products");
   revalidatePath("/home");
+  if (data === "deactivated") {
+    redirect(`/admin/products?notice=${encodeURIComponent("สินค้านี้มีประวัติออเดอร์ จึงลบถาวรไม่ได้ ระบบปิดการขายให้แทน (ไม่แสดงในร้านแล้ว)")}`);
+  }
+  redirect(`/admin/products?notice=${encodeURIComponent("ลบสินค้าออกจากระบบแล้ว")}`);
 }
 
 // Add-stock flow: quantity (positive = รับเข้า, negative = ปรับลด) with an

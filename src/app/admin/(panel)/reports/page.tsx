@@ -71,7 +71,7 @@ export default async function AdminReportsPage() {
 
       <div className="ad-card" style={{ padding: "2px 2px" }}>
         <ReportLinkRow
-          href="/admin/sales"
+          href="/admin/reports/sales"
           icon="trending"
           title="ยอดขาย"
           sub={`เดือนนี้ ${moneyCompact(monthSum.total)} · กราฟรายวัน + Top สินค้า`}

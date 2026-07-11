@@ -20,7 +20,6 @@ type NavItem = {
 
 const NAV: NavItem[] = [
   { href: "/admin/home", label: "แดชบอร์ด", icon: "dash", badge: "" },
-  { href: "/admin/sales", label: "ยอดขาย", icon: "trending", badge: "", adminOnly: true },
   { href: "/admin/reports", label: "รายงาน", icon: "chart", badge: "", adminOnly: true },
   { href: "/admin/products", label: "สินค้า", icon: "package", badge: "" },
   { href: "/admin/stock", label: "สต็อก", icon: "warehouse", badge: "" },
