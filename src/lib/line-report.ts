@@ -323,8 +323,12 @@ function monthKey(at: Date, offset = 0) {
  * Send today's scheduled reports as ONE flex message (carousel when several are
  * due). Dedupes per Bangkok day and hard-stops before the free LINE quota.
  * `force` skips the dedupe (for a manual test) but never the quota guard.
+ * `preview` (with `force`) sends ONLY the forced kinds and leaves all state
+ * untouched — the scheduled sends still go out as if the preview never happened.
  */
-export async function sendScheduledReports(opts: { force?: ("daily" | "weekly" | "monthly")[] } = {}) {
+export async function sendScheduledReports(
+  opts: { force?: ("daily" | "weekly" | "monthly")[]; preview?: boolean } = {},
+) {
   const client = lineServiceClient();
   if (!client) return { sent: false, note: "no service role key" };
 
@@ -340,16 +344,19 @@ export async function sendScheduledReports(opts: { force?: ("daily" | "weekly" |
   const { dow, d } = bkkDate(now);
   const state = await getState(client);
   const force = new Set(opts.force ?? []);
+  const preview = opts.preview === true && force.size > 0;
 
-  const wantDaily = force.has("daily") || state.last_daily !== dayKey(now);
-  const wantWeekly = force.has("weekly") || (dow === 0 && state.last_weekly !== dayKey(now));
-  const wantMonthly = force.has("monthly") || (d === 1 && state.last_monthly !== monthKey(now, -1));
+  const wantDaily = force.has("daily") || (!preview && state.last_daily !== dayKey(now));
+  const wantWeekly = force.has("weekly") || (!preview && dow === 0 && state.last_weekly !== dayKey(now));
+  const wantMonthly = force.has("monthly") || (!preview && d === 1 && state.last_monthly !== monthKey(now, -1));
 
   // Drain the per-event outbox as skipped: reports replaced per-order pushes.
-  await client
-    .from("line_notification_outbox")
-    .update({ status: "skipped", processed_at: now.toISOString() })
-    .eq("status", "queued");
+  if (!preview) {
+    await client
+      .from("line_notification_outbox")
+      .update({ status: "skipped", processed_at: now.toISOString() })
+      .eq("status", "queued");
+  }
 
   if (!wantDaily && !wantWeekly && !wantMonthly) return { sent: false, note: "nothing due" };
 
@@ -362,11 +369,13 @@ export async function sendScheduledReports(opts: { force?: ("daily" | "weekly" |
   const push = await pushLineFlex(groupId, "รายงาน NAK Wholesale", contents);
   if (!push.ok) return { sent: false, note: push.error };
 
-  const next: ReportState = { ...state };
-  if (wantDaily) next.last_daily = dayKey(now);
-  if (wantWeekly) next.last_weekly = dayKey(now);
-  if (wantMonthly) next.last_monthly = monthKey(now, -1);
-  await saveState(client, next);
+  if (!preview) {
+    const next: ReportState = { ...state };
+    if (wantDaily) next.last_daily = dayKey(now);
+    if (wantWeekly) next.last_weekly = dayKey(now);
+    if (wantMonthly) next.last_monthly = monthKey(now, -1);
+    await saveState(client, next);
+  }
 
-  return { sent: true, bubbles: bubbles.length, quotaUsedBefore: quota.used, limit };
+  return { sent: true, bubbles: bubbles.length, preview, quotaUsedBefore: quota.used, limit };
 }

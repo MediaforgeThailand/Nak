@@ -63,11 +63,31 @@ export default async function AdminSettingsPage({
                 </>
               ) : null}
             </p>
-            <form action={testLineNotifyAction}>
-              <SubmitButton variant="secondary" pendingLabel="กำลังส่ง...">
-                <Icon name="bell" size={15} stroke={2.4} /> ส่งรายงานทดสอบ (การ์ดรายงานวันนี้)
-              </SubmitButton>
-            </form>
+            <div style={{ display: "grid", gap: 7 }}>
+              <span style={{ fontSize: 11.5, color: "var(--muted)" }}>
+                ส่งรายงานทดสอบเข้ากลุ่ม (ไม่กระทบรอบอัตโนมัติ)
+              </span>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                <form action={testLineNotifyAction}>
+                  <input type="hidden" name="kind" value="daily" />
+                  <SubmitButton variant="secondary" pendingLabel="กำลังส่ง...">
+                    <Icon name="bell" size={15} stroke={2.4} /> การ์ดวันนี้
+                  </SubmitButton>
+                </form>
+                <form action={testLineNotifyAction}>
+                  <input type="hidden" name="kind" value="weekly" />
+                  <SubmitButton variant="secondary" pendingLabel="กำลังส่ง...">
+                    สรุปสัปดาห์
+                  </SubmitButton>
+                </form>
+                <form action={testLineNotifyAction}>
+                  <input type="hidden" name="kind" value="monthly" />
+                  <SubmitButton variant="secondary" pendingLabel="กำลังส่ง...">
+                    สรุปเดือน
+                  </SubmitButton>
+                </form>
+              </div>
+            </div>
           </div>
         ) : (
           <div style={{ display: "grid", gap: 8, marginTop: 2, fontSize: 12.5, color: "var(--muted)", lineHeight: 1.6 }}>

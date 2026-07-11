@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireAdmin, requireOwner, requireStaff } from "@/lib/auth";
 import { getLineQuota, getLinkedGroupId, lineServiceClient, pushLineFlex } from "@/lib/line";
-import { buildDailyBubble, gatherDaily } from "@/lib/line-report";
+import { buildDailyBubble, buildPeriodBubble, gatherDaily, gatherPeriod } from "@/lib/line-report";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { safeFileName } from "@/lib/storage";
 import type { UserRole } from "@/lib/types";
@@ -386,11 +386,14 @@ export async function addStockAction(formData: FormData) {
   redirect("/admin/stock?ok=1");
 }
 
-// Send today's daily report (flex card) to the linked LINE staff group so
-// admins can preview the report UI. Leaves the scheduled-report dedupe markers
-// untouched, so the nightly 20:00 report still goes out as usual.
-export async function testLineNotifyAction() {
+// Send a report flex card (daily/weekly/monthly per the "kind" form field) to
+// the linked LINE staff group so admins can preview the report UI. Leaves the
+// scheduled-report dedupe markers untouched, so the nightly 20:00 report still
+// goes out as usual.
+export async function testLineNotifyAction(formData: FormData) {
   await requireAdmin();
+  const raw = String(formData.get("kind") ?? "daily");
+  const kind = raw === "weekly" || raw === "monthly" ? raw : "daily";
   const client = lineServiceClient();
   if (!client) {
     redirect(`/admin/settings?error=${encodeURIComponent("ยังไม่ได้ตั้งค่า SUPABASE_SERVICE_ROLE_KEY บนเซิร์ฟเวอร์")}`);
@@ -407,7 +410,10 @@ export async function testLineNotifyAction() {
   if (quota.used >= limit) {
     redirect(`/admin/settings?error=${encodeURIComponent(`โควต้าข้อความเดือนนี้เต็มแล้ว (${quota.used}/${limit})`)}`);
   }
-  const bubble = buildDailyBubble(await gatherDaily(client));
+  const bubble =
+    kind === "daily"
+      ? buildDailyBubble(await gatherDaily(client))
+      : buildPeriodBubble(await gatherPeriod(client, kind));
   const push = await pushLineFlex(groupId, "ตัวอย่างรายงาน NAK Wholesale", bubble);
   if (!push.ok) {
     redirect(`/admin/settings?error=${encodeURIComponent(push.error ?? "ส่งไม่สำเร็จ")}`);
