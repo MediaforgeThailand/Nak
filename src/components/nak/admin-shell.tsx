@@ -7,9 +7,21 @@ import { signOutAdminAction } from "@/app/actions/auth";
 import { Icon } from "@/components/nak/icon";
 import { Avatar } from "@/components/nak/ui";
 
-const NAV = [
+export type AdminBadges = { orders: number; payments: number; users: number };
+
+type NavItem = {
+  href: string;
+  label: string;
+  icon: string;
+  badge: "" | keyof AdminBadges;
+  /** Hidden from factory_staff (the target page requireAdmin()-redirects them anyway). */
+  adminOnly?: boolean;
+};
+
+const NAV: NavItem[] = [
   { href: "/admin/home", label: "แดชบอร์ด", icon: "dash", badge: "" },
-  { href: "/admin/sales", label: "ยอดขาย", icon: "trending", badge: "" },
+  { href: "/admin/sales", label: "ยอดขาย", icon: "trending", badge: "", adminOnly: true },
+  { href: "/admin/reports", label: "รายงาน", icon: "chart", badge: "", adminOnly: true },
   { href: "/admin/products", label: "สินค้า", icon: "package", badge: "" },
   { href: "/admin/stock", label: "สต็อก", icon: "warehouse", badge: "" },
   { href: "/admin/orders", label: "ออเดอร์", icon: "clipboard", badge: "orders" },
@@ -17,19 +29,19 @@ const NAV = [
   { href: "/admin/customers", label: "ลูกค้า", icon: "users", badge: "" },
   { href: "/admin/users", label: "สิทธิ์", icon: "shield", badge: "users" },
   { href: "/admin/settings", label: "ตั้งค่า", icon: "gear", badge: "" },
-] as const;
-
-export type AdminBadges = { orders: number; payments: number; users: number };
+];
 
 export function AdminShell({
   email,
   fullName,
   badges,
+  isAdmin,
   children,
 }: {
   email: string;
   fullName: string;
   badges: AdminBadges;
+  isAdmin: boolean;
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
@@ -52,8 +64,9 @@ export function AdminShell({
     return () => document.removeEventListener("keydown", onKey);
   }, []);
 
+  const nav = NAV.filter((n) => isAdmin || !n.adminOnly);
   const isActive = (href: string) => pathname === href || pathname.startsWith(`${href}/`);
-  const current = NAV.find((n) => isActive(n.href)) ?? NAV[0];
+  const current = nav.find((n) => isActive(n.href)) ?? nav[0];
   const badgeFor = (key: string) => (key ? badges[key as keyof AdminBadges] ?? 0 : 0);
   const alerts = badges.orders + badges.payments;
 
@@ -108,7 +121,7 @@ export function AdminShell({
           </div>
 
           <nav className="adm-nav">
-            {NAV.map((n) => {
+            {nav.map((n) => {
               const count = badgeFor(n.badge);
               return (
                 <Link key={n.href} href={n.href} className={"adm-navitem" + (isActive(n.href) ? " is-on" : "")}>

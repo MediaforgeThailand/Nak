@@ -222,6 +222,102 @@ export async function getSalesOrders(sinceISO: string) {
   return data ?? [];
 }
 
+// Approved sales since `sinceISO` with customer + category context, for the
+// report pages (same "approved sale" definition as getSalesOrders).
+export async function getReportSalesOrders(sinceISO: string) {
+  const supabase = await createSupabaseServerClient("admin");
+  const { data, error } = await supabase
+    .from("orders")
+    .select(
+      "id, subtotal, debt_applied_at, customer_id, customer:profiles!orders_customer_id_fkey(company_name, full_name, email), order_items(product_id, product_name, quantity, line_total, unit, product:products(category:product_categories(name)))",
+    )
+    .not("debt_applied_at", "is", null)
+    .gte("debt_applied_at", sinceISO)
+    .not("status", "in", "(rejected,cancelled)")
+    .order("debt_applied_at", { ascending: true });
+  if (error) throw error;
+  return data ?? [];
+}
+
+// Customers carrying debt, largest first.
+export async function getDebtors() {
+  const supabase = await createSupabaseServerClient("admin");
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("id, full_name, company_name, email, phone, debt_balance")
+    .eq("role", "customer")
+    .gt("debt_balance", 0)
+    .order("debt_balance", { ascending: false });
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function getApprovedPaymentsSince(sinceISO: string) {
+  const supabase = await createSupabaseServerClient("admin");
+  const { data, error } = await supabase
+    .from("payments")
+    .select("amount, reviewed_at, customer_id")
+    .eq("status", "approved")
+    .gte("reviewed_at", sinceISO)
+    .order("reviewed_at", { ascending: true });
+  if (error) throw error;
+  return data ?? [];
+}
+
+// Latest approved payment per customer (reduce in JS), for debtor rows.
+// Callers must keep `customerIds` small (displayed rows only): the scan is
+// unbounded in time and PostgREST silently truncates at its max-rows cap.
+export async function getLastApprovedPayments(customerIds: string[]) {
+  if (customerIds.length === 0) return new Map<string, { reviewed_at: string; amount: number }>();
+  const supabase = await createSupabaseServerClient("admin");
+  const { data, error } = await supabase
+    .from("payments")
+    .select("customer_id, reviewed_at, amount")
+    .eq("status", "approved")
+    .in("customer_id", customerIds)
+    .order("reviewed_at", { ascending: false });
+  if (error) throw error;
+  const latest = new Map<string, { reviewed_at: string; amount: number }>();
+  for (const payment of data ?? []) {
+    if (!latest.has(payment.customer_id)) {
+      latest.set(payment.customer_id, { reviewed_at: payment.reviewed_at, amount: Number(payment.amount ?? 0) });
+    }
+  }
+  return latest;
+}
+
+export async function getPendingSlipCount() {
+  const supabase = await createSupabaseServerClient("admin");
+  const { count, error } = await supabase
+    .from("payments")
+    .select("id", { count: "exact", head: true })
+    .eq("status", "pending");
+  if (error) throw error;
+  return count ?? 0;
+}
+
+export async function getStockMovementsSince(sinceISO: string) {
+  const supabase = await createSupabaseServerClient("admin");
+  const { data, error } = await supabase
+    .from("inventory_movements")
+    .select("type, quantity_delta, created_at")
+    .gte("created_at", sinceISO)
+    .order("created_at", { ascending: true });
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function getNewCustomerCount(sinceISO: string) {
+  const supabase = await createSupabaseServerClient("admin");
+  const { count, error } = await supabase
+    .from("profiles")
+    .select("id", { count: "exact", head: true })
+    .eq("role", "customer")
+    .gte("created_at", sinceISO);
+  if (error) throw error;
+  return count ?? 0;
+}
+
 export async function getInventoryMovements() {
   const supabase = await createSupabaseServerClient("admin");
   const { data, error } = await supabase

@@ -19,7 +19,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   };
 
   return (
-    <AdminShell email={profile.email} fullName={profile.full_name ?? ""} badges={badges}>
+    <AdminShell email={profile.email} fullName={profile.full_name ?? ""} badges={badges} isAdmin={profile.role === "admin"}>
       {children}
     </AdminShell>
   );
