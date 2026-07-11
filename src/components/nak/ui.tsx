@@ -3,6 +3,7 @@ import Link from "next/link";
 import type { CSSProperties, ReactNode } from "react";
 import { Icon } from "@/components/nak/icon";
 import { orderStatusMeta } from "@/lib/format";
+import { defaultProductImage } from "@/lib/product-images";
 
 /* ── admin inline back header ──────────────────────────────────── */
 export function BackHead({ title, backHref, right }: { title: string; backHref: string; right?: ReactNode }) {
@@ -105,6 +106,7 @@ export function ProductImage({
   iconSize?: number;
 }) {
   const [tint, ink] = tintFor(seed);
+  const src = imageUrl ?? defaultProductImage(seed);
   return (
     <div
       style={{
@@ -118,8 +120,8 @@ export function ProductImage({
         placeItems: "center",
       }}
     >
-      {imageUrl ? (
-        <Image src={imageUrl} alt={alt ?? ""} fill sizes="(max-width: 480px) 50vw, 240px" className="object-cover" />
+      {src ? (
+        <Image src={src} alt={alt ?? ""} fill sizes="(max-width: 480px) 50vw, 240px" className="object-cover" />
       ) : (
         <>
           <div

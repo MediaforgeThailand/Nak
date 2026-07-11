@@ -2,6 +2,7 @@ import { BackHead } from "@/components/nak/ui";
 import { StockAddForm, type StockProduct } from "@/components/nak/stock-add-form";
 import { requireAdmin } from "@/lib/auth";
 import { getProductsWithInventory } from "@/lib/data/queries";
+import { defaultProductImage } from "@/lib/product-images";
 import { signedUrls } from "@/lib/storage";
 
 export const dynamic = "force-dynamic";
@@ -12,7 +13,7 @@ export default async function AdminStockAddPage({
   searchParams: Promise<{ product?: string; error?: string }>;
 }) {
   const [{ product: preselectId, error }] = await Promise.all([searchParams, requireAdmin()]);
-  const products = await getProductsWithInventory(true, "admin");
+  const products = await getProductsWithInventory(false, "admin");
 
   const imageUrls = await signedUrls(
     "product-images",
@@ -28,7 +29,7 @@ export default async function AdminStockAddPage({
       sku: p.sku,
       unit: p.unit,
       qty: inv?.quantity_available ?? 0,
-      imageUrl: p.image_path ? imageUrls.get(p.image_path) ?? null : null,
+      imageUrl: (p.image_path ? imageUrls.get(p.image_path) ?? null : null) ?? defaultProductImage(p.sku),
     };
   });
 
