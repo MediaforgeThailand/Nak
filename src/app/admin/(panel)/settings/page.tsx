@@ -77,13 +77,13 @@ export default async function AdminSettingsPage({
                 <form action={testLineNotifyAction}>
                   <input type="hidden" name="kind" value="weekly" />
                   <SubmitButton variant="secondary" pendingLabel="กำลังส่ง...">
-                    สรุปสัปดาห์
+                    สรุปสัปดาห์นี้
                   </SubmitButton>
                 </form>
                 <form action={testLineNotifyAction}>
                   <input type="hidden" name="kind" value="monthly" />
                   <SubmitButton variant="secondary" pendingLabel="กำลังส่ง...">
-                    สรุปเดือน
+                    สรุปเดือนที่แล้ว
                   </SubmitButton>
                 </form>
               </div>

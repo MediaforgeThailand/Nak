@@ -69,6 +69,8 @@ const ACTIVE = "status.not.in.(rejected,cancelled)"; // documented intent; appli
 
 export type DailyStats = {
   dateLabel: string;
+  salesCount: number;
+  salesValue: number;
   ordersCount: number;
   ordersValue: number;
   shippedCount: number;
@@ -81,7 +83,16 @@ export type DailyStats = {
 
 export async function gatherDaily(client: SupabaseClient, at = new Date()): Promise<DailyStats> {
   const { start, end } = bkkDayRange(at);
-  const [ordersRes, shippedRes, paidRes, pendingRes] = await Promise.all([
+  const [salesRes, ordersRes, shippedRes, paidRes, pendingRes] = await Promise.all([
+    // "ยอดขาย" = approved orders by debt_applied_at — the exact same definition
+    // as the /admin/sales dashboard (getSalesOrders), so the numbers match.
+    client
+      .from("orders")
+      .select("subtotal")
+      .not("debt_applied_at", "is", null)
+      .gte("debt_applied_at", start.toISOString())
+      .lt("debt_applied_at", end.toISOString())
+      .not("status", "in", "(rejected,cancelled)"),
     client
       .from("orders")
       .select("subtotal")
@@ -104,12 +115,15 @@ export async function gatherDaily(client: SupabaseClient, at = new Date()): Prom
     client.from("payments").select("id", { count: "exact", head: true }).eq("status", "pending"),
   ]);
 
+  const sales = salesRes.data ?? [];
   const orders = ordersRes.data ?? [];
   const shipped = shippedRes.data ?? [];
   const paid = paidRes.data ?? [];
 
   return {
     dateLabel: thaiDate(at),
+    salesCount: sales.length,
+    salesValue: sales.reduce((s, o) => s + Number(o.subtotal ?? 0), 0),
     ordersCount: orders.length,
     ordersValue: orders.reduce((s, o) => s + Number(o.subtotal ?? 0), 0),
     shippedCount: shipped.length,
@@ -128,8 +142,8 @@ export async function gatherDaily(client: SupabaseClient, at = new Date()): Prom
 export type PeriodStats = {
   title: string;
   rangeLabel: string;
-  ordersCount: number;
-  ordersValue: number;
+  salesCount: number;
+  salesValue: number;
   paidValue: number;
   paidCount: number;
   outstandingDebt: number;
@@ -144,12 +158,14 @@ export async function gatherPeriod(
   const range = kind === "weekly" ? bkkWeekRange(at) : bkkMonthRange(at, -1);
   const { start, end } = range;
 
-  const [ordersRes, paidRes, debtRes, itemsRes] = await Promise.all([
+  const [salesRes, paidRes, debtRes, itemsRes] = await Promise.all([
+    // Same "approved sale" definition as the /admin/sales dashboard.
     client
       .from("orders")
       .select("subtotal")
-      .gte("created_at", start.toISOString())
-      .lt("created_at", end.toISOString())
+      .not("debt_applied_at", "is", null)
+      .gte("debt_applied_at", start.toISOString())
+      .lt("debt_applied_at", end.toISOString())
       .not("status", "in", "(rejected,cancelled)"),
     client
       .from("payments")
@@ -160,9 +176,10 @@ export async function gatherPeriod(
     client.from("profiles").select("debt_balance").eq("role", "customer").gt("debt_balance", 0),
     client
       .from("order_items")
-      .select("line_total, order:orders!inner(created_at, status), product:products(category:product_categories(name))")
-      .gte("order.created_at", start.toISOString())
-      .lt("order.created_at", end.toISOString())
+      .select("line_total, order:orders!inner(debt_applied_at, status), product:products(category:product_categories(name))")
+      .not("order.debt_applied_at", "is", null)
+      .gte("order.debt_applied_at", start.toISOString())
+      .lt("order.debt_applied_at", end.toISOString())
       .not("order.status", "in", "(rejected,cancelled)"),
   ]);
 
@@ -176,7 +193,7 @@ export async function gatherPeriod(
     byCategory.set(name, (byCategory.get(name) ?? 0) + Number(row.line_total ?? 0));
   }
 
-  const orders = ordersRes.data ?? [];
+  const sales = salesRes.data ?? [];
   const paid = paidRes.data ?? [];
   const endLabel = new Date(end.getTime() - 1);
 
@@ -184,8 +201,8 @@ export async function gatherPeriod(
     title: kind === "weekly" ? "รายงานประจำสัปดาห์" : "รายงานประจำเดือน",
     rangeLabel:
       kind === "weekly" ? `${thaiDate(start)} – ${thaiDate(endLabel)}` : thaiMonth(start),
-    ordersCount: orders.length,
-    ordersValue: orders.reduce((s, o) => s + Number(o.subtotal ?? 0), 0),
+    salesCount: sales.length,
+    salesValue: sales.reduce((s, o) => s + Number(o.subtotal ?? 0), 0),
     paidCount: paid.length,
     paidValue: paid.reduce((s, p) => s + Number(p.amount ?? 0), 0),
     outstandingDebt: (debtRes.data ?? []).reduce((s, p) => s + Number(p.debt_balance ?? 0), 0),
@@ -198,13 +215,15 @@ export async function gatherPeriod(
 
 // ── flex bubbles ───────────────────────────────────────────────────────────
 
+// Label carries the counts ("ยอดขาย · 13 ออเดอร์") so the value column only
+// holds money and 7-8 digit totals never truncate; wrap is the safety net.
 function statRow(label: string, value: string, valueColor = THEME.ink) {
   return {
     type: "box",
     layout: "horizontal",
     contents: [
-      { type: "text", text: label, size: "sm", color: THEME.muted, flex: 5 },
-      { type: "text", text: value, size: "sm", color: valueColor, align: "end", weight: "bold", flex: 4 },
+      { type: "text", text: label, size: "sm", color: THEME.muted, flex: 5, wrap: true },
+      { type: "text", text: value, size: "sm", color: valueColor, align: "end", weight: "bold", flex: 4, wrap: true },
     ],
   };
 }
@@ -262,12 +281,15 @@ export function buildDailyBubble(s: DailyStats) {
     });
   }
   return bubbleShell("📊 รายงานประจำวัน", s.dateLabel, [
+    sectionTitle("ยอดขายวันนี้ (อนุมัติแล้ว)"),
+    statRow(`ยอดขาย · ${s.salesCount} ออเดอร์`, baht(s.salesValue), THEME.redDeep),
+    separator(),
     sectionTitle("ออเดอร์วันนี้"),
-    statRow("สั่งเข้ามา", `${s.ordersCount} ออเดอร์ · ${baht(s.ordersValue)}`),
-    statRow("จัดส่งแล้ว", `${s.shippedCount} ออเดอร์ · ${baht(s.shippedValue)}`, THEME.green),
+    statRow(`สั่งเข้ามา · ${s.ordersCount} ออเดอร์`, baht(s.ordersValue)),
+    statRow(`จัดส่งแล้ว · ${s.shippedCount} ออเดอร์`, baht(s.shippedValue), THEME.green),
     separator(),
     sectionTitle("การชำระเงินวันนี้"),
-    statRow("อนุมัติแล้ว", `${s.paidCount} ราย · ${baht(s.paidValue)}`, THEME.green),
+    statRow(`รับชำระ (อนุมัติ) · ${s.paidCount} ราย`, baht(s.paidValue), THEME.green),
     ...(names.length > 0 ? names : []),
     statRow("สลิปรอตรวจ", `${s.pendingSlips} รายการ`, s.pendingSlips > 0 ? THEME.amber : THEME.ink),
   ]);
@@ -281,8 +303,8 @@ export function buildPeriodBubble(s: PeriodStats) {
     : [{ type: "text", text: "ยังไม่มียอดขายในช่วงนี้", size: "xs", color: THEME.muted, margin: "sm" }];
   return bubbleShell(`📈 ${s.title}`, s.rangeLabel, [
     sectionTitle("ภาพรวม"),
-    statRow("ยอดสั่งซื้อ", `${s.ordersCount} ออเดอร์ · ${baht(s.ordersValue)}`),
-    statRow("ชำระแล้ว (อนุมัติ)", `${s.paidCount} ราย · ${baht(s.paidValue)}`, THEME.green),
+    statRow(`ยอดขาย · ${s.salesCount} ออเดอร์`, baht(s.salesValue), THEME.redDeep),
+    statRow(`รับชำระ (อนุมัติ) · ${s.paidCount} ราย`, baht(s.paidValue), THEME.green),
     statRow("ยอดค้างชำระรวม", baht(s.outstandingDebt), s.outstandingDebt > 0 ? THEME.amber : THEME.green),
     separator(),
     sectionTitle("Top 5 หมวดขายดี"),
