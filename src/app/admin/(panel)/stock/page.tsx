@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Icon } from "@/components/nak/icon";
-import { AdBadge, PageHead, ProductImage } from "@/components/nak/ui";
+import { PageHead } from "@/components/nak/ui";
+import { StockBoard, type StockBoardGroup } from "@/components/nak/stock-board";
 import { requireStaff } from "@/lib/auth";
 import { getInventoryMovements, getProductCategories, getProductsWithInventory } from "@/lib/data/queries";
 import { compactDate } from "@/lib/format";
@@ -19,11 +20,11 @@ function stockStatus(qty: number, threshold: number): { tone: Tone; label: strin
   return { tone: "success", label: "ปกติ" };
 }
 
-const CARD_ACCENT: Record<Tone, { border: string; bg: string }> = {
-  danger: { border: "#f0b9b2", bg: "#fdecea" },
-  warning: { border: "#eed7ad", bg: "#fdf6ec" },
-  success: { border: "var(--card-line)", bg: "" },
-};
+// "Marbo9k แท้ - Grape" → "Grape" (tiles live under the category header already).
+function flavourOf(name: string) {
+  const ix = name.indexOf(" - ");
+  return ix > -1 ? name.slice(ix + 3) : name;
+}
 
 export default async function AdminStockPage({
   searchParams,
@@ -34,19 +35,16 @@ export default async function AdminStockPage({
   const canEdit = profile.role === "admin";
 
   const [products, categories, movements] = await Promise.all([
-    getProductsWithInventory(true, "admin"),
+    getProductsWithInventory(false, "admin"),
     getProductCategories("admin"),
     getInventoryMovements(),
   ]);
 
-  const [productImages, movementPhotos] = await Promise.all([
-    signedUrls("product-images", products.map((p) => p.image_path).filter((p): p is string => Boolean(p)), "admin"),
-    signedUrls(
-      "stock-photos",
-      movements.map((m) => m.photo_path).filter((p): p is string => Boolean(p)),
-      "admin",
-    ),
-  ]);
+  const movementPhotos = await signedUrls(
+    "stock-photos",
+    movements.map((m) => m.photo_path).filter((p): p is string => Boolean(p)),
+    "admin",
+  );
 
   const invOf = (p: (typeof products)[number]) => (Array.isArray(p.inventory) ? p.inventory[0] : p.inventory);
 
@@ -62,6 +60,23 @@ export default async function AdminStockPage({
     const inv = invOf(p);
     return stockStatus(inv?.quantity_available ?? 0, inv?.low_stock_threshold ?? 0).tone !== "success";
   }).length;
+
+  const boardGroups: StockBoardGroup[] = groups.map((g) => ({
+    id: g.id,
+    name: g.name,
+    items: g.items.map((p) => {
+      const inv = invOf(p);
+      const qty = inv?.quantity_available ?? 0;
+      return {
+        id: p.id,
+        name: p.name,
+        shortName: flavourOf(p.name),
+        sku: p.sku ?? "",
+        qty,
+        tone: stockStatus(qty, inv?.low_stock_threshold ?? 0).tone,
+      };
+    }),
+  }));
 
   return (
     <div style={{ display: "grid", gap: 14 }}>
@@ -88,81 +103,12 @@ export default async function AdminStockPage({
         </div>
       ) : null}
 
-      {/* stock cards by category */}
-      {groups.map((group) => (
-        <div key={group.id} style={{ display: "grid", gap: 9 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <h3 style={{ margin: 0, fontSize: 14, fontWeight: 800 }}>{group.name}</h3>
-            <span style={{ fontSize: 11.5, color: "var(--muted)" }}>{group.items.length} รายการ</span>
-          </div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(148px, 1fr))", gap: 9 }}>
-            {group.items.map((product) => {
-              const inv = invOf(product);
-              const qty = inv?.quantity_available ?? 0;
-              const status = stockStatus(qty, inv?.low_stock_threshold ?? 0);
-              const accent = CARD_ACCENT[status.tone];
-              const imageUrl = product.image_path ? productImages.get(product.image_path) ?? null : null;
-              const inner = (
-                <>
-                  <div style={{ position: "relative" }}>
-                    <ProductImage seed={product.sku || product.id} imageUrl={imageUrl} alt={product.name} ratio="1 / 1" radius="12px" iconSize={30} />
-                    {canEdit ? (
-                      <span
-                        style={{
-                          position: "absolute",
-                          top: 6,
-                          right: 6,
-                          width: 26,
-                          height: 26,
-                          borderRadius: 999,
-                          background: "var(--p)",
-                          color: "#fff",
-                          display: "grid",
-                          placeItems: "center",
-                          boxShadow: "0 2px 8px -2px rgba(196,45,72,.5)",
-                        }}
-                      >
-                        <Icon name="plus" size={15} stroke={2.8} />
-                      </span>
-                    ) : null}
-                  </div>
-                  <div style={{ fontSize: 12.5, fontWeight: 600, lineHeight: 1.3, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden", minHeight: 32 }}>
-                    {product.name}
-                  </div>
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 6 }}>
-                    <AdBadge tone={status.tone}>เหลือ {qty.toLocaleString("th-TH")}</AdBadge>
-                    <span style={{ fontSize: 10.5, fontWeight: 700, color: status.tone === "danger" ? "#b42318" : status.tone === "warning" ? "#a35a10" : "#1b7a4b" }}>
-                      {status.label}
-                    </span>
-                  </div>
-                </>
-              );
-              const cardStyle = {
-                display: "grid",
-                gap: 8,
-                padding: 9,
-                borderRadius: "var(--r-sm)",
-                border: `1px solid ${accent.border}`,
-                background: accent.bg || "linear-gradient(180deg, rgba(255,255,255,.92), rgba(255,255,255,.74))",
-                boxShadow: "var(--shadow)",
-                minWidth: 0,
-              } as const;
-              return canEdit ? (
-                <Link key={product.id} href={`/admin/stock/add?product=${product.id}`} style={cardStyle}>
-                  {inner}
-                </Link>
-              ) : (
-                <div key={product.id} style={cardStyle}>
-                  {inner}
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      ))}
-      {products.length === 0 ? (
+      {/* whiteboard-style stock overview */}
+      {products.length > 0 ? (
+        <StockBoard groups={boardGroups} canEdit={canEdit} />
+      ) : (
         <div className="ad-card" style={{ padding: 20, textAlign: "center", color: "var(--muted)", fontSize: 14 }}>ยังไม่มีสินค้า</div>
-      ) : null}
+      )}
 
       {/* history */}
       <div className="ad-card" style={{ padding: 16, display: "grid", gap: 4 }}>
