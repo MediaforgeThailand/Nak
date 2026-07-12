@@ -1,49 +1,31 @@
-import QRCode from "qrcode";
+import Image from "next/image";
 import { submitPaymentAction } from "@/app/actions/customer";
 import { Icon } from "@/components/nak/icon";
 import { SubHeader } from "@/components/nak/sub-header";
 import { Badge, NakField } from "@/components/nak/ui";
+import { CopyButton } from "@/components/ui/copy-button";
 import { FileUploadPreview } from "@/components/ui/file-upload-preview";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { requireCustomer } from "@/lib/auth";
-import { getPaymentPromptPaySetting } from "@/lib/data/queries";
+import { bankLogoFor, formatAccountNumber } from "@/lib/banks";
+import { getPaymentBankAccount } from "@/lib/data/queries";
 import { money } from "@/lib/format";
-import { buildPromptPayPayload, formatPromptPayId, parsePromptPayId } from "@/lib/promptpay";
 
 export const dynamic = "force-dynamic";
-
-// Scannable PromptPay QR rendered server-side from the admin-configured id.
-async function PromptPayQR({ id }: { id: string }) {
-  const target = parsePromptPayId(id);
-  if (!target) return null;
-  const svg = await QRCode.toString(buildPromptPayPayload(target), {
-    type: "svg",
-    errorCorrectionLevel: "M",
-    margin: 0,
-    color: { dark: "#0c2a26", light: "#ffffff" },
-  });
-  return (
-    <div
-      aria-label="PromptPay QR"
-      style={{ width: 160, height: 160 }}
-      dangerouslySetInnerHTML={{ __html: svg }}
-    />
-  );
-}
 
 export default async function NewPaymentPage({
   searchParams,
 }: {
   searchParams: Promise<{ error?: string }>;
 }) {
-  const [params, { profile }, promptPay] = await Promise.all([
+  const [params, { profile }, bankAccount] = await Promise.all([
     searchParams,
     requireCustomer(),
-    getPaymentPromptPaySetting(),
+    getPaymentBankAccount(),
   ]);
   const today = new Date().toISOString().slice(0, 10);
   const debt = Number(profile.debt_balance ?? 0);
-  const promptPayTarget = promptPay ? parsePromptPayId(promptPay.id) : null;
+  const bankLogo = bankAccount ? bankLogoFor(bankAccount.bank) : null;
 
   return (
     <>
@@ -66,18 +48,33 @@ export default async function NewPaymentPage({
 
         <div className="nak-card" style={{ padding: 18, display: "grid", gap: 12, justifyItems: "center", textAlign: "center" }}>
           <Badge tone="accent">
-            <Icon name="scan" size={13} stroke={2.4} /> พร้อมเพย์ / โอนเงิน
+            <Icon name="wallet" size={13} stroke={2.4} /> โอนเงินเข้าบัญชีธนาคาร
           </Badge>
-          {promptPay && promptPayTarget ? (
+          {bankAccount ? (
             <>
-              <div style={{ padding: 12, background: "#fff", border: "1px solid var(--line)", borderRadius: "var(--r-sm)" }}>
-                <PromptPayQR id={promptPay.id} />
-              </div>
-              <div>
-                {promptPay.name ? <div style={{ fontSize: 14, fontWeight: 700 }}>{promptPay.name}</div> : null}
-                <div style={{ fontSize: 12.5, color: "var(--muted)", marginTop: 2 }}>
-                  พร้อมเพย์ {formatPromptPayId(promptPayTarget)}
+              {bankLogo ? (
+                <Image
+                  src={bankLogo}
+                  alt={bankAccount.bank}
+                  width={72}
+                  height={87}
+                  style={{ borderRadius: 14, boxShadow: "0 6px 18px -8px rgba(0,0,0,.35)" }}
+                />
+              ) : null}
+              <div style={{ display: "grid", gap: 2 }}>
+                <div style={{ fontSize: 13.5, fontWeight: 700 }}>{bankAccount.bank || "บัญชีธนาคาร"}</div>
+                <div style={{ fontSize: 23, fontWeight: 800, letterSpacing: 1, fontVariantNumeric: "tabular-nums" }}>
+                  {formatAccountNumber(bankAccount.accountNumber)}
                 </div>
+                {bankAccount.accountName ? (
+                  <div style={{ fontSize: 12.5, color: "var(--muted)" }}>ชื่อบัญชี {bankAccount.accountName}</div>
+                ) : null}
+              </div>
+              <div style={{ width: "100%", maxWidth: 240 }}>
+                <CopyButton
+                  text={bankAccount.accountNumber.replace(/[^0-9]/g, "")}
+                  label="คัดลอกเลขบัญชี"
+                />
               </div>
             </>
           ) : (

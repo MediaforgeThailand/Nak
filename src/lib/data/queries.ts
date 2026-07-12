@@ -354,18 +354,24 @@ export async function getInventoryMovements() {
   return data ?? [];
 }
 
-// Shop PromptPay details for the customer payment page. Customers may read
-// only this app_settings key (dedicated RLS policy); staff/admin read all.
-export async function getPaymentPromptPaySetting(scope: AuthScope = "customer") {
+// Shop receiving-account details for the customer payment page. Customers may
+// read only this app_settings key (dedicated RLS policy); staff/admin read all.
+export type PaymentBankAccount = { bank: string; accountNumber: string; accountName: string };
+
+export async function getPaymentBankAccount(scope: AuthScope = "customer"): Promise<PaymentBankAccount | null> {
   const supabase = await createSupabaseServerClient(scope);
   const { data } = await supabase
     .from("app_settings")
     .select("value")
-    .eq("key", "payment_promptpay")
-    .maybeSingle<{ value: { id?: string; name?: string } | null }>();
-  const id = data?.value?.id?.trim() ?? "";
-  const name = data?.value?.name?.trim() ?? "";
-  return id ? { id, name } : null;
+    .eq("key", "payment_bank_account")
+    .maybeSingle<{ value: { bank?: string; account_number?: string; account_name?: string } | null }>();
+  const accountNumber = data?.value?.account_number?.trim() ?? "";
+  if (!accountNumber) return null;
+  return {
+    bank: data?.value?.bank?.trim() ?? "",
+    accountNumber,
+    accountName: data?.value?.account_name?.trim() ?? "",
+  };
 }
 
 export async function getSettings() {

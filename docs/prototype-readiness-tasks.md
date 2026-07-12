@@ -7,7 +7,7 @@ Updated: 2026-07-12 (verified against code during the delivery audit; see docs/h
 - [x] Seed realistic demo products, inventory, prices, units, and low-stock examples. (Superseded: real 179-SKU catalog seeded, demo catalog purged — 202607110001/202607110002)
 - [x] Add at least 1 approved customer demo account and 1 admin demo account. (Remember to suspend demo accounts before handover — handover.md §6)
 - [x] Add customer delivery addresses for the demo customer so checkout can be tested immediately.
-- [x] Add a visible payment QR or payment instruction area on the payment page. (Now a REAL PromptPay QR generated from admin settings; fake QR removed 2026-07-12)
+- [x] Add a visible payment QR or payment instruction area on the payment page. (Per the shop owner: NO QR — shows the real Krungthai account 663-6-81505-1 with bank logo + copy button, admin-configurable; fake QR removed 2026-07-12)
 - [x] Add product images or image upload support so the product list does not look empty/placeheld.
 - [x] Fix mobile bottom navigation so customer users can easily reach Home, Products, Orders, Payment, Cart/Profile on a phone.
 - [x] Make payment slip upload mobile/camera friendly: image capture hint, preview, clear retry, and helpful error text.
@@ -42,7 +42,7 @@ Updated: 2026-07-12 (verified against code during the delivery audit; see docs/h
 
 ## Added 2026-07-12 (delivery hardening)
 
-- [x] Real PromptPay QR + admin-configurable payment account
+- [x] Real receiving account on the payment page (Krungthai 663-6-81505-1, bank logo + copy button, admin-configurable; owner chose bank transfer over QR)
 - [x] Post-approval order cancellation (stock + debt reversal)
 - [x] signup_scope self-escalation closed (trigger + request_staff_access RPC)
 - [x] Owner-rights transfer from the app

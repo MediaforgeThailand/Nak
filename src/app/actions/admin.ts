@@ -6,7 +6,6 @@ import { requireAdmin, requireOwner, requireStaff } from "@/lib/auth";
 import { thaiDbError } from "@/lib/errors";
 import { getLineQuota, getLinkedGroupId, lineServiceClient, pushLineFlex, setLinkedGroupId } from "@/lib/line";
 import { buildDailyBubble, buildPeriodBubble, gatherDaily, gatherPeriod } from "@/lib/line-report";
-import { parsePromptPayId } from "@/lib/promptpay";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { safeFileName } from "@/lib/storage";
 import type { UserRole } from "@/lib/types";
@@ -492,36 +491,42 @@ export async function unlinkLineGroupAction() {
   redirect("/admin/settings?ok=unlinked");
 }
 
-// Shop PromptPay details rendered as a real QR on the customer payment page.
-// Empty id clears the setting (payment page falls back to "contact the shop").
+// Shop bank-account details shown on the customer payment page (no QR, per
+// the shop owner). Empty account number clears the setting (payment page
+// falls back to "contact the shop").
 export async function savePaymentSettingsAction(formData: FormData) {
   const { profile } = await requireAdmin();
   const supabase = await createSupabaseServerClient("admin");
-  const rawId = String(formData.get("promptpay_id") ?? "").trim();
+  const bank = String(formData.get("bank_name") ?? "").trim();
+  const accountNumber = String(formData.get("account_number") ?? "").trim();
   const accountName = String(formData.get("account_name") ?? "").trim();
 
-  if (!rawId) {
-    const { error } = await supabase.from("app_settings").delete().eq("key", "payment_promptpay");
+  if (!accountNumber) {
+    const { error } = await supabase.from("app_settings").delete().eq("key", "payment_bank_account");
     if (error) redirect(`/admin/settings?error=${encodeURIComponent(thaiDbError(error.message))}`);
     revalidatePath("/admin/settings");
     revalidatePath("/payments/new");
     redirect("/admin/settings?ok=payment");
   }
 
-  const target = parsePromptPayId(rawId);
-  if (!target) {
+  if (!/^[0-9][0-9\- ]{4,20}[0-9]$/.test(accountNumber)) {
     redirect(
       `/admin/settings?error=${encodeURIComponent(
-        "เลขพร้อมเพย์ไม่ถูกต้อง — ใช้เบอร์มือถือ 10 หลัก เลขบัตรประชาชน 13 หลัก หรือ e-Wallet 15 หลัก",
+        "เลขที่บัญชีไม่ถูกต้อง — ใช้ตัวเลขและขีดกลางเท่านั้น เช่น 663-6-81505-1",
       )}`,
+    );
+  }
+  if (!bank || !accountName) {
+    redirect(
+      `/admin/settings?error=${encodeURIComponent("กรุณากรอกชื่อธนาคารและชื่อบัญชีให้ครบ")}`,
     );
   }
 
   const { error } = await supabase.from("app_settings").upsert(
     {
-      key: "payment_promptpay",
-      value: { id: target.value, name: accountName },
-      description: "PromptPay account shown as a QR on the customer payment page",
+      key: "payment_bank_account",
+      value: { bank, account_number: accountNumber, account_name: accountName },
+      description: "Bank account shown on the customer payment page",
       updated_by: profile.id,
       updated_at: new Date().toISOString(),
     },

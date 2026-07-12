@@ -16,7 +16,7 @@ Mobile-first wholesale ordering system: product catalog with tiered pricing, car
 - Login with LINE (LIFF inside the LINE app, OAuth on the web) or email/password; new accounts wait for admin approval (`/pending`)
 - Catalog with categories, search, stock badges, and the global quantity-discount ladder (Price Program: 2-month rolling floor + admin price lock)
 - Checkout reserves stock atomically (`create_order` RPC), chooses Flash/Grab, snapshots the address
-- Order tracking with packed-photo gallery; payment page shows a real PromptPay QR (configured in admin settings) and uploads slips for review
+- Order tracking with packed-photo gallery; payment page shows the shop's bank account (Krungthai, configured in admin settings) with a copy-number button, and uploads slips for review
 - Debt balance, ledger, and payment history on profile/transactions
 
 **Admin (`/admin/...`)**
@@ -24,7 +24,7 @@ Mobile-first wholesale ordering system: product catalog with tiered pricing, car
 - Slip verification, manual payment recording, product/category CRUD with images, stock adjustments with receipt photos, price program management
 - Reports hub (sales, receivables, products, customers, stock) using the agreed sales definition: approved orders by `debt_applied_at`, Bangkok days
 - User management: customer/staff approval, roles, suspension, owner-rights transfer; owner-only manual debt adjustment
-- Settings: PromptPay account, LINE group link status, quota, test report sends
+- Settings: receiving bank account, LINE group link status, quota, test report sends
 
 **Roles**: `customer` < `factory_staff` (pack/ship only) < `admin` < owner flag (`is_owner`).
 

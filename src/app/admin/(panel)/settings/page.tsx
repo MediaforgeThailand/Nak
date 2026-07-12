@@ -3,9 +3,8 @@ import { Icon } from "@/components/nak/icon";
 import { AdBadge, PageHead, SectionCard } from "@/components/nak/ui";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { requireAdmin } from "@/lib/auth";
-import { getPaymentPromptPaySetting, getSettings } from "@/lib/data/queries";
+import { getPaymentBankAccount, getSettings } from "@/lib/data/queries";
 import { getLineQuota } from "@/lib/line";
-import { formatPromptPayId, parsePromptPayId } from "@/lib/promptpay";
 
 export const dynamic = "force-dynamic";
 
@@ -25,15 +24,14 @@ export default async function AdminSettingsPage({
   searchParams: Promise<{ ok?: string; error?: string }>;
 }) {
   await requireAdmin();
-  const [params, settings, quota, promptPay] = await Promise.all([
+  const [params, settings, quota, bankAccount] = await Promise.all([
     searchParams,
     getSettings(),
     getLineQuota(),
-    getPaymentPromptPaySetting("admin"),
+    getPaymentBankAccount("admin"),
   ]);
   const groupSetting = settings.find((s) => s.key === "line_group_id");
   const groupId = (groupSetting?.value as { id?: string } | null)?.id ?? null;
-  const promptPayTarget = promptPay ? parsePromptPayId(promptPay.id) : null;
 
   return (
     <div style={{ display: "grid", gap: 13 }}>
@@ -43,7 +41,7 @@ export default async function AdminSettingsPage({
         <div style={{ background: "#e7f4ec", border: "1px solid #bfe3cd", padding: "11px 12px", borderRadius: "var(--r-sm)", color: "#1b7a4b", fontSize: 12.5, display: "flex", alignItems: "center", gap: 7 }}>
           <Icon name="checkCircle" size={15} stroke={2.4} />
           {params.ok === "payment"
-            ? "บันทึกบัญชีรับเงินแล้ว — QR ในหน้าแจ้งชำระเงินของลูกค้าอัปเดตทันที"
+            ? "บันทึกบัญชีรับเงินแล้ว — หน้าแจ้งชำระเงินของลูกค้าอัปเดตทันที"
             : params.ok === "unlinked"
               ? "ยกเลิกการเชื่อมกลุ่มแล้ว — พิมพ์ข้อความในกลุ่มใหม่ 1 ครั้งเพื่อเชื่อมกลุ่มนั้นแทน"
               : "ส่งรายงานทดสอบเข้ากลุ่มแล้ว — เปิด LINE ดูการ์ดรายงานได้เลย"}
@@ -56,42 +54,49 @@ export default async function AdminSettingsPage({
       ) : null}
 
       <SectionCard
-        title="บัญชีรับเงิน (พร้อมเพย์)"
-        icon="scan"
-        action={<AdBadge tone={promptPayTarget ? "success" : "warning"}>{promptPayTarget ? "ตั้งค่าแล้ว" : "ยังไม่ตั้งค่า"}</AdBadge>}
+        title="บัญชีรับเงิน (โอนผ่านธนาคาร)"
+        icon="wallet"
+        action={<AdBadge tone={bankAccount ? "success" : "warning"}>{bankAccount ? "ตั้งค่าแล้ว" : "ยังไม่ตั้งค่า"}</AdBadge>}
       >
         <div style={{ display: "grid", gap: 10, marginTop: 2 }}>
           <p style={{ margin: 0, fontSize: 12.5, color: "var(--muted)", lineHeight: 1.55 }}>
-            เลขพร้อมเพย์นี้จะถูกสร้างเป็น QR จริงให้ลูกค้าสแกนโอนในหน้า &quot;แจ้งชำระเงิน&quot;
-            {promptPayTarget ? (
+            บัญชีนี้จะแสดงในหน้า &quot;แจ้งชำระเงิน&quot; ของลูกค้า พร้อมโลโก้ธนาคารและปุ่มคัดลอกเลขบัญชี
+            {bankAccount ? (
               <>
                 {" · ปัจจุบัน: "}
-                <b style={{ color: "var(--ink)" }}>{formatPromptPayId(promptPayTarget)}</b>
-                {promptPay?.name ? ` (${promptPay.name})` : null}
+                <b style={{ color: "var(--ink)" }}>
+                  {bankAccount.bank} {bankAccount.accountNumber}
+                </b>
+                {bankAccount.accountName ? ` (${bankAccount.accountName})` : null}
               </>
             ) : (
-              " — ตอนนี้ลูกค้าเห็นข้อความให้ติดต่อร้านแทน QR"
+              " — ตอนนี้ลูกค้าเห็นข้อความให้ติดต่อร้านแทน"
             )}
           </p>
           <form action={savePaymentSettingsAction} style={{ display: "grid", gap: 8 }}>
             <input
-              name="promptpay_id"
+              name="bank_name"
               className="ad-input"
-              placeholder="เบอร์มือถือ 10 หลัก / บัตรประชาชน 13 หลัก / e-Wallet 15 หลัก"
-              defaultValue={promptPay?.id ?? ""}
-              inputMode="numeric"
+              placeholder="ชื่อธนาคาร เช่น ธนาคารกรุงไทย"
+              defaultValue={bankAccount?.bank ?? "ธนาคารกรุงไทย"}
+            />
+            <input
+              name="account_number"
+              className="ad-input"
+              placeholder="เลขที่บัญชี เช่น 663-6-81505-1"
+              defaultValue={bankAccount?.accountNumber ?? ""}
             />
             <input
               name="account_name"
               className="ad-input"
-              placeholder="ชื่อบัญชีที่แสดงให้ลูกค้า เช่น บจก. นาคโฮลเซลล์"
-              defaultValue={promptPay?.name ?? ""}
+              placeholder="ชื่อบัญชีที่แสดงให้ลูกค้า เช่น ภควัฒน์"
+              defaultValue={bankAccount?.accountName ?? ""}
             />
             <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
               <SubmitButton variant="secondary" pendingLabel="กำลังบันทึก...">
                 <Icon name="check" size={15} stroke={2.4} /> บันทึกบัญชีรับเงิน
               </SubmitButton>
-              <span style={{ fontSize: 11.5, color: "var(--muted)" }}>เว้นว่างเลขพร้อมเพย์แล้วบันทึก = ปิดการแสดง QR</span>
+              <span style={{ fontSize: 11.5, color: "var(--muted)" }}>เว้นว่างเลขที่บัญชีแล้วบันทึก = ปิดการแสดงบัญชี</span>
             </div>
           </form>
         </div>

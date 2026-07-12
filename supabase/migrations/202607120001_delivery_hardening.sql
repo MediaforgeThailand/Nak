@@ -466,14 +466,29 @@ $$;
 grant execute on function public.owner_set_owner_flag(uuid, boolean) to authenticated;
 revoke execute on function public.owner_set_owner_flag(uuid, boolean) from public, anon;
 
--- ── 7. Real payment details (PromptPay) ────────────────────────────────────
--- Admin configures the shop's PromptPay id + account name in app_settings
--- (key 'payment_promptpay'); the customer payment page renders a real QR from
--- it. Customers may read ONLY this key — everything else stays staff-only.
+-- ── 7. Real payment details (bank transfer) ─────────────────────────────────
+-- The shop takes plain bank transfers (no QR, per the owner): admin configures
+-- bank name + account number + account name in app_settings (key
+-- 'payment_bank_account'); the customer payment page shows them with the bank
+-- logo. Customers may read ONLY this key — everything else stays staff-only.
 create policy "Approved customers read payment settings"
 on public.app_settings for select
 to authenticated
-using (key = 'payment_promptpay' and public.is_approved_customer());
+using (key = 'payment_bank_account' and public.is_approved_customer());
+
+-- Seed the shop's real receiving account (provided by the owner) so the
+-- payment page works right after deploy; editable later in /admin/settings.
+insert into public.app_settings (key, value, description)
+values (
+  'payment_bank_account',
+  jsonb_build_object(
+    'bank', 'ธนาคารกรุงไทย',
+    'account_number', '663-6-81505-1',
+    'account_name', 'ภควัฒน์'
+  ),
+  'Bank account shown on the customer payment page'
+)
+on conflict (key) do nothing;
 
 -- Remove stale placeholder rows from the initial seed: 'line_oa' described a
 -- stubbed integration that now really exists (scheduled flex reports), and
