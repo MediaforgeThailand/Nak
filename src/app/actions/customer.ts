@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { requireCustomer } from "@/lib/auth";
+import { thaiDbError } from "@/lib/errors";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { safeFileName } from "@/lib/storage";
 
@@ -28,34 +29,27 @@ export async function createOrderAction(formData: FormData) {
     shipping_method: shippingMethod,
   });
 
-  if (error) redirect(`/cart?error=${encodeURIComponent(error.message)}`);
+  if (error) redirect(`/cart?error=${encodeURIComponent(thaiDbError(error.message))}`);
   redirect(`/orders/${data}?ordered=1`);
 }
 
 export async function updateProfileAction(formData: FormData) {
   const { profile } = await requireCustomer();
   const supabase = await createSupabaseServerClient("customer");
-  const payload: {
-    full_name: string;
-    company_name: string;
-    phone: string;
-    line_user_id?: string | null;
-  } = {
+  const payload = {
     full_name: String(formData.get("full_name") ?? "").trim(),
     company_name: String(formData.get("company_name") ?? "").trim(),
     phone: String(formData.get("phone") ?? "").trim(),
   };
 
-  if (formData.has("line_user_id")) {
-    payload.line_user_id = String(formData.get("line_user_id") ?? "").trim() || null;
-  }
-
-  await supabase
+  const { error } = await supabase
     .from("profiles")
     .update(payload)
     .eq("id", profile.id);
 
+  if (error) redirect(`/profile?error=${encodeURIComponent(thaiDbError(error.message))}`);
   revalidatePath("/profile");
+  redirect("/profile?saved=profile");
 }
 
 export async function saveAddressAction(formData: FormData) {
@@ -75,25 +69,117 @@ export async function saveAddressAction(formData: FormData) {
     is_default: formData.get("is_default") === "on",
   };
 
-  if (addressId) {
-    await supabase.from("customer_addresses").update(payload).eq("id", addressId);
-  } else {
-    await supabase.from("customer_addresses").insert(payload);
+  if (!payload.recipient_name || !payload.address_line1) {
+    redirect(`/profile?error=${encodeURIComponent("กรุณากรอกชื่อผู้รับและที่อยู่")}`);
+  }
+
+  // Save first, then demote the other defaults — never clear defaults before
+  // the write succeeds, or a failed save would leave the customer with none.
+  const { data: saved, error } = addressId
+    ? await supabase
+        .from("customer_addresses")
+        .update(payload)
+        .eq("id", addressId)
+        .eq("customer_id", profile.id)
+        .select("id")
+    : await supabase.from("customer_addresses").insert(payload).select("id");
+
+  if (error) redirect(`/profile?error=${encodeURIComponent(thaiDbError(error.message))}`);
+  if (!saved || saved.length === 0) {
+    redirect(`/profile?error=${encodeURIComponent("ไม่พบที่อยู่ที่ต้องการแก้ไข")}`);
+  }
+
+  if (payload.is_default) {
+    await supabase
+      .from("customer_addresses")
+      .update({ is_default: false })
+      .eq("customer_id", profile.id)
+      .eq("is_default", true)
+      .neq("id", saved[0].id);
   }
 
   revalidatePath("/profile");
+  revalidatePath("/cart");
+  redirect("/profile?saved=address");
+}
+
+export async function deleteAddressAction(formData: FormData) {
+  const { profile } = await requireCustomer();
+  const supabase = await createSupabaseServerClient("customer");
+  const addressId = String(formData.get("address_id") ?? "");
+
+  if (!addressId) redirect(`/profile?error=${encodeURIComponent("ไม่พบที่อยู่ที่ต้องการลบ")}`);
+
+  const { error } = await supabase
+    .from("customer_addresses")
+    .delete()
+    .eq("id", addressId)
+    .eq("customer_id", profile.id);
+
+  if (error) redirect(`/profile?error=${encodeURIComponent(thaiDbError(error.message))}`);
+
+  // If the default was deleted, promote the newest remaining address.
+  const { data: remaining } = await supabase
+    .from("customer_addresses")
+    .select("id, is_default")
+    .eq("customer_id", profile.id)
+    .order("created_at", { ascending: false });
+  if (remaining && remaining.length > 0 && !remaining.some((a) => a.is_default)) {
+    await supabase.from("customer_addresses").update({ is_default: true }).eq("id", remaining[0].id);
+  }
+
+  revalidatePath("/profile");
+  revalidatePath("/cart");
+  redirect("/profile?saved=address-deleted");
+}
+
+export async function setDefaultAddressAction(formData: FormData) {
+  const { profile } = await requireCustomer();
+  const supabase = await createSupabaseServerClient("customer");
+  const addressId = String(formData.get("address_id") ?? "");
+
+  if (!addressId) redirect(`/profile?error=${encodeURIComponent("ไม่พบที่อยู่ที่เลือก")}`);
+
+  // Promote first and confirm the row exists (it may have been deleted in
+  // another tab); only then demote the others — never end with zero defaults.
+  const { data: promoted, error } = await supabase
+    .from("customer_addresses")
+    .update({ is_default: true })
+    .eq("id", addressId)
+    .eq("customer_id", profile.id)
+    .select("id");
+
+  if (error) redirect(`/profile?error=${encodeURIComponent(thaiDbError(error.message))}`);
+  if (!promoted || promoted.length === 0) {
+    redirect(`/profile?error=${encodeURIComponent("ไม่พบที่อยู่ที่เลือก (อาจถูกลบไปแล้ว)")}`);
+  }
+
+  await supabase
+    .from("customer_addresses")
+    .update({ is_default: false })
+    .eq("customer_id", profile.id)
+    .eq("is_default", true)
+    .neq("id", addressId);
+
+  revalidatePath("/profile");
+  revalidatePath("/cart");
+  redirect("/profile?saved=address");
 }
 
 export async function submitPaymentAction(formData: FormData) {
   const { profile } = await requireCustomer();
   const supabase = await createSupabaseServerClient("customer");
   const file = formData.get("slip");
-  const amount = Number(formData.get("amount") ?? 0);
+  const amount = Number(String(formData.get("amount") ?? "").replace(/,/g, ""));
   const transferDate = String(formData.get("transfer_date") ?? "") || null;
   const note = String(formData.get("customer_note") ?? "").trim() || null;
 
+  if (!Number.isFinite(amount) || amount <= 0) {
+    redirect(`/payments/new?error=${encodeURIComponent("ยอดโอนต้องเป็นตัวเลขมากกว่า 0 บาท")}`);
+  }
+
   if (!(file instanceof File) || file.size === 0) {
-    redirect("/payments/new?error=Payment slip is required");
+    redirect(`/payments/new?error=${encodeURIComponent("กรุณาแนบสลิปโอนเงิน")}`);
   }
 
   const path = `${profile.id}/${Date.now()}-${safeFileName(file.name)}`;
@@ -106,7 +192,7 @@ export async function submitPaymentAction(formData: FormData) {
     });
 
   if (uploadError) {
-    redirect(`/payments/new?error=${encodeURIComponent(uploadError.message)}`);
+    redirect(`/payments/new?error=${encodeURIComponent(thaiDbError(uploadError.message))}`);
   }
 
   const { error } = await supabase.rpc("submit_payment", {
@@ -118,7 +204,7 @@ export async function submitPaymentAction(formData: FormData) {
 
   if (error) {
     await supabase.storage.from("payment-slips").remove([path]);
-    redirect(`/payments/new?error=${encodeURIComponent(error.message)}`);
+    redirect(`/payments/new?error=${encodeURIComponent(thaiDbError(error.message))}`);
   }
-  redirect("/profile");
+  redirect("/profile?paid=1");
 }

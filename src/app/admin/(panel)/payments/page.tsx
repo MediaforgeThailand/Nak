@@ -4,6 +4,7 @@ import { AdBadge, AdminTabs, NakField } from "@/components/nak/ui";
 import { FileUploadPreview } from "@/components/ui/file-upload-preview";
 import { Select } from "@/components/ui/form";
 import { SubmitButton } from "@/components/ui/submit-button";
+import { requireStaff } from "@/lib/auth";
 import { getPayments, getProfiles } from "@/lib/data/queries";
 import { dateTime, money } from "@/lib/format";
 import { signedUrls } from "@/lib/storage";
@@ -21,7 +22,7 @@ function customerLabel(payment: PaymentRow) {
   return payment.customer?.company_name ?? payment.customer?.full_name ?? payment.customer?.email ?? "ไม่ระบุลูกค้า";
 }
 
-function PaymentCard({ payment, slipUrl }: { payment: PaymentRow; slipUrl?: string }) {
+function PaymentCard({ payment, slipUrl, canAct }: { payment: PaymentRow; slipUrl?: string; canAct: boolean }) {
   const statusTone = payment.status === "approved" ? "success" : payment.status === "rejected" ? "danger" : "warning";
   const statusLabel = payment.status === "approved" ? "อนุมัติ" : payment.status === "rejected" ? "ปฏิเสธ" : "รอตรวจ";
   return (
@@ -72,20 +73,26 @@ function PaymentCard({ payment, slipUrl }: { payment: PaymentRow; slipUrl?: stri
         </div>
       </div>
       {payment.status === "pending" ? (
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 9 }}>
-          <form action={approvePaymentAction}>
-            <input type="hidden" name="payment_id" value={payment.id} />
-            <SubmitButton pendingLabel="..." className="w-full">
-              <Icon name="check" size={16} stroke={2.6} /> อนุมัติ
-            </SubmitButton>
-          </form>
-          <form action={rejectPaymentAction}>
-            <input type="hidden" name="payment_id" value={payment.id} />
-            <SubmitButton variant="secondary" pendingLabel="..." className="w-full" style={{ color: "#b42318" }}>
-              <Icon name="x" size={16} stroke={2.6} /> ปฏิเสธ
-            </SubmitButton>
-          </form>
-        </div>
+        canAct ? (
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 9 }}>
+            <form action={approvePaymentAction}>
+              <input type="hidden" name="payment_id" value={payment.id} />
+              <SubmitButton pendingLabel="..." className="w-full">
+                <Icon name="check" size={16} stroke={2.6} /> อนุมัติ
+              </SubmitButton>
+            </form>
+            <form action={rejectPaymentAction}>
+              <input type="hidden" name="payment_id" value={payment.id} />
+              <SubmitButton variant="secondary" pendingLabel="..." className="w-full" style={{ color: "#b42318" }}>
+                <Icon name="x" size={16} stroke={2.6} /> ปฏิเสธ
+              </SubmitButton>
+            </form>
+          </div>
+        ) : (
+          <p style={{ margin: 0, fontSize: 12.5, color: "var(--muted)", textAlign: "center" }}>
+            รอแอดมินตรวจ — บัญชีทีมจัดสินค้าดูได้อย่างเดียว
+          </p>
+        )
       ) : null}
     </div>
   );
@@ -98,7 +105,8 @@ export default async function AdminPaymentsPage({
 }) {
   const params = await searchParams;
   const activeStage = normalizeStage(params.stage);
-  const [payments, profiles] = await Promise.all([getPayments("admin"), getProfiles()]);
+  const [{ profile }, payments, profiles] = await Promise.all([requireStaff(), getPayments("admin"), getProfiles()]);
+  const isAdmin = profile.role === "admin";
   const approvedCustomers = profiles.filter((p) => p.role === "customer" && p.status === "approved");
   const slipPaths = payments
     .map((p) => p.slip_path)
@@ -129,7 +137,11 @@ export default async function AdminPaymentsPage({
         </div>
       ) : null}
 
-      {activeStage === "manual" ? (
+      {activeStage === "manual" && !isAdmin ? (
+        <div className="ad-card" style={{ padding: 26, textAlign: "center", color: "var(--muted)", fontSize: 14 }}>
+          การบันทึกชำระเงินทำได้เฉพาะบัญชีแอดมิน
+        </div>
+      ) : activeStage === "manual" ? (
         <form action={recordManualPaymentAction} className="ad-card" style={{ padding: 16, display: "grid", gap: 14 }}>
           <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700 }}>บันทึกชำระเงินโดยทีมงาน</h3>
           <NakField label="ลูกค้า">
@@ -171,6 +183,7 @@ export default async function AdminPaymentsPage({
             <PaymentCard
               key={payment.id}
               payment={payment}
+              canAct={isAdmin}
               slipUrl={typeof payment.slip_path === "string" ? slipUrls.get(payment.slip_path) ?? undefined : undefined}
             />
           ))}

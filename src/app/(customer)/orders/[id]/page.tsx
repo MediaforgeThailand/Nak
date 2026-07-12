@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { notFound } from "next/navigation";
 import { ClearCartOnMount } from "@/components/cart/clear-cart-on-mount";
 import { Icon } from "@/components/nak/icon";
 import { SubHeader } from "@/components/nak/sub-header";
@@ -42,11 +43,13 @@ export default async function OrderDetailPage({
 }) {
   const [{ id }, query, { profile }] = await Promise.all([params, searchParams, requireCustomer()]);
   const order = await getOrderDetail(id);
+  if (!order) notFound();
   const photoPaths = (order.order_photos ?? []).map((photo: { storage_path: string }) => photo.storage_path);
   const photoUrls = await signedUrls("order-photos", photoPaths);
   const shipping = (order.shipping_snapshot ?? null) as ShippingSnapshot | null;
   const addressLines = shippingLines(shipping);
   const isRejected = order.status === "rejected";
+  const isCancelled = order.status === "cancelled";
   const items = order.order_items ?? [];
 
   return (
@@ -74,6 +77,23 @@ export default async function OrderDetailPage({
             >
               <Icon name="xCircle" size={17} stroke={2.2} style={{ flexShrink: 0, marginTop: 1 }} />
               <span>{order.rejection_reason || order.admin_note || "ออเดอร์นี้ถูกปฏิเสธโดยแอดมิน"}</span>
+            </div>
+          ) : isCancelled ? (
+            <div
+              style={{
+                display: "flex",
+                gap: 9,
+                background: "#fbe6e3",
+                border: "1px solid #f3c8c2",
+                padding: "11px 12px",
+                borderRadius: "var(--r-sm)",
+                color: "#b42318",
+                fontSize: 12.5,
+                lineHeight: 1.5,
+              }}
+            >
+              <Icon name="xCircle" size={17} stroke={2.2} style={{ flexShrink: 0, marginTop: 1 }} />
+              <span>ออเดอร์ถูกยกเลิก: {order.cancellation_reason || "โดยแอดมิน"} (ยอดหนี้และสต็อกถูกคืนแล้ว)</span>
             </div>
           ) : order.admin_note ? (
             <div style={{ fontSize: 12.5, color: "var(--muted)" }}>หมายเหตุจากแอดมิน: {order.admin_note}</div>

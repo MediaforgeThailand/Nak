@@ -33,7 +33,9 @@ export default async function PendingPage({
   const metadata = user?.user_metadata as Record<string, unknown> | undefined;
   const lineName = metadataValue(metadata, ["name", "display_name", "full_name"]);
   const defaultName = profile?.full_name || lineName;
-  const accountLabel = profile?.company_name || defaultName || profile?.email || "ผู้ใช้ LINE";
+  // LINE-only accounts get a synthetic internal email — never show it to the user.
+  const displayEmail = profile?.email && !profile.email.endsWith("@line.nak.local") ? profile.email : null;
+  const accountLabel = profile?.company_name || defaultName || displayEmail || "ผู้ใช้ LINE";
 
   // An already-approved customer that signed in on the backend → staff-access request.
   const isStaffRequestByCustomer =
@@ -62,7 +64,7 @@ export default async function PendingPage({
               <Badge tone="accent">บัญชีลูกค้า</Badge>
             </div>
             <p className="break-words font-semibold">{defaultName || "—"}</p>
-            {profile.email ? <p className="break-words text-sm text-muted">{profile.email}</p> : null}
+            {displayEmail ? <p className="break-words text-sm text-muted">{displayEmail}</p> : null}
           </div>
 
           <Link
@@ -104,7 +106,7 @@ export default async function PendingPage({
             <div className="flex flex-wrap items-center justify-between gap-2 rounded-[var(--r-sm)] border border-[var(--line)] bg-[var(--surface)] p-3">
               <div className="min-w-0">
                 <p className="break-words font-semibold">{accountLabel}</p>
-                {profile.email ? <p className="break-words text-sm text-muted">{profile.email}</p> : null}
+                {displayEmail ? <p className="break-words text-sm text-muted">{displayEmail}</p> : null}
               </div>
               <Badge tone="warning">{accountStatusLabel(profile.status)}</Badge>
             </div>

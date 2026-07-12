@@ -97,7 +97,7 @@ export default async function AdminDashboardPage() {
         <h3 style={{ margin: 0, fontSize: 15.5, fontWeight: 700 }}>ต้องดำเนินการ</h3>
         <ActionRow icon="clipboard" tone="warning" label="อนุมัติออเดอร์" count={pendingOrders} href="/admin/orders?stage=approve" />
         <ActionRow icon="wallet" tone="warning" label="ตรวจสลิปชำระเงิน" count={pendingSlips} href="/admin/payments?stage=pending" />
-        <ActionRow icon="users" tone="accent" label="คำขอเปิดบัญชี" count={requests} href="/admin/users?mode=requests" />
+        <ActionRow icon="users" tone="accent" label="คำขอเปิดบัญชี" count={requests} href="/admin/users" />
       </div>
 
       <div className="ad-card" style={{ padding: 16 }}>

@@ -98,18 +98,37 @@ export async function getLineQuota(): Promise<{ used: number; limit: number | nu
 
 const GROUP_SETTING_KEY = "line_group_id";
 
-/** Read the linked staff-group id captured by the webhook (or null). */
-export async function getLinkedGroupId(client: SupabaseClient): Promise<string | null> {
-  const { data } = await client.from("app_settings").select("value").eq("key", GROUP_SETTING_KEY).maybeSingle<{ value: { id?: string } }>();
-  return data?.value?.id ?? null;
+export type GroupLinkState = { id: string | null; blocked: string | null };
+
+/** Linked staff-group id plus the id blocked after an explicit admin unlink. */
+export async function getGroupLinkState(client: SupabaseClient): Promise<GroupLinkState> {
+  const { data } = await client
+    .from("app_settings")
+    .select("value")
+    .eq("key", GROUP_SETTING_KEY)
+    .maybeSingle<{ value: { id?: string; blocked?: string } }>();
+  return { id: data?.value?.id ?? null, blocked: data?.value?.blocked ?? null };
 }
 
-/** Store/replace the linked staff-group id. */
-export async function setLinkedGroupId(client: SupabaseClient, groupId: string | null) {
+/** Read the linked staff-group id captured by the webhook (or null). */
+export async function getLinkedGroupId(client: SupabaseClient): Promise<string | null> {
+  return (await getGroupLinkState(client)).id;
+}
+
+/**
+ * Store/replace the linked staff-group id. Unlinking may pass `block` (the
+ * just-unlinked id): chatter in that group can then no longer auto-relink it —
+ * only a fresh join (deliberate re-invite) or a different group can.
+ */
+export async function setLinkedGroupId(
+  client: SupabaseClient,
+  groupId: string | null,
+  options?: { block?: string | null },
+) {
   await client.from("app_settings").upsert(
     {
       key: GROUP_SETTING_KEY,
-      value: groupId ? { id: groupId } : {},
+      value: groupId ? { id: groupId } : options?.block ? { blocked: options.block } : {},
       description: "LINE staff group that receives OA notifications (captured via webhook)",
       updated_at: new Date().toISOString(),
     },

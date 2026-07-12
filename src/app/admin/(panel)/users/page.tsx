@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { approveUserAction, suspendUserAction } from "@/app/actions/admin";
+import { approveUserAction, setOwnerFlagAction, suspendUserAction } from "@/app/actions/admin";
 import { AdBadge, Avatar, PageHead } from "@/components/nak/ui";
 import { Select } from "@/components/ui/form";
 import { SubmitButton } from "@/components/ui/submit-button";
@@ -172,6 +172,15 @@ export default async function AdminUsersPage({
                     ระงับ
                   </SubmitButton>
                 </form>
+                {currentProfile.is_owner && s.role === "admin" && s.status === "approved" ? (
+                  <form action={setOwnerFlagAction} style={{ display: "grid", alignItems: "end", minWidth: 0 }}>
+                    <input type="hidden" name="user_id" value={s.id} />
+                    <input type="hidden" name="make_owner" value={s.is_owner ? "0" : "1"} />
+                    <SubmitButton variant="secondary" pendingLabel="..." className="w-full">
+                      {s.is_owner ? "ถอนสิทธิ์เจ้าของ" : "ให้สิทธิ์เจ้าของ"}
+                    </SubmitButton>
+                  </form>
+                ) : null}
               </div>
             ) : (
               <AdBadge tone="accent">กำลังใช้งาน</AdBadge>

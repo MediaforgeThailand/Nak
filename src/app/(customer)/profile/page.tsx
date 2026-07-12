@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { signOutCustomerAction } from "@/app/actions/auth";
-import { saveAddressAction, updateProfileAction } from "@/app/actions/customer";
+import { deleteAddressAction, saveAddressAction, setDefaultAddressAction, updateProfileAction } from "@/app/actions/customer";
 import { Icon } from "@/components/nak/icon";
 import { Badge, InfoRow, NakField, SectionCard } from "@/components/nak/ui";
 import { Input, Textarea } from "@/components/ui/form";
@@ -11,8 +11,18 @@ import { accountStatusLabel, compactDate, money, paymentStatusLabel, transaction
 
 export const dynamic = "force-dynamic";
 
-export default async function ProfilePage() {
-  const { profile } = await requireCustomer();
+const savedMessages: Record<string, string> = {
+  profile: "บันทึกข้อมูลติดต่อแล้ว",
+  address: "บันทึกที่อยู่แล้ว",
+  "address-deleted": "ลบที่อยู่แล้ว",
+};
+
+export default async function ProfilePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string; saved?: string; paid?: string }>;
+}) {
+  const [params, { profile }] = await Promise.all([searchParams, requireCustomer()]);
   const [addresses, orders, transactions, payments, priceProgram] = await Promise.all([
     getCustomerAddresses(),
     getCustomerOrders(),
@@ -23,11 +33,50 @@ export default async function ProfilePage() {
   const totalPurchased = orders
     .filter((order) => !["rejected", "cancelled"].includes(order.status))
     .reduce((sum, order) => sum + Number(order.subtotal ?? 0), 0);
-  const defaultAddress = addresses.find((address) => address.is_default) ?? addresses[0];
   const approved = profile.status === "approved";
+  // LINE-only accounts get a synthetic internal email — never show it as the user's email.
+  const isLineOnlyEmail = (profile.email ?? "").endsWith("@line.nak.local");
+  const displayEmail = isLineOnlyEmail ? "เข้าสู่ระบบผ่าน LINE" : profile.email;
+  const displayName = profile.company_name || profile.full_name || (isLineOnlyEmail ? "ลูกค้า NAK" : profile.email);
+  const successMessage = params.paid
+    ? "ส่งสลิปเรียบร้อย — แอดมินจะตรวจและตัดยอดให้เร็วที่สุด ดูสถานะได้ที่ประวัติแจ้งชำระด้านล่าง"
+    : params.saved
+      ? savedMessages[params.saved] ?? null
+      : null;
 
   return (
     <div style={{ display: "grid", gap: 13, padding: "14px 14px 24px" }}>
+      {successMessage ? (
+        <div
+          style={{
+            background: "#e7f4ec",
+            border: "1px solid #bfe3cd",
+            padding: "11px 12px",
+            borderRadius: "var(--r-sm)",
+            color: "#1b7a4b",
+            fontSize: 12.5,
+            display: "flex",
+            alignItems: "center",
+            gap: 7,
+          }}
+        >
+          <Icon name="checkCircle" size={15} stroke={2.4} /> {successMessage}
+        </div>
+      ) : null}
+      {params.error ? (
+        <div
+          style={{
+            background: "#fbe6e3",
+            border: "1px solid #f3c8c2",
+            padding: "11px 12px",
+            borderRadius: "var(--r-sm)",
+            color: "#b42318",
+            fontSize: 12.5,
+          }}
+        >
+          {params.error}
+        </div>
+      ) : null}
       <div className="nak-card" style={{ padding: 16, display: "flex", gap: 13, alignItems: "center" }}>
         <div
           style={{
@@ -44,10 +93,8 @@ export default async function ProfilePage() {
           <Icon name="building" size={26} stroke={1.9} />
         </div>
         <div style={{ minWidth: 0, flex: 1 }}>
-          <div style={{ fontSize: 16, fontWeight: 800, letterSpacing: "-.01em" }}>
-            {profile.company_name ?? profile.full_name ?? profile.email}
-          </div>
-          <div style={{ fontSize: 12.5, color: "var(--muted)" }}>{profile.full_name ?? profile.email}</div>
+          <div style={{ fontSize: 16, fontWeight: 800, letterSpacing: "-.01em" }}>{displayName}</div>
+          <div style={{ fontSize: 12.5, color: "var(--muted)" }}>{profile.full_name || displayEmail}</div>
         </div>
         <Badge tone={approved ? "success" : profile.status === "suspended" ? "danger" : "warning"}>
           <Icon name="checkCircle" size={13} stroke={2.4} /> {accountStatusLabel(profile.status)}
@@ -136,19 +183,90 @@ export default async function ProfilePage() {
       <SectionCard title="ข้อมูลติดต่อ" icon="user">
         <InfoRow icon="building" label="บริษัท / ร้านค้า" value={profile.company_name ?? "—"} />
         <InfoRow icon="phone" label="เบอร์โทร" value={profile.phone ?? "—"} />
-        <InfoRow icon="mail" label="อีเมล" value={profile.email} />
-        <InfoRow
-          icon="pin"
-          label="ที่อยู่จัดส่ง"
-          last
-          value={
-            defaultAddress
-              ? `${defaultAddress.address_line1}, ${[defaultAddress.district, defaultAddress.province, defaultAddress.postal_code]
-                  .filter(Boolean)
-                  .join(" ")}`
-              : "ยังไม่มีที่อยู่"
-          }
-        />
+        <InfoRow icon="mail" label="อีเมล" last value={displayEmail} />
+      </SectionCard>
+
+      <SectionCard title="ที่อยู่จัดส่ง" icon="pin">
+        {addresses.map((address, i) => (
+          <div
+            key={address.id}
+            style={{
+              display: "grid",
+              gap: 8,
+              padding: "11px 0",
+              borderBottom: i < addresses.length - 1 ? "1px solid var(--line)" : "none",
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <span style={{ fontSize: 13.5, fontWeight: 700, flex: 1, minWidth: 0 }}>{address.label}</span>
+              {address.is_default ? <Badge tone="accent">ที่อยู่หลัก</Badge> : null}
+            </div>
+            <div style={{ fontSize: 12.5, color: "var(--muted)", lineHeight: 1.5 }}>
+              {address.recipient_name}
+              {address.phone ? ` · ${address.phone}` : ""}
+              <br />
+              {address.address_line1}
+              {address.address_line2 ? ` ${address.address_line2}` : ""}{" "}
+              {[address.district, address.province, address.postal_code].filter(Boolean).join(" ")}
+            </div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
+              {!address.is_default ? (
+                <form action={setDefaultAddressAction}>
+                  <input type="hidden" name="address_id" value={address.id} />
+                  <SubmitButton variant="secondary" pendingLabel="...">
+                    ตั้งเป็นหลัก
+                  </SubmitButton>
+                </form>
+              ) : null}
+              <form action={deleteAddressAction}>
+                <input type="hidden" name="address_id" value={address.id} />
+                <SubmitButton variant="secondary" pendingLabel="กำลังลบ...">
+                  ลบ
+                </SubmitButton>
+              </form>
+            </div>
+            <details>
+              <summary style={{ fontSize: 12.5, fontWeight: 700, color: "var(--p)", cursor: "pointer" }}>
+                แก้ไขที่อยู่นี้
+              </summary>
+              <form action={saveAddressAction} style={{ marginTop: 10, display: "grid", gap: 10 }}>
+                <input type="hidden" name="address_id" value={address.id} />
+                <NakField label="ชื่อที่อยู่">
+                  <Input name="label" defaultValue={address.label ?? ""} />
+                </NakField>
+                <NakField label="ผู้รับ">
+                  <Input name="recipient_name" required defaultValue={address.recipient_name ?? ""} />
+                </NakField>
+                <NakField label="เบอร์โทร">
+                  <Input name="phone" type="tel" inputMode="tel" defaultValue={address.phone ?? ""} />
+                </NakField>
+                <NakField label="ที่อยู่">
+                  <Textarea name="address_line1" required defaultValue={address.address_line1 ?? ""} />
+                </NakField>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
+                  <NakField label="ตำบล/อำเภอ">
+                    <Input name="district" defaultValue={address.district ?? ""} />
+                  </NakField>
+                  <NakField label="จังหวัด">
+                    <Input name="province" defaultValue={address.province ?? ""} />
+                  </NakField>
+                  <NakField label="ไปรษณีย์">
+                    <Input name="postal_code" inputMode="numeric" defaultValue={address.postal_code ?? ""} />
+                  </NakField>
+                </div>
+                <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13 }}>
+                  <input name="is_default" type="checkbox" defaultChecked={address.is_default} /> ตั้งเป็นที่อยู่หลัก
+                </label>
+                <SubmitButton variant="secondary" pendingLabel="กำลังบันทึก...">
+                  บันทึกที่อยู่
+                </SubmitButton>
+              </form>
+            </details>
+          </div>
+        ))}
+        {addresses.length === 0 ? (
+          <p style={{ fontSize: 13, color: "var(--muted)", margin: "6px 0" }}>ยังไม่มีที่อยู่ — เพิ่มด้านล่างเพื่อให้สั่งซื้อได้</p>
+        ) : null}
       </SectionCard>
 
       <details className="nak-card" style={{ padding: 16 }}>

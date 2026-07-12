@@ -11,6 +11,11 @@ export const dynamic = "force-dynamic";
 // so the scheduled sends still go out as usual.
 export async function GET(request: Request) {
   const secret = process.env.CRON_SECRET;
+  // Fail closed in production: without a secret this endpoint would be
+  // publicly callable and ?force= could burn the monthly LINE push quota.
+  if (!secret && process.env.VERCEL_ENV === "production") {
+    return NextResponse.json({ error: "CRON_SECRET is not configured" }, { status: 503 });
+  }
   if (secret) {
     const auth = request.headers.get("authorization");
     if (auth !== `Bearer ${secret}`) {

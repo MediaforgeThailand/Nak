@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getLinkedGroupId, lineServiceClient, setLinkedGroupId, verifyLineSignature } from "@/lib/line";
+import { getGroupLinkState, lineServiceClient, setLinkedGroupId, verifyLineSignature } from "@/lib/line";
 
 export const dynamic = "force-dynamic";
 
@@ -26,16 +26,24 @@ export async function POST(request: Request) {
 
   const client = lineServiceClient();
   if (client && events.length > 0) {
-    const current = await getLinkedGroupId(client);
+    const { id: current, blocked } = await getGroupLinkState(client);
     for (const event of events) {
       const src = event.source;
       const groupId = src?.groupId ?? src?.roomId ?? null;
       if (!groupId) continue;
 
-      // Bot added to a group, or activity in it → link this group.
-      if (event.type === "join" || event.type === "message") {
-        if (groupId !== current) await setLinkedGroupId(client, groupId);
-        break;
+      // Link ONLY while no group is linked yet. Once linked, activity in other
+      // groups must never steal the link — the nightly report contains revenue
+      // and debtor names, so following any group the OA lands in would leak it.
+      // After an explicit admin unlink, the old group is "blocked": its chatter
+      // can't re-link it (the OA usually stays a member), only a fresh join
+      // (deliberate re-invite) or a different group can take the link.
+      if (!current) {
+        const blockedChatter = event.type === "message" && groupId === blocked;
+        if ((event.type === "join" || event.type === "message") && !blockedChatter) {
+          await setLinkedGroupId(client, groupId);
+          break;
+        }
       }
       // Bot removed from the linked group → unlink.
       if (event.type === "leave" && groupId === current) {

@@ -25,9 +25,9 @@ const NAV: NavItem[] = [
   { href: "/admin/stock", label: "สต็อก", icon: "warehouse", badge: "" },
   { href: "/admin/orders", label: "ออเดอร์", icon: "clipboard", badge: "orders" },
   { href: "/admin/payments", label: "สลิป", icon: "wallet", badge: "payments" },
-  { href: "/admin/customers", label: "ลูกค้า", icon: "users", badge: "" },
-  { href: "/admin/users", label: "สิทธิ์", icon: "shield", badge: "users" },
-  { href: "/admin/settings", label: "ตั้งค่า", icon: "gear", badge: "" },
+  { href: "/admin/customers", label: "ลูกค้า", icon: "users", badge: "", adminOnly: true },
+  { href: "/admin/users", label: "สิทธิ์", icon: "shield", badge: "users", adminOnly: true },
+  { href: "/admin/settings", label: "ตั้งค่า", icon: "gear", badge: "", adminOnly: true },
 ];
 
 export function AdminShell({

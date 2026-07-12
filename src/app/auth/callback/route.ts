@@ -40,9 +40,14 @@ export async function GET(request: NextRequest) {
     .single<Profile>();
 
   // Logging in on the backend with a non-staff account registers a staff-access
-  // request (marked via signup_scope) instead of being rejected outright.
+  // request. Direct signup_scope writes are blocked by the privilege trigger,
+  // so this goes through the dedicated RPC.
   if (scope === "admin" && profile && profile.role === "customer" && profile.signup_scope !== "staff") {
-    await supabase.from("profiles").update({ signup_scope: "staff" }).eq("id", user.id);
+    const { error: rpcError } = await supabase.rpc("request_staff_access");
+    if (rpcError) {
+      console.error("request_staff_access failed", rpcError);
+      return callbackError(request, scope, "ส่งคำขอเป็นทีมงานไม่สำเร็จ กรุณาลองใหม่อีกครั้ง");
+    }
     profile.signup_scope = "staff";
   }
 

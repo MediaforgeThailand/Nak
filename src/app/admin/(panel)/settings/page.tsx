@@ -1,9 +1,11 @@
-import { testLineNotifyAction } from "@/app/actions/admin";
+import { savePaymentSettingsAction, testLineNotifyAction, unlinkLineGroupAction } from "@/app/actions/admin";
 import { Icon } from "@/components/nak/icon";
 import { AdBadge, PageHead, SectionCard } from "@/components/nak/ui";
 import { SubmitButton } from "@/components/ui/submit-button";
-import { getSettings } from "@/lib/data/queries";
+import { requireAdmin } from "@/lib/auth";
+import { getPaymentPromptPaySetting, getSettings } from "@/lib/data/queries";
 import { getLineQuota } from "@/lib/line";
+import { formatPromptPayId, parsePromptPayId } from "@/lib/promptpay";
 
 export const dynamic = "force-dynamic";
 
@@ -22,17 +24,29 @@ export default async function AdminSettingsPage({
 }: {
   searchParams: Promise<{ ok?: string; error?: string }>;
 }) {
-  const [params, settings, quota] = await Promise.all([searchParams, getSettings(), getLineQuota()]);
+  await requireAdmin();
+  const [params, settings, quota, promptPay] = await Promise.all([
+    searchParams,
+    getSettings(),
+    getLineQuota(),
+    getPaymentPromptPaySetting("admin"),
+  ]);
   const groupSetting = settings.find((s) => s.key === "line_group_id");
   const groupId = (groupSetting?.value as { id?: string } | null)?.id ?? null;
+  const promptPayTarget = promptPay ? parsePromptPayId(promptPay.id) : null;
 
   return (
     <div style={{ display: "grid", gap: 13 }}>
-      <PageHead title="ตั้งค่าระบบ" sub="การแจ้งเตือน LINE และค่าคอนฟิก" />
+      <PageHead title="ตั้งค่าระบบ" sub="บัญชีรับเงิน การแจ้งเตือน LINE และค่าคอนฟิก" />
 
       {params.ok ? (
         <div style={{ background: "#e7f4ec", border: "1px solid #bfe3cd", padding: "11px 12px", borderRadius: "var(--r-sm)", color: "#1b7a4b", fontSize: 12.5, display: "flex", alignItems: "center", gap: 7 }}>
-          <Icon name="checkCircle" size={15} stroke={2.4} /> ส่งรายงานทดสอบเข้ากลุ่มแล้ว — เปิด LINE ดูการ์ดรายงานได้เลย
+          <Icon name="checkCircle" size={15} stroke={2.4} />
+          {params.ok === "payment"
+            ? "บันทึกบัญชีรับเงินแล้ว — QR ในหน้าแจ้งชำระเงินของลูกค้าอัปเดตทันที"
+            : params.ok === "unlinked"
+              ? "ยกเลิกการเชื่อมกลุ่มแล้ว — พิมพ์ข้อความในกลุ่มใหม่ 1 ครั้งเพื่อเชื่อมกลุ่มนั้นแทน"
+              : "ส่งรายงานทดสอบเข้ากลุ่มแล้ว — เปิด LINE ดูการ์ดรายงานได้เลย"}
         </div>
       ) : null}
       {params.error ? (
@@ -40,6 +54,48 @@ export default async function AdminSettingsPage({
           {params.error}
         </div>
       ) : null}
+
+      <SectionCard
+        title="บัญชีรับเงิน (พร้อมเพย์)"
+        icon="scan"
+        action={<AdBadge tone={promptPayTarget ? "success" : "warning"}>{promptPayTarget ? "ตั้งค่าแล้ว" : "ยังไม่ตั้งค่า"}</AdBadge>}
+      >
+        <div style={{ display: "grid", gap: 10, marginTop: 2 }}>
+          <p style={{ margin: 0, fontSize: 12.5, color: "var(--muted)", lineHeight: 1.55 }}>
+            เลขพร้อมเพย์นี้จะถูกสร้างเป็น QR จริงให้ลูกค้าสแกนโอนในหน้า &quot;แจ้งชำระเงิน&quot;
+            {promptPayTarget ? (
+              <>
+                {" · ปัจจุบัน: "}
+                <b style={{ color: "var(--ink)" }}>{formatPromptPayId(promptPayTarget)}</b>
+                {promptPay?.name ? ` (${promptPay.name})` : null}
+              </>
+            ) : (
+              " — ตอนนี้ลูกค้าเห็นข้อความให้ติดต่อร้านแทน QR"
+            )}
+          </p>
+          <form action={savePaymentSettingsAction} style={{ display: "grid", gap: 8 }}>
+            <input
+              name="promptpay_id"
+              className="ad-input"
+              placeholder="เบอร์มือถือ 10 หลัก / บัตรประชาชน 13 หลัก / e-Wallet 15 หลัก"
+              defaultValue={promptPay?.id ?? ""}
+              inputMode="numeric"
+            />
+            <input
+              name="account_name"
+              className="ad-input"
+              placeholder="ชื่อบัญชีที่แสดงให้ลูกค้า เช่น บจก. นาคโฮลเซลล์"
+              defaultValue={promptPay?.name ?? ""}
+            />
+            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+              <SubmitButton variant="secondary" pendingLabel="กำลังบันทึก...">
+                <Icon name="check" size={15} stroke={2.4} /> บันทึกบัญชีรับเงิน
+              </SubmitButton>
+              <span style={{ fontSize: 11.5, color: "var(--muted)" }}>เว้นว่างเลขพร้อมเพย์แล้วบันทึก = ปิดการแสดง QR</span>
+            </div>
+          </form>
+        </div>
+      </SectionCard>
 
       <SectionCard
         title="แจ้งเตือนเข้ากลุ่ม LINE"
@@ -88,6 +144,11 @@ export default async function AdminSettingsPage({
                 </form>
               </div>
             </div>
+            <form action={unlinkLineGroupAction} style={{ marginTop: 2 }}>
+              <SubmitButton variant="secondary" pendingLabel="..." style={{ color: "#b42318" }}>
+                ยกเลิกการเชื่อมกลุ่มนี้ (ใช้เมื่อจะย้ายไปกลุ่มใหม่)
+              </SubmitButton>
+            </form>
           </div>
         ) : (
           <div style={{ display: "grid", gap: 8, marginTop: 2, fontSize: 12.5, color: "var(--muted)", lineHeight: 1.6 }}>

@@ -78,11 +78,24 @@ export async function getMyProductDiscounts() {
   return map;
 }
 
+// Customer-side reads filter by the signed-in user explicitly instead of
+// relying on RLS alone: staff/admin RLS grants read-all, so an admin browsing
+// the customer side must never see other customers' rows blended in.
+async function requireUserId(supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>) {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not authenticated");
+  return user.id;
+}
+
 export async function getCustomerAddresses() {
   const supabase = await createSupabaseServerClient("customer");
+  const userId = await requireUserId(supabase);
   const { data, error } = await supabase
     .from("customer_addresses")
     .select("*")
+    .eq("customer_id", userId)
     .order("is_default", { ascending: false })
     .order("created_at", { ascending: false });
   if (error) throw error;
@@ -91,41 +104,53 @@ export async function getCustomerAddresses() {
 
 export async function getCustomerOrders() {
   const supabase = await createSupabaseServerClient("customer");
+  const userId = await requireUserId(supabase);
   const { data, error } = await supabase
     .from("orders")
     .select("*, order_items(*)")
+    .eq("customer_id", userId)
     .order("created_at", { ascending: false });
   if (error) throw error;
   return data ?? [];
 }
 
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** Order detail for the signed-in customer; null when missing or not theirs. */
 export async function getOrderDetail(id: string) {
+  if (!UUID_PATTERN.test(id)) return null;
   const supabase = await createSupabaseServerClient("customer");
+  const userId = await requireUserId(supabase);
   const { data, error } = await supabase
     .from("orders")
     .select("*, order_items(*), order_photos(*)")
     .eq("id", id)
-    .single();
+    .eq("customer_id", userId)
+    .maybeSingle();
   if (error) throw error;
   return data;
 }
 
 export async function getPayments(scope: AuthScope = "customer") {
   const supabase = await createSupabaseServerClient(scope);
-  const { data, error } = await supabase
+  let query = supabase
     .from("payments")
     .select("*, customer:profiles!payments_customer_id_fkey(full_name, company_name, email)")
     .order("created_at", { ascending: false });
+  if (scope === "customer") query = query.eq("customer_id", await requireUserId(supabase));
+  const { data, error } = await query;
   if (error) throw error;
   return data ?? [];
 }
 
 export async function getTransactions(scope: AuthScope = "customer") {
   const supabase = await createSupabaseServerClient(scope);
-  const { data, error } = await supabase
+  let query = supabase
     .from("account_transactions")
     .select("*, orders(order_number), payments(payment_number)")
     .order("created_at", { ascending: false });
+  if (scope === "customer") query = query.eq("customer_id", await requireUserId(supabase));
+  const { data, error } = await query;
   if (error) throw error;
   return data ?? [];
 }
@@ -327,6 +352,20 @@ export async function getInventoryMovements() {
     .limit(30);
   if (error) throw error;
   return data ?? [];
+}
+
+// Shop PromptPay details for the customer payment page. Customers may read
+// only this app_settings key (dedicated RLS policy); staff/admin read all.
+export async function getPaymentPromptPaySetting(scope: AuthScope = "customer") {
+  const supabase = await createSupabaseServerClient(scope);
+  const { data } = await supabase
+    .from("app_settings")
+    .select("value")
+    .eq("key", "payment_promptpay")
+    .maybeSingle<{ value: { id?: string; name?: string } | null }>();
+  const id = data?.value?.id?.trim() ?? "";
+  const name = data?.value?.name?.trim() ?? "";
+  return id ? { id, name } : null;
 }
 
 export async function getSettings() {

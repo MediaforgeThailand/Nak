@@ -1,3 +1,4 @@
+import QRCode from "qrcode";
 import { submitPaymentAction } from "@/app/actions/customer";
 import { Icon } from "@/components/nak/icon";
 import { SubHeader } from "@/components/nak/sub-header";
@@ -5,42 +6,28 @@ import { Badge, NakField } from "@/components/nak/ui";
 import { FileUploadPreview } from "@/components/ui/file-upload-preview";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { requireCustomer } from "@/lib/auth";
+import { getPaymentPromptPaySetting } from "@/lib/data/queries";
 import { money } from "@/lib/format";
+import { buildPromptPayPayload, formatPromptPayId, parsePromptPayId } from "@/lib/promptpay";
 
 export const dynamic = "force-dynamic";
 
-// deterministic pseudo-QR (visual only)
-function FauxQR() {
-  const N = 19;
-  const finder = (r: number, c: number) =>
-    (r < 7 && c < 7) || (r < 7 && c >= N - 7) || (r >= N - 7 && c < 7);
-  const inFinder = (r: number, c: number, or: number, oc: number): boolean | null => {
-    const rr = r - or;
-    const cc = c - oc;
-    if (rr < 0 || cc < 0 || rr > 6 || cc > 6) return null;
-    if (rr === 0 || rr === 6 || cc === 0 || cc === 6) return true;
-    if (rr >= 2 && rr <= 4 && cc >= 2 && cc <= 4) return true;
-    return false;
-  };
-  const cells: boolean[] = [];
-  for (let r = 0; r < N; r++) {
-    for (let c = 0; c < N; c++) {
-      let on: boolean;
-      if (finder(r, c)) {
-        const v = inFinder(r, c, 0, 0) ?? inFinder(r, c, 0, N - 7) ?? inFinder(r, c, N - 7, 0);
-        on = Boolean(v);
-      } else {
-        on = (r * 7 + c * 13 + (r ^ c) * 5) % 11 < 5;
-      }
-      cells.push(on);
-    }
-  }
+// Scannable PromptPay QR rendered server-side from the admin-configured id.
+async function PromptPayQR({ id }: { id: string }) {
+  const target = parsePromptPayId(id);
+  if (!target) return null;
+  const svg = await QRCode.toString(buildPromptPayPayload(target), {
+    type: "svg",
+    errorCorrectionLevel: "M",
+    margin: 0,
+    color: { dark: "#0c2a26", light: "#ffffff" },
+  });
   return (
-    <div style={{ display: "grid", gridTemplateColumns: `repeat(${N}, 1fr)`, gap: 0, width: 150, height: 150 }}>
-      {cells.map((on, i) => (
-        <div key={i} style={{ background: on ? "#0c2a26" : "transparent" }} />
-      ))}
-    </div>
+    <div
+      aria-label="PromptPay QR"
+      style={{ width: 160, height: 160 }}
+      dangerouslySetInnerHTML={{ __html: svg }}
+    />
   );
 }
 
@@ -49,9 +36,14 @@ export default async function NewPaymentPage({
 }: {
   searchParams: Promise<{ error?: string }>;
 }) {
-  const [params, { profile }] = await Promise.all([searchParams, requireCustomer()]);
+  const [params, { profile }, promptPay] = await Promise.all([
+    searchParams,
+    requireCustomer(),
+    getPaymentPromptPaySetting(),
+  ]);
   const today = new Date().toISOString().slice(0, 10);
   const debt = Number(profile.debt_balance ?? 0);
+  const promptPayTarget = promptPay ? parsePromptPayId(promptPay.id) : null;
 
   return (
     <>
@@ -76,13 +68,25 @@ export default async function NewPaymentPage({
           <Badge tone="accent">
             <Icon name="scan" size={13} stroke={2.4} /> พร้อมเพย์ / โอนเงิน
           </Badge>
-          <div style={{ padding: 12, background: "#fff", border: "1px solid var(--line)", borderRadius: "var(--r-sm)" }}>
-            <FauxQR />
-          </div>
-          <div>
-            <div style={{ fontSize: 14, fontWeight: 700 }}>บจก. นาคโฮลเซลล์</div>
-            <div style={{ fontSize: 12.5, color: "var(--muted)", marginTop: 2 }}>พร้อมเพย์ 0-9876-54321-0</div>
-          </div>
+          {promptPay && promptPayTarget ? (
+            <>
+              <div style={{ padding: 12, background: "#fff", border: "1px solid var(--line)", borderRadius: "var(--r-sm)" }}>
+                <PromptPayQR id={promptPay.id} />
+              </div>
+              <div>
+                {promptPay.name ? <div style={{ fontSize: 14, fontWeight: 700 }}>{promptPay.name}</div> : null}
+                <div style={{ fontSize: 12.5, color: "var(--muted)", marginTop: 2 }}>
+                  พร้อมเพย์ {formatPromptPayId(promptPayTarget)}
+                </div>
+              </div>
+            </>
+          ) : (
+            <p style={{ margin: 0, fontSize: 12.5, color: "var(--muted)", lineHeight: 1.6 }}>
+              ร้านยังไม่ได้ตั้งค่าบัญชีรับเงินในระบบ
+              <br />
+              กรุณาสอบถามช่องทางโอนเงินจากร้านโดยตรง แล้วแนบสลิปด้านล่างได้เลย
+            </p>
+          )}
           <div
             style={{
               width: "100%",
@@ -117,6 +121,9 @@ export default async function NewPaymentPage({
               </span>
               <input
                 name="amount"
+                type="number"
+                min="0.01"
+                step="0.01"
                 className="nak-input"
                 style={{ paddingLeft: 28, fontSize: 17, fontWeight: 700 }}
                 inputMode="decimal"

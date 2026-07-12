@@ -215,6 +215,8 @@ export default async function AdminProductsPage({
         {filtered.map((product, i) => {
           const inv = Array.isArray(product.inventory) ? product.inventory[0] : product.inventory;
           const qty = inv?.quantity_available ?? 0;
+          // Same per-product threshold the stock page / dashboard / reports use.
+          const lowThreshold = inv?.low_stock_threshold ?? 5;
           const imageUrl = product.image_path ? imageUrls.get(product.image_path) : null;
           return (
             <details key={product.id} style={{ borderBottom: i < filtered.length - 1 ? "1px solid var(--line)" : "none" }}>
@@ -227,7 +229,7 @@ export default async function AdminProductsPage({
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 5, flexWrap: "wrap" }}>
                     <span style={{ fontSize: 14, fontWeight: 800 }}>{money(product.price)}</span>
-                    <AdBadge tone={qty === 0 ? "danger" : qty < 40 ? "warning" : "neutral"}>{qty === 0 ? "หมด" : `เหลือ ${qty}`}</AdBadge>
+                    <AdBadge tone={qty === 0 ? "danger" : qty <= lowThreshold ? "warning" : "neutral"}>{qty === 0 ? "หมด" : `เหลือ ${qty}`}</AdBadge>
                     <AdBadge tone={product.is_active ? "success" : "neutral"}>{product.is_active ? "เปิดขาย" : "ปิดขาย"}</AdBadge>
                   </div>
                 </div>
@@ -239,13 +241,13 @@ export default async function AdminProductsPage({
               <form action={updateProductAction} style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, padding: "4px 10px 14px" }}>
                 <input type="hidden" name="id" value={product.id} />
                 <NakField label="ชื่อ">
-                  <input className="ad-input" name="name" defaultValue={product.name} />
+                  <input className="ad-input" name="name" required defaultValue={product.name} />
                 </NakField>
                 <NakField label="SKU">
-                  <input className="ad-input" name="sku" defaultValue={product.sku} />
+                  <input className="ad-input" name="sku" required defaultValue={product.sku} />
                 </NakField>
                 <NakField label="ราคา">
-                  <input className="ad-input" name="price" type="number" inputMode="decimal" step="0.01" defaultValue={product.price} />
+                  <input className="ad-input" name="price" type="number" inputMode="decimal" step="0.01" min="0.01" required defaultValue={product.price} />
                 </NakField>
                 <NakField label="หน่วย">
                   <input className="ad-input" name="unit" defaultValue={product.unit} />

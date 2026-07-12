@@ -1,10 +1,11 @@
 import Image from "next/image";
-import { approveOrderAction, rejectOrderAction, shipOrderWithPhotoAction } from "@/app/actions/admin";
+import { approveOrderAction, cancelOrderAction, rejectOrderAction, shipOrderWithPhotoAction } from "@/app/actions/admin";
 import { HandoffList, type HandoffOrder } from "@/components/nak/handoff-list";
 import { Icon } from "@/components/nak/icon";
 import { AdBadge, AdminTabs, Avatar } from "@/components/nak/ui";
 import { FileUploadPreview } from "@/components/ui/file-upload-preview";
 import { SubmitButton } from "@/components/ui/submit-button";
+import { requireStaff } from "@/lib/auth";
 import { dateTime, money, shippingMethodLabel } from "@/lib/format";
 import { getAdminOrders } from "@/lib/data/queries";
 import { signedUrls } from "@/lib/storage";
@@ -109,7 +110,7 @@ function DebtCell({ label, value, tone }: { label: string; value: string; tone?:
   );
 }
 
-function ApproveCard({ order }: { order: AdminOrder }) {
+function ApproveCard({ order, canAct }: { order: AdminOrder; canAct: boolean }) {
   const debt = Number(order.customer?.debt_balance ?? 0);
   const subtotal = Number(order.subtotal ?? 0);
   return (
@@ -133,26 +134,52 @@ function ApproveCard({ order }: { order: AdminOrder }) {
         </div>
       </div>
       <ItemsBox order={order} />
-      <div style={{ display: "grid", gap: 8 }}>
-        <form action={approveOrderAction}>
-          <input type="hidden" name="order_id" value={order.id} />
-          <SubmitButton pendingLabel="กำลังอนุมัติ..." className="w-full">
-            <Icon name="check" size={17} stroke={2.6} /> อนุมัติออเดอร์
-          </SubmitButton>
-        </form>
-        <form action={rejectOrderAction} style={{ display: "flex", gap: 8 }}>
-          <input type="hidden" name="order_id" value={order.id} />
-          <input className="ad-input" name="reason" placeholder="เหตุผลที่ปฏิเสธ" />
-          <SubmitButton variant="danger" pendingLabel="..." className="w-auto shrink-0 px-4">
-            <Icon name="x" size={17} stroke={2.6} />
-          </SubmitButton>
-        </form>
-      </div>
+      {canAct ? (
+        <div style={{ display: "grid", gap: 8 }}>
+          <form action={approveOrderAction}>
+            <input type="hidden" name="order_id" value={order.id} />
+            <SubmitButton pendingLabel="กำลังอนุมัติ..." className="w-full">
+              <Icon name="check" size={17} stroke={2.6} /> อนุมัติออเดอร์
+            </SubmitButton>
+          </form>
+          <form action={rejectOrderAction} style={{ display: "flex", gap: 8 }}>
+            <input type="hidden" name="order_id" value={order.id} />
+            <input className="ad-input" name="reason" placeholder="เหตุผลที่ปฏิเสธ" />
+            <SubmitButton variant="danger" pendingLabel="..." className="w-auto shrink-0 px-4">
+              <Icon name="x" size={17} stroke={2.6} />
+            </SubmitButton>
+          </form>
+        </div>
+      ) : (
+        <p style={{ margin: 0, fontSize: 12.5, color: "var(--muted)", textAlign: "center" }}>
+          รอแอดมินอนุมัติ — บัญชีทีมจัดสินค้าดูได้อย่างเดียว
+        </p>
+      )}
     </div>
   );
 }
 
-function PackCard({ order }: { order: AdminOrder }) {
+// Admin-only escape hatch: cancel an approved order before it ships.
+// Restores stock and reverses the customer's debt via cancel_approved_order.
+function CancelOrderControl({ order, stage }: { order: AdminOrder; stage: "pack" | "handoff" }) {
+  return (
+    <details>
+      <summary style={{ fontSize: 12, color: "#b42318", fontWeight: 700, cursor: "pointer", textAlign: "center" }}>
+        ยกเลิกออเดอร์นี้ (คืนสต็อก + คืนยอดหนี้)
+      </summary>
+      <form action={cancelOrderAction} style={{ marginTop: 8, display: "flex", gap: 8 }}>
+        <input type="hidden" name="order_id" value={order.id} />
+        <input type="hidden" name="stage" value={stage} />
+        <input className="ad-input" name="reason" placeholder="เหตุผลการยกเลิก (จำเป็น)" required />
+        <SubmitButton variant="danger" pendingLabel="..." className="w-auto shrink-0 px-4">
+          ยืนยันยกเลิก
+        </SubmitButton>
+      </form>
+    </details>
+  );
+}
+
+function PackCard({ order, canCancel }: { order: AdminOrder; canCancel: boolean }) {
   const isGrab = order.shipping_method === "grab";
   return (
     <div className="ad-card" style={{ padding: 16, display: "grid", gap: 13 }}>
@@ -190,6 +217,7 @@ function PackCard({ order }: { order: AdminOrder }) {
           {isGrab ? "ออเดอร์ Grab จะข้ามไป “ส่งแล้ว” ทันที" : "ออเดอร์ Flash จะไปขั้น “จัดส่ง” เพื่อส่งให้ขนส่ง"}
         </p>
       </form>
+      {canCancel ? <CancelOrderControl order={order} stage="pack" /> : null}
     </div>
   );
 }
@@ -263,7 +291,8 @@ export default async function AdminOrdersPage({
 }) {
   const params = await searchParams;
   const activeStage = normalizeStage(params.stage);
-  const orders = await getAdminOrders();
+  const [{ profile }, orders] = await Promise.all([requireStaff(), getAdminOrders()]);
+  const isAdmin = profile.role === "admin";
   const counts = STAGES.reduce((acc, stage) => {
     acc[stage.key] = orders.filter((order) => stage.statuses.includes(order.status)).length;
     return acc;
@@ -339,8 +368,8 @@ export default async function AdminOrdersPage({
       ) : (
         <div style={{ display: "grid", gap: 12 }}>
           {visibleOrders.map((order) => {
-            if (activeStage === "approve") return <ApproveCard key={order.id} order={order} />;
-            if (activeStage === "pack") return <PackCard key={order.id} order={order} />;
+            if (activeStage === "approve") return <ApproveCard key={order.id} order={order} canAct={isAdmin} />;
+            if (activeStage === "pack") return <PackCard key={order.id} order={order} canCancel={isAdmin} />;
             return <ShippedCard key={order.id} order={order} photoUrls={photoUrls} />;
           })}
         </div>

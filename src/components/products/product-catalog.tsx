@@ -116,12 +116,22 @@ function ProductCard({
             ) : null}
           </div>
           <span
+            role="button"
+            tabIndex={soldOut ? -1 : 0}
             onClick={(e) => {
               e.stopPropagation();
               if (!soldOut) addToCart(product.id);
             }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                e.stopPropagation();
+                if (!soldOut) addToCart(product.id);
+              }
+            }}
             className="nak-addbtn"
             aria-label="เพิ่มลงตะกร้า"
+            aria-disabled={soldOut}
             style={{ opacity: soldOut ? 0.3 : 1, pointerEvents: soldOut ? "none" : "auto" }}
           >
             <Icon name="plus" size={18} stroke={2.6} />
@@ -431,7 +441,6 @@ export function ProductCatalog({
       <div className="nak-search">
         <Icon name="search" size={18} stroke={2.2} style={{ color: "var(--muted)" }} />
         <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="ค้นหาสินค้า / SKU" />
-        <Icon name="sliders" size={18} stroke={2.2} style={{ color: "var(--muted)" }} />
       </div>
 
       <div className="nak-chiprow">

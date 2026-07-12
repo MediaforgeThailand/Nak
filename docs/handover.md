@@ -1,0 +1,105 @@
+# คู่มือส่งมอบระบบ NAK Wholesale
+
+อัปเดต: 2026-07-12
+
+เอกสารนี้สำหรับผู้ดูแลระบบ/ผู้รับช่วงต่อ ครอบคลุมการติดตั้ง คอนฟิกทั้งหมด การเปิดใช้ครั้งแรก และเช็คลิสต์ก่อนส่งมอบลูกค้า
+
+---
+
+## 1. ภาพรวมระบบ
+
+| ส่วน | เทคโนโลยี | อยู่ที่ |
+|---|---|---|
+| เว็บแอป | Next.js 16 (App Router) | Vercel โปรเจกต์ `nak-chi` (region `sin1`) |
+| ฐานข้อมูล + Auth + Storage | Supabase | โปรเจกต์ `euvzhzhwlcuyrmnxvzdx` |
+| แจ้งเตือน/รายงาน | LINE OA (Messaging API + LIFF) | LINE Developers Console |
+| โค้ด | GitHub | repo นี้ |
+
+ผู้ใช้ 3 ระดับ: **ลูกค้า** (สั่งซื้อ/แจ้งชำระ) → **ทีมจัดสินค้า** (`factory_staff` — แพ็ก/ส่งของเท่านั้น) → **แอดมิน** (ทุกอย่าง) และธง **เจ้าของ** (`is_owner` — ปรับยอดหนี้ด้วยมือ + โอนสิทธิ์เจ้าของได้)
+
+## 2. Environment variables (ตั้งใน Vercel ทั้งหมด)
+
+| ตัวแปร | จำเป็น | ใช้ทำอะไร / พังยังไงถ้าไม่ตั้ง |
+|---|---|---|
+| `NEXT_PUBLIC_SUPABASE_URL` | ✅ | URL โปรเจกต์ Supabase — ไม่ตั้ง = แอปเปิดไม่ขึ้นเลย |
+| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | ✅ | key ฝั่ง client — ไม่ตั้ง = แอปเปิดไม่ขึ้นเลย |
+| `NEXT_PUBLIC_SITE_URL` | ✅ | โดเมนโปรดักชัน เช่น `https://nak-chi.vercel.app` — ใช้เป็น redirect ของ LINE login (ต้องเพิ่ม `<url>/auth/callback` ใน Supabase Auth → Redirect URLs ด้วย) |
+| `SUPABASE_SERVICE_ROLE_KEY` | ✅ | LIFF login + ตัวส่งรายงาน LINE — ไม่ตั้ง = login ผ่านแอป LINE ใช้ไม่ได้, รายงานไม่ส่ง |
+| `CRON_SECRET` | ✅ | กุญแจกันคนนอกยิง endpoint ส่งรายงาน — **โปรดักชันบังคับ** (endpoint ปฏิเสธถ้าไม่ตั้ง) ระวังอย่าให้มีช่องว่าง/ขึ้นบรรทัดติดมา |
+| `LINE_OA_ACCESS_TOKEN` | ✅ | token ยิงข้อความเข้ากลุ่ม — ไม่ตั้ง = รายงาน LINE ไม่ส่ง (ฟีเจอร์อื่นปกติ) |
+| `LINE_CHANNEL_SECRET` | ✅ | ตรวจลายเซ็น webhook — ไม่ตั้ง = เชื่อมกลุ่ม LINE ไม่ได้ |
+| `NEXT_PUBLIC_LIFF_ID` | ✅ | LIFF app id — ไม่ตั้ง = auto-login ในแอป LINE ปิด (ยังใช้ OAuth บนเว็บได้) |
+| `LINE_LOGIN_CHANNEL_ID` | ✅ | ตรวจ id_token ฝั่งเซิร์ฟเวอร์ — ไม่ตั้ง = LIFF login error |
+
+## 3. คอนฟิกนอกโค้ด (ทำครั้งเดียว)
+
+### Supabase
+1. Apply migration ทุกไฟล์ใน `supabase/migrations/` ตามลำดับชื่อไฟล์ (`supabase db push` หรือ SQL editor) — **ไฟล์ล่าสุดที่ต้อง apply: `202607120001_delivery_hardening.sql`**
+2. Auth → Providers → เปิด Custom OAuth `custom:line` ด้วย channel id/secret ของ LINE Login channel
+3. Auth → URL Configuration → เพิ่ม `<NEXT_PUBLIC_SITE_URL>/auth/callback` ใน Redirect URLs
+
+### LINE Developers Console
+1. **Messaging API channel** (ตัว OA): เปิด "Use webhook", ตั้ง Webhook URL = `<NEXT_PUBLIC_SITE_URL>/api/line/webhook`, เปิด "Allow bot to join group chats"
+2. **LINE Login channel**: สร้าง LIFF app (ขนาด Full, endpoint = `<NEXT_PUBLIC_SITE_URL>/login`) → ได้ `NEXT_PUBLIC_LIFF_ID`; channel id = `LINE_LOGIN_CHANNEL_ID`
+3. เชิญ OA เข้า **กลุ่มทีมงานกลุ่มเดียวเท่านั้น** แล้วพิมพ์ข้อความ 1 ครั้ง → หน้า `/admin/settings` จะขึ้น "เชื่อมแล้ว"
+   - ระบบล็อกกลุ่มแรกที่เชื่อม: OA ไปอยู่กลุ่มอื่นจะไม่ย้ายตาม (กันรายงานยอดขาย/ชื่อลูกหนี้หลุดไปกลุ่มลูกค้า) — จะย้ายกลุ่มให้กด "ยกเลิกการเชื่อมกลุ่ม" ในหน้าตั้งค่าก่อน
+
+### Vercel
+- Cron ตั้งไว้แล้วใน `vercel.json`: ทุกวัน 13:00 UTC (20:00 ไทย) → ส่งรายงานประจำวัน + สรุปสัปดาห์ (วันอาทิตย์) + สรุปเดือน (วันที่ 1) รวมเป็นข้อความเดียว
+- โควตา LINE ฟรี 200 ข้อความ/เดือน — ระบบใช้ ~31/เดือน และหยุดเองที่ 195
+
+## 4. เปิดใช้ครั้งแรก
+
+### สร้างแอดมิน + เจ้าของคนแรก
+ให้เจ้าของร้านสมัคร/ล็อกอินเข้าระบบก่อน 1 ครั้ง (ทาง LINE หรืออีเมล) แล้วรันใน Supabase SQL editor **ทั้งบล็อกนี้ในครั้งเดียว** (บรรทัด `set_config` จำเป็น — ตาราง profiles มี trigger กันการแก้สิทธิ์ ถ้ารันเฉพาะ UPDATE ค่าจะถูกดีดกลับเงียบๆ):
+
+```sql
+-- ดู id ของบัญชีที่เพิ่งสมัคร
+select id, email, full_name, created_at from public.profiles order by created_at desc limit 5;
+```
+
+```sql
+-- รัน 3 บรรทัดนี้พร้อมกันในครั้งเดียว (แก้ <PROFILE_ID> ให้ตรง)
+select set_config('app.allow_profile_account_mutation', 'on', true);
+
+update public.profiles
+set role = 'admin', status = 'approved', approved_at = now(), is_owner = true
+where id = '<PROFILE_ID>';
+
+-- ตรวจผล: ต้องได้ role=admin, status=approved, is_owner=true
+select role, status, is_owner from public.profiles where id = '<PROFILE_ID>';
+```
+
+หลังจากนั้นทุกอย่างจัดการจากหน้า `/admin/users` ได้: อนุมัติลูกค้า, อนุมัติทีมงาน, เปลี่ยนสิทธิ์, ระงับบัญชี, โอน/ถอนสิทธิ์เจ้าของ (ปุ่มเห็นเฉพาะเจ้าของ)
+
+> **สำคัญ:** บัญชี demo `admin@admin.com` ถูกตั้ง `is_owner` ไว้จาก migration เก่า — หลังตั้งเจ้าของตัวจริงแล้ว **ให้ล็อกอินด้วยบัญชีเจ้าของใหม่และเข้า `/admin` ได้จริงก่อน** แล้วค่อยระงับ/ลบบัญชี demo (ดูข้อ 6) — ห้ามระงับบัญชี demo ก่อนยืนยัน ไม่งั้นอาจไม่เหลือแอดมินเข้าระบบได้เลย
+
+### ตั้งค่าบัญชีรับเงิน (สำคัญมาก)
+`/admin/settings` → "บัญชีรับเงิน (พร้อมเพย์)" → ใส่เลขพร้อมเพย์จริง (เบอร์มือถือ 10 หลัก / บัตรประชาชน 13 หลัก / e-Wallet 15 หลัก) + ชื่อบัญชี → ลูกค้าจะเห็น **QR จริงที่สแกนโอนได้** ในหน้าแจ้งชำระเงิน ถ้ายังไม่ตั้ง ลูกค้าจะเห็นข้อความ "ติดต่อร้าน" แทน (ไม่มี QR ปลอมแล้ว)
+
+## 5. งานประจำ / การดูแล
+
+- **อนุมัติออเดอร์**: `/admin/orders` — อนุมัติแล้วหนี้ลูกค้าเพิ่มทันที สต็อกถูกกันไว้ตั้งแต่ลูกค้ากดสั่ง
+- **ยกเลิกออเดอร์หลังอนุมัติ** (ก่อนส่งของ): แท็บ "จัดสินค้า" → "ยกเลิกออเดอร์นี้" → ระบบคืนสต็อก + คืนยอดหนี้อัตโนมัติ พร้อมบันทึกใน ledger
+- **ตรวจสลิป**: `/admin/payments` — อนุมัติแล้วหนี้ลด (เกินยอดหนี้ = ตัดเหลือ 0)
+- **ปรับหนี้ด้วยมือ**: หน้าลูกค้ารายคน (`/admin/customers/<id>`) — เฉพาะบัญชีเจ้าของ
+- **ดู log**: Vercel → Deployments → Functions (เว็บ/cron), Supabase → Logs (ฐานข้อมูล/auth)
+- **รายงานไม่เข้า LINE ตอน 2 ทุ่ม**: เช็คตามลำดับ — (1) `/admin/settings` เชื่อมกลุ่ม + โควตายังไม่เต็ม, (2) Vercel cron log ของ `/api/cron/line-report`, (3) `CRON_SECRET` ใน Vercel ตรงกับที่ cron ส่ง (เคยพังเพราะมี whitespace ติดมากับค่า)
+
+## 6. เช็คลิสต์ก่อนส่งมอบลูกค้า
+
+- [ ] Apply migration `202607120001_delivery_hardening.sql` กับฐานข้อมูลจริง
+- [ ] ตั้งเลขพร้อมเพย์จริงใน `/admin/settings` (ต้องได้เลข + ชื่อบัญชีจากลูกค้า)
+- [ ] ตั้งเจ้าของตัวจริง (SQL ข้อ 4) แล้ว**ระงับบัญชี demo**: `admin@admin.com` และบัญชีลูกค้า demo ที่สร้างตอนทดสอบ (`/admin/users` → ระงับ) รวมถึงลบที่อยู่ demo ("Prototype demo address") ถ้ายังค้าง
+- [ ] เช็คว่า env vars ครบทั้ง 9 ตัวใน Vercel โดยเฉพาะ `CRON_SECRET`
+- [ ] ทดสอบ flow เต็มบนมือถือจริง **ใน LINE**: สั่งซื้อ → อนุมัติ → แพ็ก+รูป → ส่ง → ลูกค้าเห็นรูป → แจ้งโอน+สลิป → อนุมัติ → หนี้ลด
+- [ ] ทดสอบสแกน QR พร้อมเพย์ด้วยแอปธนาคารจริง (เงินเข้าบัญชีที่ตั้งไว้)
+- [ ] ดู Vercel + Supabase logs หลังทดสอบ ไม่มี error ค้าง
+- [ ] ตกลง scope กับลูกค้า: รายงาน LINE วันละครั้ง 2 ทุ่ม (ไม่มีแจ้งเตือนสดต่อออเดอร์ — ตัดออกเพื่อประหยัดโควตาฟรี ถ้าต้องการสดต้องอัปเกรดแพ็กเกจ LINE OA แล้วพัฒนาเพิ่ม)
+
+## 7. สิ่งที่ระบบตั้งใจ "ไม่ทำ" (ตัดสินใจแล้ว)
+
+- ไม่มี push LINE ต่อออเดอร์/สลิปแบบเรียลไทม์ — รวมเป็นรายงานวันละครั้ง (ประหยัดโควตาฟรี 200 ข้อความ/เดือน)
+- สถานะออเดอร์จบที่ "จัดส่งแล้ว" (`shipping`) — ไม่มีขั้น "ลูกค้ารับแล้ว" แยก (label แสดงเหมือนกัน)
+- ไม่มีระบบทดสอบอัตโนมัติ — ใช้เช็คลิสต์ข้อ 6 ก่อนปล่อยของทุกครั้งที่แก้ใหญ่
+- ตาราง `role_permissions` และ `product_price_tiers` ยังอยู่ใน DB แต่ระบบไม่ใช้แล้ว (เก็บไว้ไม่มีผลอะไร)

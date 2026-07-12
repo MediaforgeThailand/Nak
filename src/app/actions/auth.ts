@@ -105,13 +105,29 @@ export async function updatePendingProfileAction(formData: FormData) {
       company_name: companyName || null,
       phone: phone || null,
       line_user_id: lineUserId,
-      signup_scope: scope === "admin" ? "staff" : "customer",
     })
     .eq("id", user.id)
     .eq("status", "pending");
 
   if (error) {
     redirect(`/pending?scope=${scope}&error=${encodeURIComponent(error.message)}`);
+  }
+
+  // Direct signup_scope writes are pinned by the privilege trigger — the
+  // staff-request flag moves only through its dedicated RPCs.
+  const wantsStaff = scope === "admin";
+  const scopeRpc = wantsStaff
+    ? profile.signup_scope !== "staff"
+      ? "request_staff_access"
+      : null
+    : profile.signup_scope === "staff"
+      ? "revoke_staff_request"
+      : null;
+  if (scopeRpc) {
+    const { error: scopeError } = await supabase.rpc(scopeRpc);
+    if (scopeError) {
+      redirect(`/pending?scope=${scope}&error=${encodeURIComponent("บันทึกข้อมูลแล้ว แต่ส่งคำขอสิทธิ์ไม่สำเร็จ กรุณาลองใหม่")}`);
+    }
   }
 
   revalidatePath("/pending");
