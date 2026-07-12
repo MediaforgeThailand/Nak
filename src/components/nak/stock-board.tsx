@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { Icon } from "@/components/nak/icon";
@@ -11,6 +12,7 @@ export type StockBoardItem = {
   sku: string;
   qty: number;
   tone: "success" | "warning" | "danger";
+  image: string | null; // uploaded photo (signed URL) or bundled group photo
 };
 
 export type StockBoardGroup = {
@@ -116,17 +118,15 @@ export function StockBoard({ groups, canEdit }: { groups: StockBoardGroup[]; can
             <h3 style={{ margin: 0, fontSize: 13.5, fontWeight: 800 }}>{group.name}</h3>
             <span style={{ fontSize: 11, color: "var(--muted)" }}>{group.items.length} รายการ</span>
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(66px, 1fr))", gap: 5 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(74px, 1fr))", gap: 5 }}>
             {group.items.map((it) => {
               const tone = TILE_TONE[it.tone];
               const tileStyle = {
                 display: "flex",
                 flexDirection: "column",
-                justifyContent: "space-between",
                 gap: 3,
-                minHeight: 58,
                 minWidth: 0,
-                padding: "5px 6px",
+                padding: 5,
                 borderRadius: 10,
                 border: `1px solid ${tone.border}`,
                 background: tone.bg,
@@ -136,11 +136,30 @@ export function StockBoard({ groups, canEdit }: { groups: StockBoardGroup[]; can
                 <>
                   <span
                     style={{
-                      fontSize: 9.5,
-                      fontWeight: 650,
+                      position: "relative",
+                      display: "block",
+                      width: "100%",
+                      aspectRatio: "1 / 1",
+                      borderRadius: 7,
+                      overflow: "hidden",
+                      background: "#fff",
+                    }}
+                  >
+                    {it.image ? (
+                      <Image src={it.image} alt={it.shortName} fill sizes="110px" style={{ objectFit: "cover" }} />
+                    ) : (
+                      <span style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center", color: "var(--muted)", opacity: 0.55 }}>
+                        <Icon name="package" size={22} stroke={1.7} />
+                      </span>
+                    )}
+                  </span>
+                  <span
+                    style={{
+                      fontSize: 8.5,
+                      fontWeight: 600,
                       lineHeight: 1.25,
                       display: "-webkit-box",
-                      WebkitLineClamp: 3,
+                      WebkitLineClamp: 2,
                       WebkitBoxOrient: "vertical",
                       overflow: "hidden",
                       wordBreak: "break-word",
@@ -148,7 +167,7 @@ export function StockBoard({ groups, canEdit }: { groups: StockBoardGroup[]; can
                   >
                     {it.shortName}
                   </span>
-                  <span style={{ fontSize: 15, fontWeight: 800, lineHeight: 1, textAlign: "right", color: tone.num }}>
+                  <span style={{ marginTop: "auto", fontSize: 14, fontWeight: 800, lineHeight: 1, textAlign: "right", color: tone.num }}>
                     {it.qty.toLocaleString("th-TH")}
                   </span>
                 </>

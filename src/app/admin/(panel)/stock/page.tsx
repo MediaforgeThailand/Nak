@@ -5,6 +5,7 @@ import { StockBoard, type StockBoardGroup } from "@/components/nak/stock-board";
 import { requireStaff } from "@/lib/auth";
 import { getInventoryMovements, getProductCategories, getProductsWithInventory } from "@/lib/data/queries";
 import { compactDate } from "@/lib/format";
+import { defaultProductImage } from "@/lib/product-images";
 import { signedUrls } from "@/lib/storage";
 
 export const dynamic = "force-dynamic";
@@ -40,11 +41,18 @@ export default async function AdminStockPage({
     getInventoryMovements(),
   ]);
 
-  const movementPhotos = await signedUrls(
-    "stock-photos",
-    movements.map((m) => m.photo_path).filter((p): p is string => Boolean(p)),
-    "admin",
-  );
+  const [movementPhotos, productImages] = await Promise.all([
+    signedUrls(
+      "stock-photos",
+      movements.map((m) => m.photo_path).filter((p): p is string => Boolean(p)),
+      "admin",
+    ),
+    signedUrls(
+      "product-images",
+      products.map((p) => p.image_path).filter((p): p is string => Boolean(p)),
+      "admin",
+    ),
+  ]);
 
   const invOf = (p: (typeof products)[number]) => (Array.isArray(p.inventory) ? p.inventory[0] : p.inventory);
 
@@ -74,6 +82,7 @@ export default async function AdminStockPage({
         sku: p.sku ?? "",
         qty,
         tone: stockStatus(qty, inv?.low_stock_threshold ?? 0).tone,
+        image: (p.image_path ? productImages.get(p.image_path) ?? null : null) ?? defaultProductImage(p.sku),
       };
     }),
   }));
