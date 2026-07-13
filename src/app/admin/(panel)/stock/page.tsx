@@ -27,6 +27,19 @@ function flavourOf(name: string) {
   return ix > -1 ? name.slice(ix + 3) : name;
 }
 
+// Thai label for a stock movement (shown when the row has no admin note) so the
+// history never surfaces the raw English enum value.
+const MOVEMENT_LABEL: Record<string, string> = {
+  initial: "ยอดตั้งต้น",
+  restock: "รับเข้าสต็อก",
+  order_reserved: "ตัดจากออเดอร์",
+  order_rejected_restore: "คืนจากออเดอร์ที่ยกเลิก",
+  manual_adjustment: "ปรับด้วยมือ",
+};
+function movementLabel(type: string | null | undefined) {
+  return (type && MOVEMENT_LABEL[type]) || "ปรับสต็อก";
+}
+
 export default async function AdminStockPage({
   searchParams,
 }: {
@@ -153,7 +166,7 @@ export default async function AdminStockPage({
                   {m.products?.name ?? m.products?.sku ?? "สินค้า"}
                 </div>
                 <div style={{ fontSize: 11.5, color: "var(--muted)" }}>
-                  {(m.note ?? m.type) || "ปรับสต็อก"} · {compactDate(m.created_at)}
+                  {m.note || movementLabel(m.type)} · {compactDate(m.created_at)}
                 </div>
               </div>
               <span style={{ fontSize: 14, fontWeight: 800, color: delta > 0 ? "#1b7a4b" : "#b42318", flexShrink: 0 }}>

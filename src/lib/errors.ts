@@ -60,5 +60,6 @@ export function thaiDbError(message: string | null | undefined): string {
     const match = text.match(pattern);
     if (match) return render(match);
   }
-  return `เกิดข้อผิดพลาด: ${text}`;
+  // Unknown/unmapped errors: never echo the raw English/SQL text to users.
+  return "เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง";
 }

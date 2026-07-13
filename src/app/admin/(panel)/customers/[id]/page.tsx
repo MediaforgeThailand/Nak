@@ -106,7 +106,7 @@ export default async function AdminCustomerDetailPage({
           </form>
         </SectionCard>
 
-        <SectionCard title="ล็อกระดับราคา (Price Program)" icon="trending">
+        <SectionCard title="ล็อกระดับราคา" icon="trending">
           <div
             style={{
               fontSize: 12.5,

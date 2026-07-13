@@ -451,19 +451,19 @@ export async function testLineNotifyAction(formData: FormData) {
   const kind = raw === "weekly" || raw === "monthly" ? raw : "daily";
   const client = lineServiceClient();
   if (!client) {
-    redirect(`/admin/settings?error=${encodeURIComponent("ยังไม่ได้ตั้งค่า SUPABASE_SERVICE_ROLE_KEY บนเซิร์ฟเวอร์")}`);
+    redirect(`/admin/settings?error=${encodeURIComponent("ระบบยังไม่พร้อมส่งข้อความ กรุณาติดต่อผู้ดูแลระบบ")}`);
   }
   const groupId = await getLinkedGroupId(client);
   if (!groupId) {
-    redirect(`/admin/settings?error=${encodeURIComponent("ยังไม่ได้เชื่อมกลุ่ม — เพิ่ม OA เข้ากลุ่มทีมงาน แล้วพิมพ์ข้อความในกลุ่ม 1 ครั้ง")}`);
+    redirect(`/admin/settings?error=${encodeURIComponent("ยังไม่ได้เชื่อมกลุ่ม — เพิ่มบัญชี LINE ของร้านเข้ากลุ่มทีมงาน แล้วพิมพ์ข้อความในกลุ่ม 1 ครั้ง")}`);
   }
   const quota = await getLineQuota();
   if (!quota) {
-    redirect(`/admin/settings?error=${encodeURIComponent("เช็คโควต้า LINE ไม่ได้ — ยังไม่ส่งเพื่อความปลอดภัย ลองใหม่อีกครั้ง")}`);
+    redirect(`/admin/settings?error=${encodeURIComponent("ส่งไม่ได้ในตอนนี้ กรุณาลองใหม่อีกครั้ง")}`);
   }
   const limit = Math.min(quota.limit ?? 195, 195);
   if (quota.used >= limit) {
-    redirect(`/admin/settings?error=${encodeURIComponent(`โควต้าข้อความเดือนนี้เต็มแล้ว (${quota.used}/${limit})`)}`);
+    redirect(`/admin/settings?error=${encodeURIComponent("ส่งข้อความประจำเดือนครบจำนวนแล้ว กรุณาลองใหม่เดือนหน้า")}`);
   }
   const bubble =
     kind === "daily"
@@ -471,7 +471,7 @@ export async function testLineNotifyAction(formData: FormData) {
       : buildPeriodBubble(await gatherPeriod(client, kind));
   const push = await pushLineFlex(groupId, "ตัวอย่างรายงาน NAK Wholesale", bubble);
   if (!push.ok) {
-    redirect(`/admin/settings?error=${encodeURIComponent(push.error ?? "ส่งไม่สำเร็จ")}`);
+    redirect(`/admin/settings?error=${encodeURIComponent("ส่งไม่สำเร็จ กรุณาลองใหม่อีกครั้ง")}`);
   }
   redirect("/admin/settings?ok=1");
 }
@@ -483,7 +483,7 @@ export async function unlinkLineGroupAction() {
   await requireAdmin();
   const client = lineServiceClient();
   if (!client) {
-    redirect(`/admin/settings?error=${encodeURIComponent("ยังไม่ได้ตั้งค่า SUPABASE_SERVICE_ROLE_KEY บนเซิร์ฟเวอร์")}`);
+    redirect(`/admin/settings?error=${encodeURIComponent("ระบบยังไม่พร้อมส่งข้อความ กรุณาติดต่อผู้ดูแลระบบ")}`);
   }
   const currentId = await getLinkedGroupId(client);
   await setLinkedGroupId(client, null, { block: currentId });

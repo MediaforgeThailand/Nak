@@ -4,19 +4,8 @@ import { AdBadge, PageHead, SectionCard } from "@/components/nak/ui";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { requireAdmin } from "@/lib/auth";
 import { getPaymentBankAccount, getSettings } from "@/lib/data/queries";
-import { getLineQuota } from "@/lib/line";
 
 export const dynamic = "force-dynamic";
-
-function renderValue(value: unknown) {
-  if (value === null || value === undefined) return "—";
-  if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") return String(value);
-  return JSON.stringify(value);
-}
-
-function maskGroupId(id: string) {
-  return id.length > 10 ? `${id.slice(0, 6)}…${id.slice(-4)}` : id;
-}
 
 export default async function AdminSettingsPage({
   searchParams,
@@ -24,10 +13,9 @@ export default async function AdminSettingsPage({
   searchParams: Promise<{ ok?: string; error?: string }>;
 }) {
   await requireAdmin();
-  const [params, settings, quota, bankAccount] = await Promise.all([
+  const [params, settings, bankAccount] = await Promise.all([
     searchParams,
     getSettings(),
-    getLineQuota(),
     getPaymentBankAccount("admin"),
   ]);
   const groupSetting = settings.find((s) => s.key === "line_group_id");
@@ -35,7 +23,7 @@ export default async function AdminSettingsPage({
 
   return (
     <div style={{ display: "grid", gap: 13 }}>
-      <PageHead title="ตั้งค่าระบบ" sub="บัญชีรับเงิน การแจ้งเตือน LINE และค่าคอนฟิก" />
+      <PageHead title="ตั้งค่าระบบ" sub="บัญชีรับเงิน และการแจ้งเตือน LINE" />
 
       {params.ok ? (
         <div style={{ background: "#e7f4ec", border: "1px solid #bfe3cd", padding: "11px 12px", borderRadius: "var(--r-sm)", color: "#1b7a4b", fontSize: 12.5, display: "flex", alignItems: "center", gap: 7 }}>
@@ -111,18 +99,7 @@ export default async function AdminSettingsPage({
           <div style={{ display: "grid", gap: 10, marginTop: 2 }}>
             <p style={{ margin: 0, fontSize: 12.5, color: "var(--muted)", lineHeight: 1.55 }}>
               ระบบส่ง <b style={{ color: "var(--ink)" }}>รายงานประจำวัน</b> เข้ากลุ่มทุก 20:00 น. · วันอาทิตย์แถม
-              <b style={{ color: "var(--ink)" }}> สรุปสัปดาห์</b> · วันที่ 1 แถม<b style={{ color: "var(--ink)" }}>สรุปเดือน</b> (รวมเป็นข้อความเดียว ประหยัดโควต้า)
-              <br />
-              Group ID: <span style={{ fontFamily: "monospace" }}>{maskGroupId(groupId)}</span>
-              {quota ? (
-                <>
-                  {" · "}โควต้าเดือนนี้{" "}
-                  <b style={{ color: quota.used > 150 ? "#b42318" : "var(--ink)" }}>
-                    {quota.used}/{quota.limit ?? "∞"}
-                  </b>{" "}
-                  ข้อความ
-                </>
-              ) : null}
+              <b style={{ color: "var(--ink)" }}> สรุปสัปดาห์</b> · วันที่ 1 แถม<b style={{ color: "var(--ink)" }}>สรุปเดือน</b> (รวมเป็นข้อความเดียว)
             </p>
             <div style={{ display: "grid", gap: 7 }}>
               <span style={{ fontSize: 11.5, color: "var(--muted)" }}>
@@ -159,36 +136,12 @@ export default async function AdminSettingsPage({
           <div style={{ display: "grid", gap: 8, marginTop: 2, fontSize: 12.5, color: "var(--muted)", lineHeight: 1.6 }}>
             <p style={{ margin: 0 }}>ยังไม่ได้เชื่อมกลุ่ม ทำตามขั้นตอนนี้:</p>
             <ol style={{ margin: 0, paddingLeft: 18, display: "grid", gap: 4 }}>
-              <li>เปิด &quot;Allow bot to join group chats&quot; ใน LINE Developers Console (แท็บ Messaging API)</li>
-              <li>ตั้ง Webhook URL เป็น <span style={{ fontFamily: "monospace", color: "var(--ink)" }}>/api/line/webhook</span> และเปิด Use webhook</li>
-              <li>เพิ่ม OA เข้ากลุ่มทีมงาน แล้วพิมพ์ข้อความในกลุ่ม 1 ครั้ง</li>
+              <li>เพิ่มบัญชี LINE ของร้านเข้ากลุ่มทีมงาน แล้วพิมพ์ข้อความในกลุ่ม 1 ครั้ง</li>
               <li>กลับมาหน้านี้ ระบบจะขึ้น &quot;เชื่อมแล้ว&quot; ให้กดทดสอบได้</li>
             </ol>
           </div>
         )}
       </SectionCard>
-
-      <div className="ad-card" style={{ padding: 4 }}>
-        {settings.map((setting, i) => (
-          <div
-            key={setting.key}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              gap: 14,
-              padding: "14px",
-              borderBottom: i < settings.length - 1 ? "1px solid var(--line)" : "none",
-            }}
-          >
-            <span style={{ fontSize: 13.5, color: "var(--muted)" }}>{setting.key}</span>
-            <span style={{ fontSize: 14, fontWeight: 700, textAlign: "right", wordBreak: "break-word", maxWidth: "60%" }}>
-              {renderValue(setting.value)}
-            </span>
-          </div>
-        ))}
-        {settings.length === 0 ? <div style={{ padding: 18, textAlign: "center", color: "var(--muted)", fontSize: 14 }}>ยังไม่มีค่าตั้งค่า</div> : null}
-      </div>
     </div>
   );
 }

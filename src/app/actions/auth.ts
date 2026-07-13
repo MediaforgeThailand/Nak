@@ -62,7 +62,8 @@ function authErrorMessage(message: string) {
   if (m.includes("password should be at least")) return "รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร";
   if (m.includes("unable to validate email") || m.includes("invalid email")) return "รูปแบบอีเมลไม่ถูกต้อง";
   if (m.includes("rate limit") || m.includes("too many requests")) return "พยายามหลายครั้งเกินไป กรุณาลองใหม่ภายหลัง";
-  return message;
+  // Don't surface raw English auth errors to users.
+  return "ทำรายการไม่สำเร็จ กรุณาลองใหม่อีกครั้ง";
 }
 
 function metadataString(metadata: Record<string, unknown>, keys: string[]) {
@@ -110,7 +111,7 @@ export async function updatePendingProfileAction(formData: FormData) {
     .eq("status", "pending");
 
   if (error) {
-    redirect(`/pending?scope=${scope}&error=${encodeURIComponent(error.message)}`);
+    redirect(`/pending?scope=${scope}&error=${encodeURIComponent("บันทึกข้อมูลไม่สำเร็จ กรุณาลองใหม่อีกครั้ง")}`);
   }
 
   // Direct signup_scope writes are pinned by the privilege trigger — the
@@ -169,10 +170,10 @@ async function startLineOAuth(scope: AuthScope) {
     },
   });
 
-  if (error) redirect(`${loginPath}?error=${encodeURIComponent(error.message)}`);
+  if (error) redirect(`${loginPath}?error=${encodeURIComponent("เข้าสู่ระบบด้วย LINE ไม่สำเร็จ กรุณาลองใหม่")}`);
   if (data.url) redirect(data.url);
 
-  redirect(`${loginPath}?error=${encodeURIComponent("ไม่สามารถเปิด LINE Login ได้")}`);
+  redirect(`${loginPath}?error=${encodeURIComponent("เข้าสู่ระบบด้วย LINE ไม่สำเร็จ กรุณาลองใหม่")}`);
 }
 
 export async function signInWithLineAction() {

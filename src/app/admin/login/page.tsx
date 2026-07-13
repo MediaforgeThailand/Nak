@@ -58,7 +58,7 @@ export default async function AdminLoginPage({
 
             {isSignup ? (
               <div className="mb-4 rounded-[var(--r-sm)] border border-[#f3dcb6] bg-[#fbeedd] p-3 text-sm leading-6 text-[#a35a10]">
-                สมัครทีมงานแล้วจะยังเข้า Admin Panel ไม่ได้ ต้องรอแอดมินอนุมัติและกำหนดสิทธิ์ก่อน
+                สมัครทีมงานแล้วจะยังเข้าระบบหลังบ้านไม่ได้ ต้องรอแอดมินอนุมัติและกำหนดสิทธิ์ก่อน
               </div>
             ) : null}
 
