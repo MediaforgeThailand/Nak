@@ -42,6 +42,8 @@ const exactMap: Record<string, string> = {
   "Only customer accounts can request staff access": "เฉพาะบัญชีลูกค้าเท่านั้นที่ขอสิทธิ์ทีมงานได้",
   "Cannot suspend the shop owner": "ระงับบัญชีเจ้าของไม่ได้ — ต้องโอนสิทธิ์เจ้าของให้บัญชีอื่นก่อน",
   "Cannot change the owner account": "แก้สิทธิ์บัญชีเจ้าของไม่ได้ — ต้องโอนสิทธิ์เจ้าของให้บัญชีอื่นก่อน",
+  "Cannot delete your own account": "ลบบัญชีที่กำลังใช้งานอยู่ไม่ได้",
+  "Cannot delete the shop owner": "ลบบัญชีเจ้าของไม่ได้",
   "Not authenticated": "กรุณาเข้าสู่ระบบใหม่",
 };
 

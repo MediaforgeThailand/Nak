@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import {
   adjustCustomerDebtAction,
   deleteCustomerProductDiscountAction,
+  deleteUserAction,
   setCustomerPriceLockAction,
   updateCustomerDiscountAction,
   upsertCustomerProductDiscountAction,
@@ -342,6 +343,26 @@ export default async function AdminCustomerDetailPage({
           ))}
           {transactions.length === 0 ? <p style={{ fontSize: 13, color: "var(--muted)", margin: "6px 0" }}>ยังไม่มีธุรกรรม</p> : null}
         </SectionCard>
+
+        {adminProfile.is_owner ? (
+          <SectionCard title="ลบบัญชีนี้" icon="alert">
+            <details>
+              <summary style={{ fontSize: 13, color: "#b42318", fontWeight: 700, cursor: "pointer" }}>
+                ลบบัญชีลูกค้านี้ถาวร
+              </summary>
+              <form action={deleteUserAction} style={{ marginTop: 9, display: "grid", gap: 8 }}>
+                <input type="hidden" name="user_id" value={profile.id} />
+                <input type="hidden" name="return_to" value="/admin/customers" />
+                <p style={{ margin: 0, fontSize: 12, color: "var(--muted)", lineHeight: 1.55 }}>
+                  ลบถาวร กู้คืนไม่ได้ — ออเดอร์ สลิป และประวัติทั้งหมดของลูกค้ารายนี้จะถูกลบไปด้วย ใช้กับบัญชีทดสอบเท่านั้น
+                </p>
+                <SubmitButton variant="danger" pendingLabel="กำลังลบ...">
+                  ยืนยันลบบัญชีลูกค้านี้ถาวร
+                </SubmitButton>
+              </form>
+            </details>
+          </SectionCard>
+        ) : null}
     </div>
   );
 }

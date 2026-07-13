@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { approveUserAction, setOwnerFlagAction, suspendUserAction } from "@/app/actions/admin";
+import { approveUserAction, deleteUserAction, setOwnerFlagAction, suspendUserAction } from "@/app/actions/admin";
 import { AdBadge, Avatar, PageHead } from "@/components/nak/ui";
 import { Select } from "@/components/ui/form";
 import { SubmitButton } from "@/components/ui/submit-button";
@@ -41,7 +41,7 @@ function ReqRow({
 export default async function AdminUsersPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; ok?: string }>;
 }) {
   const params = await searchParams;
   const { profile: currentProfile } = await requireAdmin();
@@ -65,6 +65,11 @@ export default async function AdminUsersPage({
       {params.error ? (
         <div style={{ background: "#fbe6e3", border: "1px solid #f3c8c2", padding: "11px 12px", borderRadius: "var(--r-sm)", color: "#b42318", fontSize: 12.5 }}>
           {params.error}
+        </div>
+      ) : null}
+      {params.ok === "deleted" ? (
+        <div style={{ background: "#e7f4ec", border: "1px solid #bfe3cd", padding: "11px 12px", borderRadius: "var(--r-sm)", color: "#1b7a4b", fontSize: 12.5 }}>
+          ลบบัญชีถาวรแล้ว
         </div>
       ) : null}
 
@@ -153,6 +158,7 @@ export default async function AdminUsersPage({
               <AdBadge tone={s.is_owner ? "accent" : "neutral"}>{s.is_owner ? "เจ้าของ" : roleLabel(s.role)}</AdBadge>
             </div>
             {s.id !== currentProfile.id ? (
+              <>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 150px), 1fr))", gap: 8, minWidth: 0 }}>
                 {/* The owner account can't have its role changed or be suspended
                     from here — ownership must be transferred first. */}
@@ -188,6 +194,25 @@ export default async function AdminUsersPage({
                   </form>
                 ) : null}
               </div>
+              {/* Permanent delete — owner-only, behind a confirm, never on the owner card. */}
+              {currentProfile.is_owner && !s.is_owner ? (
+                <details style={{ marginTop: 2 }}>
+                  <summary style={{ fontSize: 12, color: "#b42318", fontWeight: 700, cursor: "pointer" }}>
+                    ลบบัญชีถาวร
+                  </summary>
+                  <form action={deleteUserAction} style={{ marginTop: 8, display: "grid", gap: 7 }}>
+                    <input type="hidden" name="user_id" value={s.id} />
+                    <input type="hidden" name="return_to" value="/admin/users" />
+                    <p style={{ margin: 0, fontSize: 11.5, color: "var(--muted)", lineHeight: 1.5 }}>
+                      ลบถาวร กู้คืนไม่ได้ — ออเดอร์และประวัติของบัญชีนี้จะถูกลบไปด้วย ใช้กับบัญชีทดสอบเท่านั้น
+                    </p>
+                    <SubmitButton variant="danger" pendingLabel="กำลังลบ...">
+                      ยืนยันลบบัญชีนี้ถาวร
+                    </SubmitButton>
+                  </form>
+                </details>
+              ) : null}
+              </>
             ) : (
               <AdBadge tone="accent">กำลังใช้งาน</AdBadge>
             )}

@@ -25,7 +25,7 @@ function matches(profile: ProfileRecord, query: string) {
 export default async function AdminCustomersPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string; q?: string }>;
+  searchParams: Promise<{ error?: string; q?: string; ok?: string }>;
 }) {
   const params = await searchParams;
   await requireAdmin();
@@ -41,6 +41,11 @@ export default async function AdminCustomersPage({
       {params.error ? (
         <div style={{ background: "#fbe6e3", border: "1px solid #f3c8c2", padding: "11px 12px", borderRadius: "var(--r-sm)", color: "#b42318", fontSize: 12.5 }}>
           {params.error}
+        </div>
+      ) : null}
+      {params.ok === "deleted" ? (
+        <div style={{ background: "#e7f4ec", border: "1px solid #bfe3cd", padding: "11px 12px", borderRadius: "var(--r-sm)", color: "#1b7a4b", fontSize: 12.5 }}>
+          ลบบัญชีถาวรแล้ว
         </div>
       ) : null}
 

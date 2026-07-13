@@ -962,3 +962,25 @@ export async function suspendUserAction(formData: FormData) {
   revalidatePath("/admin/customers");
   revalidatePath("/admin/users");
 }
+
+// Permanent account deletion (owner-only). Removes the account and its own data
+// (orders/payments/ledger/addresses) and detaches records it merely acted on.
+export async function deleteUserAction(formData: FormData) {
+  const { profile: currentProfile } = await requireAdmin();
+  const supabase = await createSupabaseServerClient("admin");
+  const returnTo = adminReturnPath(formData, "/admin/users");
+  const userId = String(formData.get("user_id") ?? "");
+
+  if (!currentProfile.is_owner) {
+    redirect(`${returnTo}?error=${encodeURIComponent("เฉพาะเจ้าของร้านเท่านั้นที่ลบบัญชีได้")}`);
+  }
+  if (!userId || userId === currentProfile.id) {
+    redirect(`${returnTo}?error=${encodeURIComponent("ลบบัญชีที่กำลังใช้งานอยู่ไม่ได้")}`);
+  }
+
+  const { error } = await supabase.rpc("delete_user", { target_user_id: userId });
+  if (error) redirect(`${returnTo}?error=${encodeURIComponent(thaiDbError(error.message))}`);
+  revalidatePath("/admin/customers");
+  revalidatePath("/admin/users");
+  redirect(`${returnTo}?ok=deleted`);
+}
