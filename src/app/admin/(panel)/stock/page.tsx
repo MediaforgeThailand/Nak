@@ -116,7 +116,7 @@ export default async function AdminStockPage({
 
       {params.ok ? (
         <div style={{ background: "#e7f4ec", border: "1px solid #bfe3cd", padding: "11px 12px", borderRadius: "var(--r-sm)", color: "#1b7a4b", fontSize: 12.5, display: "flex", alignItems: "center", gap: 7 }}>
-          <Icon name="checkCircle" size={15} stroke={2.4} /> บันทึกรับเข้าสต็อกแล้ว
+          <Icon name="checkCircle" size={15} stroke={2.4} /> {params.ok === "out" ? "ปรับลดสต็อกแล้ว" : "บันทึกรับเข้าสต็อกแล้ว"}
         </div>
       ) : null}
       {params.error ? (

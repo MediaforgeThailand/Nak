@@ -37,12 +37,11 @@ export default async function AdminCustomerDetailPage({
     getProductsWithInventory(true, "admin"),
     getPriceTiers("admin"),
   ]);
-  const { profile, addresses, orders, payments, transactions, productDiscounts } = await getAdminCustomerDetail(id);
+  const { profile, addresses, orders, payments, transactions, productDiscounts, salesTotal, salesCount } = await getAdminCustomerDetail(id);
   if (!profile) notFound();
 
   const canAdjustDebt = adminProfile.is_owner;
   const returnTo = `/admin/customers/${profile.id}`;
-  const totalOrdered = orders.reduce((sum, order) => sum + Number(order.subtotal ?? 0), 0);
   const defaultAddress = addresses.find((a) => a.is_default) ?? addresses[0];
 
   // Price-level lock: the picker mirrors the ONE global discount ladder every
@@ -83,8 +82,8 @@ export default async function AdminCustomerDetailPage({
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 9 }}>
             <MiniStat label="ยอดค้าง" value={money(profile.debt_balance)} tone="warn" />
-            <MiniStat label="ซื้อทั้งหมด" value={money(totalOrdered)} />
-            <MiniStat label="ออเดอร์" value={String(orders.length)} />
+            <MiniStat label="ซื้อทั้งหมด" value={money(salesTotal)} />
+            <MiniStat label="ออเดอร์" value={String(salesCount)} />
             <MiniStat label="ส่วนลด/ชิ้น" value={Number(profile.per_item_discount ?? 0) > 0 ? money(profile.per_item_discount) : "—"} tone="ok" />
           </div>
           <div style={{ display: "grid", gap: 5 }}>

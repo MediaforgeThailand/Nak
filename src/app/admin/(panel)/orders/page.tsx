@@ -127,11 +127,14 @@ function ApproveCard({ order, canAct }: { order: AdminOrder; canAct: boolean }) 
         <div style={{ display: "flex", alignItems: "center", gap: 9, fontWeight: 700, fontSize: 13.5 }}>
           <Avatar name={customerName(order)} size={30} /> {customerName(order)}
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
-          <DebtCell label="หนี้เดิม" value={money(debt)} tone="warn" />
-          <DebtCell label="ออเดอร์นี้" value={money(subtotal)} />
-          <DebtCell label="หลังอนุมัติ" value={money(debt + subtotal)} tone="danger" />
-        </div>
+        {/* Customer debt is admin-only — packing staff should not see it. */}
+        {canAct ? (
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
+            <DebtCell label="หนี้เดิม" value={money(debt)} tone="warn" />
+            <DebtCell label="ออเดอร์นี้" value={money(subtotal)} />
+            <DebtCell label="หลังอนุมัติ" value={money(debt + subtotal)} tone="danger" />
+          </div>
+        ) : null}
       </div>
       <ItemsBox order={order} />
       {canAct ? (
@@ -364,7 +367,7 @@ export default async function AdminOrdersPage({
           ไม่มีออเดอร์ในหมวดนี้
         </div>
       ) : activeStage === "handoff" ? (
-        <HandoffList orders={handoffOrders} />
+        <HandoffList orders={handoffOrders} canCancel={isAdmin} />
       ) : (
         <div style={{ display: "grid", gap: 12 }}>
           {visibleOrders.map((order) => {

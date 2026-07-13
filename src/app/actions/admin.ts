@@ -438,7 +438,7 @@ export async function addStockAction(formData: FormData) {
   revalidatePath("/admin/home");
   revalidatePath("/products");
   revalidatePath("/home");
-  redirect("/admin/stock?ok=1");
+  redirect(`/admin/stock?ok=${delta > 0 ? "in" : "out"}`);
 }
 
 // Send a report flex card (daily/weekly/monthly per the "kind" form field) to
@@ -798,7 +798,7 @@ export async function recordManualPaymentAction(formData: FormData) {
   await requireAdmin();
   const supabase = await createSupabaseServerClient("admin");
   const customerId = String(formData.get("customer_id") ?? "");
-  const amount = Number(formData.get("amount") ?? 0);
+  const amount = Number(String(formData.get("amount") ?? "").replace(/,/g, ""));
   const transferDate = String(formData.get("transfer_date") ?? "") || null;
   const adminNote = String(formData.get("admin_note") ?? "").trim() || null;
 
@@ -895,12 +895,18 @@ export async function approveUserAction(formData: FormData) {
 
   const { data: targetProfile, error: targetError } = await supabase
     .from("profiles")
-    .select("id, role, status, signup_scope")
+    .select("id, role, status, signup_scope, is_owner")
     .eq("id", userId)
-    .single<{ id: string; role: UserRole; status: string; signup_scope: string }>();
+    .single<{ id: string; role: UserRole; status: string; signup_scope: string; is_owner: boolean }>();
 
   if (targetError || !targetProfile) {
     redirect(`${returnTo}?error=${encodeURIComponent(targetError ? thaiDbError(targetError.message) : "ไม่พบบัญชีที่ต้องการแก้ไข")}`);
+  }
+
+  // The owner account's role can't be changed here — that would strip owner
+  // powers behind their back. Ownership must be transferred first.
+  if (targetProfile.is_owner) {
+    redirect(`${returnTo}?error=${encodeURIComponent("แก้สิทธิ์บัญชีเจ้าของไม่ได้ — ต้องโอนสิทธิ์เจ้าของให้บัญชีอื่นก่อน")}`);
   }
 
   // Approved customers can only be promoted to staff via an explicit staff request
@@ -932,6 +938,20 @@ export async function suspendUserAction(formData: FormData) {
 
   if (!userId || userId === currentProfile.id) {
     redirect(`${returnTo}?error=${encodeURIComponent("ไม่สามารถระงับบัญชีที่กำลังใช้งานอยู่")}`);
+  }
+
+  // Never let the shop owner be suspended (it would lock them out of their own
+  // system); ownership must be transferred to another account first.
+  const { data: target, error: targetError } = await supabase
+    .from("profiles")
+    .select("id, is_owner")
+    .eq("id", userId)
+    .single<{ id: string; is_owner: boolean }>();
+  if (targetError || !target) {
+    redirect(`${returnTo}?error=${encodeURIComponent(targetError ? thaiDbError(targetError.message) : "ไม่พบบัญชีที่ต้องการระงับ")}`);
+  }
+  if (target.is_owner) {
+    redirect(`${returnTo}?error=${encodeURIComponent("ระงับบัญชีเจ้าของไม่ได้ — ต้องโอนสิทธิ์เจ้าของให้บัญชีอื่นก่อน")}`);
   }
 
   const { error } = await supabase.rpc("suspend_customer", {

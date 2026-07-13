@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useState } from "react";
-import { confirmHandoffAction } from "@/app/actions/admin";
+import { cancelOrderAction, confirmHandoffAction } from "@/app/actions/admin";
 import { Icon } from "@/components/nak/icon";
 import { SubmitButton } from "@/components/ui/submit-button";
 
@@ -38,7 +38,7 @@ async function writeClipboard(text: string) {
 
 const SEPARATOR = "\n____________________\n";
 
-export function HandoffList({ orders }: { orders: HandoffOrder[] }) {
+export function HandoffList({ orders, canCancel = false }: { orders: HandoffOrder[]; canCancel?: boolean }) {
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
@@ -180,6 +180,24 @@ export function HandoffList({ orders }: { orders: HandoffOrder[] }) {
                       <Icon name="truck" size={17} stroke={2.4} /> ส่งให้ขนส่งแล้ว
                     </SubmitButton>
                   </form>
+
+                  {/* Admin-only escape hatch before the parcel leaves: restores
+                      stock and reverses the customer's debt. */}
+                  {canCancel ? (
+                    <details>
+                      <summary style={{ fontSize: 12, color: "#b42318", fontWeight: 700, cursor: "pointer", textAlign: "center" }}>
+                        ยกเลิกออเดอร์นี้ (คืนสต็อก + คืนยอดหนี้)
+                      </summary>
+                      <form action={cancelOrderAction} style={{ marginTop: 8, display: "flex", gap: 8 }}>
+                        <input type="hidden" name="order_id" value={order.id} />
+                        <input type="hidden" name="stage" value="handoff" />
+                        <input className="ad-input" name="reason" placeholder="เหตุผลการยกเลิก (จำเป็น)" required />
+                        <SubmitButton variant="danger" pendingLabel="..." className="w-auto shrink-0 px-4">
+                          ยืนยันยกเลิก
+                        </SubmitButton>
+                      </form>
+                    </details>
+                  ) : null}
                 </div>
               ) : null}
             </div>

@@ -40,6 +40,8 @@ const exactMap: Record<string, string> = {
   "Cannot remove your own owner rights": "ถอนสิทธิ์เจ้าของของตัวเองไม่ได้",
   "Target must be an approved admin account": "บัญชีปลายทางต้องเป็นแอดมินที่อนุมัติแล้ว",
   "Only customer accounts can request staff access": "เฉพาะบัญชีลูกค้าเท่านั้นที่ขอสิทธิ์ทีมงานได้",
+  "Cannot suspend the shop owner": "ระงับบัญชีเจ้าของไม่ได้ — ต้องโอนสิทธิ์เจ้าของให้บัญชีอื่นก่อน",
+  "Cannot change the owner account": "แก้สิทธิ์บัญชีเจ้าของไม่ได้ — ต้องโอนสิทธิ์เจ้าของให้บัญชีอื่นก่อน",
   "Not authenticated": "กรุณาเข้าสู่ระบบใหม่",
 };
 

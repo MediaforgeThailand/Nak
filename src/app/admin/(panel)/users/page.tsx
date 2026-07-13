@@ -154,24 +154,30 @@ export default async function AdminUsersPage({
             </div>
             {s.id !== currentProfile.id ? (
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 150px), 1fr))", gap: 8, minWidth: 0 }}>
-                <form action={approveUserAction} style={{ display: "grid", gap: 6, minWidth: 0 }}>
-                  <input type="hidden" name="user_id" value={s.id} />
-                  <input type="hidden" name="return_to" value="/admin/users" />
-                  <Select name="role" defaultValue={s.role}>
-                    <option value="factory_staff">ทีมจัดสินค้า</option>
-                    <option value="admin">ผู้ดูแลระบบ</option>
-                  </Select>
-                  <SubmitButton variant="secondary" pendingLabel="...">
-                    บันทึกสิทธิ์
-                  </SubmitButton>
-                </form>
-                <form action={suspendUserAction} style={{ display: "grid", alignItems: "end", minWidth: 0 }}>
-                  <input type="hidden" name="user_id" value={s.id} />
-                  <input type="hidden" name="return_to" value="/admin/users" />
-                  <SubmitButton variant="danger" pendingLabel="..." className="w-full">
-                    ระงับ
-                  </SubmitButton>
-                </form>
+                {/* The owner account can't have its role changed or be suspended
+                    from here — ownership must be transferred first. */}
+                {!s.is_owner ? (
+                  <>
+                    <form action={approveUserAction} style={{ display: "grid", gap: 6, minWidth: 0 }}>
+                      <input type="hidden" name="user_id" value={s.id} />
+                      <input type="hidden" name="return_to" value="/admin/users" />
+                      <Select name="role" defaultValue={s.role}>
+                        <option value="factory_staff">ทีมจัดสินค้า</option>
+                        <option value="admin">ผู้ดูแลระบบ</option>
+                      </Select>
+                      <SubmitButton variant="secondary" pendingLabel="...">
+                        บันทึกสิทธิ์
+                      </SubmitButton>
+                    </form>
+                    <form action={suspendUserAction} style={{ display: "grid", alignItems: "end", minWidth: 0 }}>
+                      <input type="hidden" name="user_id" value={s.id} />
+                      <input type="hidden" name="return_to" value="/admin/users" />
+                      <SubmitButton variant="danger" pendingLabel="..." className="w-full">
+                        ระงับ
+                      </SubmitButton>
+                    </form>
+                  </>
+                ) : null}
                 {currentProfile.is_owner && s.role === "admin" && s.status === "approved" ? (
                   <form action={setOwnerFlagAction} style={{ display: "grid", alignItems: "end", minWidth: 0 }}>
                     <input type="hidden" name="user_id" value={s.id} />

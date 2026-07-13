@@ -10,14 +10,23 @@ import { safeFileName } from "@/lib/storage";
 
 const cartItemSchema = z.object({
   product_id: z.uuid(),
-  quantity: z.coerce.number().int().positive().max(999),
+  // Wholesale line quantities can be large; the cart already clamps to available
+  // stock. Keep a sane upper bound just to reject absurd/garbage values.
+  quantity: z.coerce.number().int().positive().max(100000),
 });
 
 export async function createOrderAction(formData: FormData) {
   await requireCustomer();
   const supabase = await createSupabaseServerClient("customer");
   const rawItems = String(formData.get("items") ?? "[]");
-  const items = z.array(cartItemSchema).parse(JSON.parse(rawItems));
+  let items: z.infer<typeof cartItemSchema>[];
+  try {
+    items = z.array(cartItemSchema).parse(JSON.parse(rawItems));
+  } catch {
+    // Malformed / oversized cart payload — show a Thai message instead of the
+    // generic Next.js error page.
+    redirect(`/cart?error=${encodeURIComponent("ตะกร้าไม่ถูกต้อง กรุณาลองใหม่อีกครั้ง")}`);
+  }
   const shippingAddress = String(formData.get("shipping_address_id") ?? "");
   const note = String(formData.get("customer_note") ?? "").trim();
   const shippingMethod = formData.get("shipping_method") === "grab" ? "grab" : "flash";

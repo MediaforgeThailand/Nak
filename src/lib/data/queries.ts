@@ -177,7 +177,7 @@ export async function getProfiles() {
 
 export async function getAdminCustomerDetail(customerId: string) {
   const supabase = await createSupabaseServerClient("admin");
-  const [profileResult, addressResult, ordersResult, paymentsResult, transactionsResult, productDiscountsResult] = await Promise.all([
+  const [profileResult, addressResult, ordersResult, paymentsResult, transactionsResult, productDiscountsResult, salesResult] = await Promise.all([
     supabase
       .from("profiles")
       .select("*")
@@ -213,6 +213,15 @@ export async function getAdminCustomerDetail(customerId: string) {
       .select("*, product:products(id, name, sku, unit)")
       .eq("customer_id", customerId)
       .order("created_at", { ascending: false }),
+    // Lifetime purchase total/count = all real sales (approved, not
+    // rejected/cancelled) — NOT the 6-row recent list above, which would
+    // undercount and would wrongly include voided orders.
+    supabase
+      .from("orders")
+      .select("subtotal")
+      .eq("customer_id", customerId)
+      .not("debt_applied_at", "is", null)
+      .not("status", "in", "(rejected,cancelled)"),
   ]);
 
   if (profileResult.error) throw profileResult.error;
@@ -221,6 +230,10 @@ export async function getAdminCustomerDetail(customerId: string) {
   if (paymentsResult.error) throw paymentsResult.error;
   if (transactionsResult.error) throw transactionsResult.error;
   if (productDiscountsResult.error) throw productDiscountsResult.error;
+  if (salesResult.error) throw salesResult.error;
+
+  const salesRows = salesResult.data ?? [];
+  const salesTotal = salesRows.reduce((sum, row) => sum + Number(row.subtotal ?? 0), 0);
 
   return {
     profile: profileResult.data,
@@ -229,39 +242,61 @@ export async function getAdminCustomerDetail(customerId: string) {
     payments: paymentsResult.data ?? [],
     transactions: transactionsResult.data ?? [],
     productDiscounts: productDiscountsResult.data ?? [],
+    salesTotal,
+    salesCount: salesRows.length,
   };
+}
+
+// Page through a PostgREST query so results never silently stop at the default
+// 1000-row cap (which, on an ascending sort, would drop the NEWEST sales — i.e.
+// exactly the current period the reports care about).
+async function fetchAllRows<T>(
+  page: (from: number, to: number) => PromiseLike<{ data: T[] | null; error: unknown }>,
+): Promise<T[]> {
+  const size = 1000;
+  const all: T[] = [];
+  for (let from = 0; ; from += size) {
+    const { data, error } = await page(from, from + size - 1);
+    if (error) throw error;
+    const rows = data ?? [];
+    all.push(...rows);
+    if (rows.length < size) break;
+  }
+  return all;
 }
 
 // Approved sales (debt applied) since `sinceISO`, with line items for
 // top-product breakdowns. Small shop volumes → aggregate in JS.
 export async function getSalesOrders(sinceISO: string) {
   const supabase = await createSupabaseServerClient("admin");
-  const { data, error } = await supabase
-    .from("orders")
-    .select("id, subtotal, debt_applied_at, order_items(product_id, product_name, quantity, line_total, unit)")
-    .not("debt_applied_at", "is", null)
-    .gte("debt_applied_at", sinceISO)
-    .not("status", "in", "(rejected,cancelled)")
-    .order("debt_applied_at", { ascending: true });
-  if (error) throw error;
-  return data ?? [];
+  return fetchAllRows((from, to) =>
+    supabase
+      .from("orders")
+      .select("id, subtotal, debt_applied_at, order_items(product_id, product_name, quantity, line_total, unit)")
+      .not("debt_applied_at", "is", null)
+      .gte("debt_applied_at", sinceISO)
+      .not("status", "in", "(rejected,cancelled)")
+      .order("debt_applied_at", { ascending: true })
+      .range(from, to),
+  );
 }
 
 // Approved sales since `sinceISO` with customer + category context, for the
 // report pages (same "approved sale" definition as getSalesOrders).
 export async function getReportSalesOrders(sinceISO: string) {
   const supabase = await createSupabaseServerClient("admin");
-  const { data, error } = await supabase
-    .from("orders")
-    .select(
-      "id, subtotal, debt_applied_at, customer_id, customer:profiles!orders_customer_id_fkey(company_name, full_name, email), order_items(product_id, product_name, quantity, line_total, unit, product:products(category:product_categories(name)))",
-    )
-    .not("debt_applied_at", "is", null)
-    .gte("debt_applied_at", sinceISO)
-    .not("status", "in", "(rejected,cancelled)")
-    .order("debt_applied_at", { ascending: true });
-  if (error) throw error;
-  return data ?? [];
+  return fetchAllRows((from, to) =>
+    supabase
+      .from("orders")
+      .select(
+        "id, subtotal, debt_applied_at, customer_id, customer:profiles!orders_customer_id_fkey(company_name, full_name, email), order_items(product_id, product_name, quantity, line_total, unit, product:products(category:product_categories(name)))",
+      )
+      .not("debt_applied_at", "is", null)
+      .gte("debt_applied_at", sinceISO)
+      .not("status", "in", "(rejected,cancelled)")
+      .order("debt_applied_at", { ascending: true })
+      .range(from, to),
+  );
 }
 
 // Customers carrying debt, largest first.
