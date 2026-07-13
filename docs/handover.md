@@ -34,7 +34,7 @@
 ## 3. คอนฟิกนอกโค้ด (ทำครั้งเดียว)
 
 ### Supabase
-1. Apply migration ทุกไฟล์ใน `supabase/migrations/` ตามลำดับชื่อไฟล์ (`supabase db push` หรือ SQL editor) — **ไฟล์ล่าสุดที่ต้อง apply: `202607120001_delivery_hardening.sql`**
+1. Apply migration ทุกไฟล์ใน `supabase/migrations/` ตามลำดับชื่อไฟล์ (`supabase db push` หรือ SQL editor) — **ไฟล์ที่ DB จริงยังไม่ได้รัน (รันตามลำดับ): `202607110002_admin_delete_product_and_purge_demo.sql`, `202607120001_delivery_hardening.sql`, `202607130001_purge_demo_data_completely.sql`** (ไฟล์สุดท้ายลบสินค้า demo + ออเดอร์ทดสอบของมันออกหมด และปรับยอดหนี้บัญชีทดสอบให้ตรงตาม ledger ที่เหลือ)
 2. Auth → Providers → เปิด Custom OAuth `custom:line` ด้วย channel id/secret ของ LINE Login channel
 3. Auth → URL Configuration → เพิ่ม `<NEXT_PUBLIC_SITE_URL>/auth/callback` ใน Redirect URLs
 
@@ -90,7 +90,7 @@ select role, status, is_owner from public.profiles where id = '<PROFILE_ID>';
 
 ## 6. เช็คลิสต์ก่อนส่งมอบลูกค้า
 
-- [ ] Apply migration `202607120001_delivery_hardening.sql` กับฐานข้อมูลจริง
+- [ ] Apply migration ที่ค้างอยู่กับฐานข้อมูลจริงตามลำดับ: `202607110002`, `202607120001`, `202607130001` (ไฟล์สุดท้ายล้างสินค้า demo + ออเดอร์ทดสอบ — หลังรัน หน้า `/admin/products` และ `/admin/stock` ต้องไม่เหลือสินค้า DEMO-*/NAK-* เลย)
 - [ ] เช็คหน้าแจ้งชำระเงินหลัง apply migration: ต้องเห็นการ์ดกรุงไทย 663-6-81505-1 (ภควัฒน์) — เลขถูก seed ให้แล้ว ไม่ต้องกรอกเอง
 - [ ] ตั้งเจ้าของตัวจริง (SQL ข้อ 4) แล้ว**ระงับบัญชี demo**: `admin@admin.com` และบัญชีลูกค้า demo ที่สร้างตอนทดสอบ (`/admin/users` → ระงับ) รวมถึงลบที่อยู่ demo ("Prototype demo address") ถ้ายังค้าง
 - [ ] เช็คว่า env vars ครบทั้ง 9 ตัวใน Vercel โดยเฉพาะ `CRON_SECRET`
