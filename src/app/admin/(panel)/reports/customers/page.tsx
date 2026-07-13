@@ -14,11 +14,11 @@ export default async function CustomersReportPage({
   searchParams: Promise<{ range?: string }>;
 }) {
   const params = await searchParams;
-  await requireAdmin();
 
   const { presets, active } = resolveRange(params.range, "30d");
 
-  const [ordersRaw, newCustomers] = await Promise.all([
+  const [, ordersRaw, newCustomers] = await Promise.all([
+    requireAdmin(),
     getReportSalesOrders(bkkStartOfDayISO(active.from)),
     getNewCustomerCount(bkkStartOfDayISO(active.from)),
   ]);

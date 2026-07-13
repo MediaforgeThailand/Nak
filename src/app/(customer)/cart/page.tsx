@@ -12,19 +12,21 @@ export default async function CartPage({
   searchParams: Promise<{ error?: string }>;
 }) {
   const params = await searchParams;
-  const [{ profile }, products, addresses, priceProgram, productDiscounts, tiers] = await Promise.all([
+  // Chain the signed-URL lookup off products so it overlaps the other reads.
+  const productsP = getProductsWithInventory(false);
+  const imageUrlsP = productsP.then((products) =>
+    signedUrls("product-images", products.map((product) => product.image_path).filter((path): path is string => Boolean(path))),
+  );
+  const [{ profile }, products, addresses, priceProgram, productDiscounts, tiers, productImageUrls] = await Promise.all([
     requireCustomer(),
-    getProductsWithInventory(false),
+    productsP,
     getCustomerAddresses(),
     getPriceProgramStatus(),
     getMyProductDiscounts(),
     getPriceTiers(),
+    imageUrlsP,
   ]);
   const discountPerItem = Number(profile.per_item_discount ?? 0);
-  const productImageUrls = await signedUrls(
-    "product-images",
-    products.map((product) => product.image_path).filter((path): path is string => Boolean(path)),
-  );
 
   return (
     <>

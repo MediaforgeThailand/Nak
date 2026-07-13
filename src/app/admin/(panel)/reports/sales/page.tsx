@@ -38,7 +38,6 @@ export default async function AdminSalesReportPage({
   searchParams: Promise<{ from?: string; to?: string }>;
 }) {
   const params = await searchParams;
-  await requireAdmin();
 
   const today = bkkDateKey();
   const monthStart = `${today.slice(0, 8)}01`;
@@ -55,7 +54,7 @@ export default async function AdminSalesReportPage({
   const prevTo = addDays(rangeFrom, -1);
   const prevFrom = addDays(prevTo, -(rangeDays - 1));
 
-  const orders = (await getSalesOrders(bkkStartOfDayISO(prevFrom))) as unknown as SalesOrder[];
+  const [, orders] = (await Promise.all([requireAdmin(), getSalesOrders(bkkStartOfDayISO(prevFrom))])) as [unknown, SalesOrder[]];
 
   const rangeSum = summarize(orders, rangeFrom, rangeTo);
   const prevSum = summarize(orders, prevFrom, prevTo);

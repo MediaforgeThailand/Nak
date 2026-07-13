@@ -7,19 +7,22 @@ import { signedUrls } from "@/lib/storage";
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
-  const [{ profile }, products, categories, priceProgram, productDiscounts, tiers] = await Promise.all([
+  // Chain the signed-URL lookup off products so it overlaps the other catalog
+  // reads instead of running as a second round-trip after the batch resolves.
+  const productsP = getProductsWithInventory(false);
+  const imageUrlsP = productsP.then((products) =>
+    signedUrls("product-images", products.map((product) => product.image_path).filter((path): path is string => Boolean(path))),
+  );
+  const [{ profile }, products, categories, priceProgram, productDiscounts, tiers, productImageUrls] = await Promise.all([
     requireCustomer(),
-    getProductsWithInventory(false),
+    productsP,
     getProductCategories(),
     getPriceProgramStatus(),
     getMyProductDiscounts(),
     getPriceTiers(),
+    imageUrlsP,
   ]);
   const discountPerItem = Number(profile.per_item_discount ?? 0);
-  const productImageUrls = await signedUrls(
-    "product-images",
-    products.map((product) => product.image_path).filter((path): path is string => Boolean(path)),
-  );
 
   return (
     <div style={{ display: "grid", gap: 14, padding: "14px 14px 20px" }}>

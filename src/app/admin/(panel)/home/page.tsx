@@ -2,11 +2,11 @@ import Link from "next/link";
 import { Icon } from "@/components/nak/icon";
 import { AdBadge, AdThumb, Avatar, PageHead, StatTile } from "@/components/nak/ui";
 import { money } from "@/lib/format";
-import { getAdminOrders, getPayments, getProductsWithInventory, getProfiles } from "@/lib/data/queries";
+import { getAdminBadgeCounts, getDebtors, getProductsWithInventory, getRecentOrders } from "@/lib/data/queries";
 
 export const dynamic = "force-dynamic";
 
-type AdminOrder = Awaited<ReturnType<typeof getAdminOrders>>[number];
+type AdminOrder = Awaited<ReturnType<typeof getRecentOrders>>[number];
 
 function inventoryOf(product: Awaited<ReturnType<typeof getProductsWithInventory>>[number]) {
   return Array.isArray(product.inventory) ? product.inventory[0] : product.inventory;
@@ -66,17 +66,17 @@ function ActionRow({
 }
 
 export default async function AdminDashboardPage() {
-  const [orders, payments, products, profiles] = await Promise.all([
-    getAdminOrders(),
-    getPayments("admin"),
+  const [badges, debtors, products, recentOrders] = await Promise.all([
+    getAdminBadgeCounts(),
+    getDebtors(),
     getProductsWithInventory(true, "admin"),
-    getProfiles(),
+    getRecentOrders(5),
   ]);
 
-  const pendingOrders = orders.filter((order) => order.status === "pending_admin").length;
-  const pendingSlips = payments.filter((payment) => payment.status === "pending").length;
-  const totalDebt = profiles.reduce((sum, profile) => sum + Number(profile.debt_balance ?? 0), 0);
-  const requests = profiles.filter((p) => p.status === "pending").length;
+  const pendingOrders = badges.orders;
+  const pendingSlips = badges.payments;
+  const requests = badges.users;
+  const totalDebt = debtors.reduce((sum, debtor) => sum + Number(debtor.debt_balance ?? 0), 0);
   const lowStock = products.filter((product) => {
     const inv = inventoryOf(product);
     return inv && inv.quantity_available <= inv.low_stock_threshold;
@@ -107,7 +107,7 @@ export default async function AdminDashboardPage() {
             ดูทั้งหมด <Icon name="arrowR" size={14} stroke={2.4} />
           </Link>
         </div>
-        {orders.slice(0, 5).map((order, i) => {
+        {recentOrders.map((order, i) => {
           const stage = stageMeta(order.status);
           return (
             <div
@@ -117,7 +117,7 @@ export default async function AdminDashboardPage() {
                 alignItems: "center",
                 gap: 11,
                 padding: "10px 0",
-                borderBottom: i < Math.min(orders.length, 5) - 1 ? "1px solid var(--line)" : "none",
+                borderBottom: i < recentOrders.length - 1 ? "1px solid var(--line)" : "none",
               }}
             >
               <Avatar name={customerName(order)} tone="neutral" size={36} />
@@ -134,7 +134,7 @@ export default async function AdminDashboardPage() {
             </div>
           );
         })}
-        {orders.length === 0 ? <p style={{ fontSize: 13, color: "var(--muted)", margin: "6px 0 0" }}>ยังไม่มีออเดอร์</p> : null}
+        {recentOrders.length === 0 ? <p style={{ fontSize: 13, color: "var(--muted)", margin: "6px 0 0" }}>ยังไม่มีออเดอร์</p> : null}
       </div>
 
       <div className="ad-card" style={{ padding: 16, display: "grid", gap: 6 }}>

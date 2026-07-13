@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { redirect } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { AuthScope } from "@/lib/supabase/server";
@@ -8,7 +9,10 @@ const loginPath: Record<AuthScope, string> = {
   admin: "/admin/login",
 };
 
-export async function getCurrentProfile(scope: AuthScope = "customer") {
+// Memoized per-request (React cache): a layout and its page both call this via
+// require*(), and without the cache each would fire its own auth.getUser()
+// network round-trip + profiles read. Cached, they share one of each per render.
+export const getCurrentProfile = cache(async (scope: AuthScope = "customer") => {
   const supabase = await createSupabaseServerClient(scope);
   const {
     data: { user },
@@ -23,7 +27,7 @@ export async function getCurrentProfile(scope: AuthScope = "customer") {
     .single<Profile>();
 
   return { user, profile };
-}
+});
 
 export async function requireApprovedProfile(scope: AuthScope = "customer") {
   const { user, profile } = await getCurrentProfile(scope);
@@ -61,12 +65,4 @@ export async function requireOwner() {
   const session = await requireAdmin();
   if (!session.profile.is_owner) redirect("/admin/home");
   return session;
-}
-
-export function landingForProfile(profile: Profile | null) {
-  if (!profile || profile.status !== "approved") return "/pending";
-  if (profile.role === "admin" || profile.role === "factory_staff") {
-    return "/admin/home";
-  }
-  return "/home";
 }

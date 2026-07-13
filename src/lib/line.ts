@@ -60,11 +60,6 @@ async function pushLineMessages(to: string, messages: unknown[]): Promise<{ ok: 
   }
 }
 
-/** Push a plain-text message to a LINE user/group/room. Returns ok + error text. */
-export async function pushLineText(to: string, text: string) {
-  return pushLineMessages(to, [{ type: "text", text: text.slice(0, 4900) }]);
-}
-
 /** Push a Flex message (rich card UI). `contents` is a bubble or carousel object. */
 export async function pushLineFlex(to: string, altText: string, contents: unknown) {
   return pushLineMessages(to, [{ type: "flex", altText: altText.slice(0, 390), contents }]);

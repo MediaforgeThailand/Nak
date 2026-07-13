@@ -1,5 +1,3 @@
-"use client";
-
 import Link from "next/link";
 import { Icon } from "@/components/nak/icon";
 import { money } from "@/lib/format";

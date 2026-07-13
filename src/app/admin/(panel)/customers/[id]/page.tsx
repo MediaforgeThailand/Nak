@@ -31,14 +31,15 @@ export default async function AdminCustomerDetailPage({
   params: Promise<{ id: string }>;
   searchParams: Promise<{ error?: string }>;
 }) {
-  const [{ id }, query, { profile: adminProfile }, allProducts, globalTiers] = await Promise.all([
-    params,
+  const { id } = await params;
+  const [query, { profile: adminProfile }, allProducts, globalTiers, detail] = await Promise.all([
     searchParams,
     requireAdmin(),
     getProductsWithInventory(true, "admin"),
     getPriceTiers("admin"),
+    getAdminCustomerDetail(id),
   ]);
-  const { profile, addresses, orders, payments, transactions, productDiscounts, salesTotal, salesCount } = await getAdminCustomerDetail(id);
+  const { profile, addresses, orders, payments, transactions, productDiscounts, salesTotal, salesCount } = detail;
   if (!profile) notFound();
 
   const canAdjustDebt = adminProfile.is_owner;

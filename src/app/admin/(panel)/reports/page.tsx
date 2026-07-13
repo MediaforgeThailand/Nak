@@ -9,8 +9,6 @@ import { addDays, bkkDateKey, bkkStartOfDayISO, dailySeries, dayKeysBetween, mon
 export const dynamic = "force-dynamic";
 
 export default async function AdminReportsPage() {
-  await requireAdmin();
-
   const today = bkkDateKey();
   const monthStart = `${today.slice(0, 8)}01`;
   const prevMonthEnd = addDays(monthStart, -1);
@@ -22,7 +20,8 @@ export default async function AdminReportsPage() {
   // before the previous month).
   const fetchFrom = trendStart < prevMonthStart ? trendStart : prevMonthStart;
 
-  const [orders, debtors, products, pendingSlips] = await Promise.all([
+  const [, orders, debtors, products, pendingSlips] = await Promise.all([
+    requireAdmin(),
     getSalesOrders(bkkStartOfDayISO(fetchFrom)) as Promise<unknown> as Promise<SalesOrder[]>,
     getDebtors(),
     getProductsWithInventory(true, "admin"),

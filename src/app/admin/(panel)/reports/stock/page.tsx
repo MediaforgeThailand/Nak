@@ -20,12 +20,11 @@ type ProductRow = {
 };
 
 export default async function StockReportPage() {
-  await requireAdmin();
-
   const today = bkkDateKey();
   const chartStart = addDays(today, -13);
 
-  const [productsRaw, movements] = await Promise.all([
+  const [, productsRaw, movements] = await Promise.all([
+    requireAdmin(),
     getProductsWithInventory(true, "admin"),
     getStockMovementsSince(bkkStartOfDayISO(chartStart)),
   ]);

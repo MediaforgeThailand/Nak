@@ -356,6 +356,45 @@ export async function getPendingSlipCount() {
   return count ?? 0;
 }
 
+// Newest N orders with just the columns the dashboard feed renders — no
+// order_items/order_photos joins, so the home page doesn't drag the whole
+// order history to show five rows.
+type RecentOrder = {
+  id: string;
+  order_number: string;
+  subtotal: number;
+  status: string;
+  customer_id: string;
+  customer: { company_name: string | null; full_name: string | null; email: string } | null;
+};
+
+export async function getRecentOrders(limit = 5): Promise<RecentOrder[]> {
+  const supabase = await createSupabaseServerClient("admin");
+  const { data, error } = await supabase
+    .from("orders")
+    .select("id, order_number, subtotal, status, customer_id, customer:profiles!orders_customer_id_fkey(company_name, full_name, email)")
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  if (error) throw error;
+  // The customer FK embed is to-one at runtime; postgrest-js mistypes it as an array.
+  return (data ?? []) as unknown as RecentOrder[];
+}
+
+// Sidebar badge counts — head-only counts (no rows/joins transferred), so the
+// admin layout doesn't pull whole tables just to show three numbers.
+export async function getAdminBadgeCounts() {
+  const supabase = await createSupabaseServerClient("admin");
+  const [orders, payments, users] = await Promise.all([
+    supabase.from("orders").select("id", { count: "exact", head: true }).eq("status", "pending_admin"),
+    supabase.from("payments").select("id", { count: "exact", head: true }).eq("status", "pending"),
+    supabase.from("profiles").select("id", { count: "exact", head: true }).eq("status", "pending"),
+  ]);
+  if (orders.error) throw orders.error;
+  if (payments.error) throw payments.error;
+  if (users.error) throw users.error;
+  return { orders: orders.count ?? 0, payments: payments.count ?? 0, users: users.count ?? 0 };
+}
+
 export async function getStockMovementsSince(sinceISO: string) {
   const supabase = await createSupabaseServerClient("admin");
   const { data, error } = await supabase

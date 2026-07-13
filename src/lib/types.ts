@@ -2,18 +2,6 @@ export type UserRole = "customer" | "factory_staff" | "admin";
 export type AccountStatus = "pending" | "approved" | "suspended";
 export type SignupScope = "customer" | "staff";
 
-export type OrderStatus =
-  | "pending_admin"
-  | "approved"
-  | "packing"
-  | "ready_to_ship"
-  | "shipping"
-  | "delivered"
-  | "rejected"
-  | "cancelled";
-
-export type PaymentStatus = "pending" | "approved" | "rejected";
-
 export type Profile = {
   id: string;
   email: string;
@@ -76,9 +64,4 @@ export type ProductCategory = {
   description: string | null;
   sort_order: number;
   created_at: string;
-};
-
-export type CartItemInput = {
-  product_id: string;
-  quantity: number;
 };

@@ -14,18 +14,6 @@ function isDirectAssetPath(path: string) {
   return path.startsWith("/") || path.startsWith("http://") || path.startsWith("https://");
 }
 
-export async function signedUrl(
-  bucket: string,
-  path: string | null | undefined,
-  scope: AuthScope = "customer",
-) {
-  if (!path) return null;
-  if (isDirectAssetPath(path)) return path;
-  const supabase = await createSupabaseServerClient(scope);
-  const { data } = await supabase.storage.from(bucket).createSignedUrl(path, 900);
-  return data?.signedUrl ?? null;
-}
-
 export async function signedUrls(
   bucket: string,
   paths: string[],

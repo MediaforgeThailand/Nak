@@ -22,8 +22,11 @@ export default async function ProfilePage({
 }: {
   searchParams: Promise<{ error?: string; saved?: string; paid?: string }>;
 }) {
-  const [params, { profile }] = await Promise.all([searchParams, requireCustomer()]);
-  const [addresses, orders, transactions, payments, priceProgram] = await Promise.all([
+  // RLS scopes every read to the signed-in customer, so the data queries don't
+  // depend on requireCustomer()'s result — run them all in one batch.
+  const [params, { profile }, addresses, orders, transactions, payments, priceProgram] = await Promise.all([
+    searchParams,
+    requireCustomer(),
     getCustomerAddresses(),
     getCustomerOrders(),
     getTransactions(),

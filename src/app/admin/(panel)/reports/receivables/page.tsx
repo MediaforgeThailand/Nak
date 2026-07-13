@@ -9,14 +9,13 @@ import { addDays, bkkDateKey, bkkStartOfDayISO, dayKeysBetween } from "@/lib/sal
 export const dynamic = "force-dynamic";
 
 export default async function ReceivablesReportPage() {
-  await requireAdmin();
-
   const today = bkkDateKey();
   const monthStart = `${today.slice(0, 8)}01`;
   const chartStart = addDays(today, -13);
   const since = [monthStart, chartStart].sort()[0];
 
-  const [debtors, payments, pendingSlips] = await Promise.all([
+  const [, debtors, payments, pendingSlips] = await Promise.all([
+    requireAdmin(),
     getDebtors(),
     getApprovedPaymentsSince(bkkStartOfDayISO(since)),
     getPendingSlipCount(),

@@ -27,9 +27,7 @@ export default async function AdminCustomersPage({
 }: {
   searchParams: Promise<{ error?: string; q?: string; ok?: string }>;
 }) {
-  const params = await searchParams;
-  await requireAdmin();
-  const profiles = await getProfiles();
+  const [params, , profiles] = await Promise.all([searchParams, requireAdmin(), getProfiles()]);
   const query = String(params.q ?? "").trim();
   const customers = profiles.filter((p) => p.role === "customer" && p.status !== "pending");
   const filtered = customers.filter((p) => matches(p, query));

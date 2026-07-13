@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { Icon } from "@/components/nak/icon";
 import { PageHead } from "@/components/nak/ui";
@@ -142,8 +143,7 @@ export default async function AdminStockPage({
             <div key={m.id} style={{ display: "flex", alignItems: "center", gap: 11, padding: "9px 0", borderBottom: i < movements.length - 1 ? "1px solid var(--line)" : "none" }}>
               {photoUrl ? (
                 <a href={photoUrl} target="_blank" rel="noopener noreferrer" style={{ position: "relative", width: 40, height: 40, borderRadius: 9, overflow: "hidden", flexShrink: 0, display: "block" }}>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={photoUrl} alt="รูปของเข้า" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                  <Image src={photoUrl} alt="รูปของเข้า" fill sizes="40px" style={{ objectFit: "cover" }} />
                 </a>
               ) : (
                 <span
