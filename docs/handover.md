@@ -34,7 +34,10 @@
 ## 3. คอนฟิกนอกโค้ด (ทำครั้งเดียว)
 
 ### Supabase
-1. Apply migration ทุกไฟล์ใน `supabase/migrations/` ตามลำดับชื่อไฟล์ (`supabase db push` หรือ SQL editor) — **ไฟล์ที่ DB จริงยังไม่ได้รัน (รันตามลำดับ): `202607110002_admin_delete_product_and_purge_demo.sql`, `202607120001_delivery_hardening.sql`, `202607130001_purge_demo_data_completely.sql`** (ไฟล์สุดท้ายลบสินค้า demo + ออเดอร์ทดสอบของมันออกหมด และปรับยอดหนี้บัญชีทดสอบให้ตรงตาม ledger ที่เหลือ)
+1. Apply migration ทุกไฟล์ใน `supabase/migrations/` ตามลำดับชื่อไฟล์ (`supabase db push` หรือ SQL editor) — **ไฟล์ที่ DB จริงยังไม่ได้รัน (รันตามลำดับ): `202607110002_admin_delete_product_and_purge_demo.sql`, `202607120001_delivery_hardening.sql`, `202607130001_purge_demo_data_completely.sql`, `202607130002_purge_all_non_catalog_test_products.sql`**
+   - `202607130001` ลบสินค้า demo ชุดแรก (DEMO-*/NAK-*) + ออเดอร์ทดสอบของมัน
+   - `202607130002` กวาดสินค้าทดสอบที่เหลือ**ทั้งหมด**ที่ไม่ใช่แคตตาล็อกจริง (เช่น CODEX-*, MARBO-9000) — **ก่อนรัน DO block ให้รัน SELECT preview ที่อยู่หัวไฟล์ก่อน** แล้วดูให้ชัวร์ว่าทุก SKU ที่จะโดนลบเป็นของทดสอบจริง (ไม่ใช่รสของจริง) แล้วค่อยรันส่วนลบ เป็น cleanup ครั้งเดียว ไม่ต้องรันซ้ำหลังเปิดใช้จริง
+   - ทั้งสองไฟล์ลบเฉพาะบัญชีทดสอบล้วน หักเฉพาะส่วนหนี้ของออเดอร์ทดสอบ (ไม่แตะหนี้ลูกค้าจริง) และจะ abort ทั้งหมดถ้ามีออเดอร์ที่ปนสินค้าทดสอบกับสินค้าจริง
 2. Auth → Providers → เปิด Custom OAuth `custom:line` ด้วย channel id/secret ของ LINE Login channel
 3. Auth → URL Configuration → เพิ่ม `<NEXT_PUBLIC_SITE_URL>/auth/callback` ใน Redirect URLs
 
@@ -90,7 +93,7 @@ select role, status, is_owner from public.profiles where id = '<PROFILE_ID>';
 
 ## 6. เช็คลิสต์ก่อนส่งมอบลูกค้า
 
-- [ ] Apply migration ที่ค้างอยู่กับฐานข้อมูลจริงตามลำดับ: `202607110002`, `202607120001`, `202607130001` (ไฟล์สุดท้ายล้างสินค้า demo + ออเดอร์ทดสอบ — หลังรัน หน้า `/admin/products` และ `/admin/stock` ต้องไม่เหลือสินค้า DEMO-*/NAK-* เลย)
+- [ ] Apply migration ที่ค้างอยู่กับฐานข้อมูลจริงตามลำดับ: `202607110002`, `202607120001`, `202607130001`, `202607130002` (สองไฟล์ท้ายล้างสินค้าทดสอบทั้งหมด — สำหรับ `202607130002` รัน SELECT preview หัวไฟล์ก่อนเสมอ — หลังรันครบ หน้า `/admin/products` และ `/admin/stock` ต้องเหลือเฉพาะ 179 รายการจริงเท่านั้น ไม่มี DEMO-*/NAK-*/CODEX-*/MARBO-9000)
 - [ ] เช็คหน้าแจ้งชำระเงินหลัง apply migration: ต้องเห็นการ์ดกรุงไทย 663-6-81505-1 (ภควัฒน์) — เลขถูก seed ให้แล้ว ไม่ต้องกรอกเอง
 - [ ] ตั้งเจ้าของตัวจริง (SQL ข้อ 4) แล้ว**ระงับบัญชี demo**: `admin@admin.com` และบัญชีลูกค้า demo ที่สร้างตอนทดสอบ (`/admin/users` → ระงับ) รวมถึงลบที่อยู่ demo ("Prototype demo address") ถ้ายังค้าง
 - [ ] เช็คว่า env vars ครบทั้ง 9 ตัวใน Vercel โดยเฉพาะ `CRON_SECRET`
