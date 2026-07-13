@@ -1,9 +1,10 @@
 import { PageHead } from "@/components/nak/ui";
 import { DeltaChip, KpiGrid, KpiTile, ReportHero, ReportLinkRow, tileMoney } from "@/components/nak/report-ui";
+import { SalesTrend } from "@/components/nak/sales-trend";
 import { requireAdmin } from "@/lib/auth";
 import { getDebtors, getPendingSlipCount, getProductsWithInventory, getSalesOrders } from "@/lib/data/queries";
 import { money } from "@/lib/format";
-import { addDays, bkkDateKey, bkkStartOfDayISO, dayKeysBetween, moneyCompact, summarize, type SalesOrder } from "@/lib/sales";
+import { addDays, bkkDateKey, bkkStartOfDayISO, dailySeries, dayKeysBetween, moneyCompact, summarize, type SalesOrder } from "@/lib/sales";
 
 export const dynamic = "force-dynamic";
 
@@ -15,9 +16,14 @@ export default async function AdminReportsPage() {
   const prevMonthEnd = addDays(monthStart, -1);
   const prevMonthStart = `${prevMonthEnd.slice(0, 8)}01`;
   const weekStart = addDays(today, -6);
+  const trendStart = addDays(today, -29);
+  // Fetch far enough back to serve BOTH the month-over-month compare and the
+  // 30-day trend (near a month boundary the 30-day window can start a day or two
+  // before the previous month).
+  const fetchFrom = trendStart < prevMonthStart ? trendStart : prevMonthStart;
 
   const [orders, debtors, products, pendingSlips] = await Promise.all([
-    getSalesOrders(bkkStartOfDayISO(prevMonthStart)) as Promise<unknown> as Promise<SalesOrder[]>,
+    getSalesOrders(bkkStartOfDayISO(fetchFrom)) as Promise<unknown> as Promise<SalesOrder[]>,
     getDebtors(),
     getProductsWithInventory(true, "admin"),
     getPendingSlipCount(),
@@ -31,6 +37,8 @@ export default async function AdminReportsPage() {
   const elapsed = dayKeysBetween(monthStart, today).length;
   const prevWindowEnd = addDays(prevMonthStart, elapsed - 1);
   const prevSum = summarize(orders, prevMonthStart, prevWindowEnd <= prevMonthEnd ? prevWindowEnd : prevMonthEnd);
+
+  const trend = dailySeries(orders, trendStart, today);
 
   const debtTotal = debtors.reduce((sum, debtor) => sum + Number(debtor.debt_balance ?? 0), 0);
 
@@ -68,6 +76,8 @@ export default async function AdminReportsPage() {
         <KpiTile icon="alert" label="ลูกหนี้คงค้าง" value={tileMoney(debtTotal)} sub={`${debtors.length.toLocaleString("th-TH")} ราย`} tone={debtTotal > 0 ? "warning" : "neutral"} />
         <KpiTile icon="warehouse" label="มูลค่าสต็อก" value={tileMoney(stockValue)} sub={`ใกล้หมด ${lowStockCount} · หมด ${outCount}`} tone="neutral" />
       </KpiGrid>
+
+      <SalesTrend points={trend} />
 
       <div className="ad-card" style={{ padding: "2px 2px" }}>
         <ReportLinkRow
