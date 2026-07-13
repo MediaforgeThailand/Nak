@@ -14,6 +14,7 @@ import { SubmitButton } from "@/components/ui/submit-button";
 import { money } from "@/lib/format";
 import { requireStaff } from "@/lib/auth";
 import { getPriceTiers, getProductCategories, getProductsWithInventory } from "@/lib/data/queries";
+import { defaultProductImage } from "@/lib/product-images";
 import { signedUrls } from "@/lib/storage";
 
 export const dynamic = "force-dynamic";
@@ -217,7 +218,10 @@ export default async function AdminProductsPage({
           const qty = inv?.quantity_available ?? 0;
           // Same per-product threshold the stock page / dashboard / reports use.
           const lowThreshold = inv?.low_stock_threshold ?? 5;
-          const imageUrl = product.image_path ? imageUrls.get(product.image_path) : null;
+          // Uploaded photo first, else the bundled group photo by SKU prefix
+          // (same fallback the stock board uses), so the list is never blank.
+          const imageUrl =
+            (product.image_path ? imageUrls.get(product.image_path) ?? null : null) ?? defaultProductImage(product.sku);
           return (
             <details key={product.id} style={{ borderBottom: i < filtered.length - 1 ? "1px solid var(--line)" : "none" }}>
               <summary style={{ display: "flex", alignItems: "center", gap: 12, padding: 10, cursor: "pointer", listStyle: "none" }}>
