@@ -3,9 +3,8 @@ import { submitPaymentAction } from "@/app/actions/customer";
 import { Icon } from "@/components/nak/icon";
 import { SubHeader } from "@/components/nak/sub-header";
 import { Badge, NakField } from "@/components/nak/ui";
+import { PaymentSlipSubmit } from "@/components/nak/payment-slip-submit";
 import { CopyButton } from "@/components/ui/copy-button";
-import { FileUploadPreview } from "@/components/ui/file-upload-preview";
-import { SubmitButton } from "@/components/ui/submit-button";
 import { requireCustomer } from "@/lib/auth";
 import { bankLogoFor, formatAccountNumber } from "@/lib/banks";
 import { getPaymentBankAccount } from "@/lib/data/queries";
@@ -132,16 +131,7 @@ export default async function NewPaymentPage({
           <NakField label="วันที่โอน">
             <input name="transfer_date" type="date" className="nak-input" defaultValue={today} />
           </NakField>
-          <NakField label="สลิปโอนเงิน">
-            <FileUploadPreview name="slip" accept="image/*,.pdf" capture="environment" required />
-          </NakField>
-          <NakField label="หมายเหตุ (ถ้ามี)">
-            <textarea name="customer_note" rows={2} className="nak-input" placeholder="เช่น โอนจากบัญชีกสิกร..." style={{ resize: "none" }} />
-          </NakField>
-          <SubmitButton pendingLabel="กำลังส่งสลิป..." className="w-full">
-            <Icon name="check" size={18} stroke={2.4} />
-            ส่งสลิปให้แอดมินตรวจ
-          </SubmitButton>
+          <PaymentSlipSubmit />
         </form>
       </div>
     </>

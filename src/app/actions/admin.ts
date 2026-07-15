@@ -330,10 +330,11 @@ export async function updateProductAction(formData: FormData) {
   // Staff-only cost price lives in its own table; upsert it when the form sends it.
   const costRaw = formData.get("cost_price");
   if (costRaw !== null) {
-    await supabase.from("product_costs").upsert(
+    const { error: costError } = await supabase.from("product_costs").upsert(
       { product_id: id, cost_price: Math.max(0, Number(costRaw) || 0), updated_at: new Date().toISOString() },
       { onConflict: "product_id" },
     );
+    if (costError) redirect(`/admin/products?error=${encodeURIComponent(thaiDbError(costError.message))}`);
   }
 
   revalidatePath("/admin/products");

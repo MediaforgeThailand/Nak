@@ -33,8 +33,10 @@ export default async function ProfilePage({
     getPayments(),
     getPriceProgramStatus(),
   ]);
+  // Lifetime purchases = APPROVED sales only (debt_applied_at set), matching the
+  // shop-wide definition the admin/reports use — not pending orders awaiting review.
   const totalPurchased = orders
-    .filter((order) => !["rejected", "cancelled"].includes(order.status))
+    .filter((order) => order.debt_applied_at != null && !["rejected", "cancelled"].includes(order.status))
     .reduce((sum, order) => sum + Number(order.subtotal ?? 0), 0);
   const approved = profile.status === "approved";
   // LINE-only accounts get a synthetic internal email — never show it as the user's email.
