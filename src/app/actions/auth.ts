@@ -201,7 +201,8 @@ export async function signInAdminAction(formData: FormData) {
     redirect("/admin/login?error=บัญชีนี้ไม่ใช่บัญชีทีมงาน กรุณาเข้าสู่ระบบผ่านหน้าลูกค้า");
   }
 
-  redirect("/admin/home");
+  // Packing staff have no dashboard — send them straight to their work queue.
+  redirect(profile.role === "admin" ? "/admin/home" : "/admin/orders");
 }
 
 export async function signUpAction(formData: FormData) {

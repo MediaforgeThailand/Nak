@@ -19,12 +19,12 @@ type NavItem = {
 };
 
 const NAV: NavItem[] = [
-  { href: "/admin/home", label: "แดชบอร์ด", icon: "dash", badge: "" },
+  { href: "/admin/home", label: "แดชบอร์ด", icon: "dash", badge: "", adminOnly: true },
   { href: "/admin/reports", label: "รายงาน", icon: "chart", badge: "", adminOnly: true },
   { href: "/admin/products", label: "สินค้า", icon: "package", badge: "" },
   { href: "/admin/stock", label: "สต็อก", icon: "warehouse", badge: "" },
   { href: "/admin/orders", label: "ออเดอร์", icon: "clipboard", badge: "orders" },
-  { href: "/admin/payments", label: "สลิป", icon: "wallet", badge: "payments" },
+  { href: "/admin/payments", label: "สลิป", icon: "wallet", badge: "payments", adminOnly: true },
   { href: "/admin/customers", label: "ลูกค้า", icon: "users", badge: "", adminOnly: true },
   { href: "/admin/users", label: "สิทธิ์", icon: "shield", badge: "users", adminOnly: true },
   { href: "/admin/settings", label: "ตั้งค่า", icon: "gear", badge: "", adminOnly: true },
@@ -67,7 +67,8 @@ export function AdminShell({
   const isActive = (href: string) => pathname === href || pathname.startsWith(`${href}/`);
   const current = nav.find((n) => isActive(n.href)) ?? nav[0];
   const badgeFor = (key: string) => (key ? badges[key as keyof AdminBadges] ?? 0 : 0);
-  const alerts = badges.orders + badges.payments;
+  // Packing staff can't see slips, so their bell only counts pending orders.
+  const alerts = isAdmin ? badges.orders + badges.payments : badges.orders;
 
   return (
     <div className="adm-shell">
@@ -133,10 +134,13 @@ export function AdminShell({
           </nav>
 
           <div className="adm-drawer-foot">
-            <Link className="adm-navitem" href="/home" style={{ color: "var(--p-deep)" }}>
-              <Icon name="bag" size={20} stroke={2.2} />
-              <span>ดูฝั่งลูกค้า</span>
-            </Link>
+            {/* Only admins may cross into the customer side; staff can't. */}
+            {isAdmin ? (
+              <Link className="adm-navitem" href="/home" style={{ color: "var(--p-deep)" }}>
+                <Icon name="bag" size={20} stroke={2.2} />
+                <span>ดูฝั่งลูกค้า</span>
+              </Link>
+            ) : null}
             <div
               style={{
                 display: "flex",

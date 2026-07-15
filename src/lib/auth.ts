@@ -57,7 +57,9 @@ export async function requireStaff() {
 
 export async function requireAdmin() {
   const session = await requireApprovedProfile("admin");
-  if (session.profile.role !== "admin") redirect("/admin/home");
+  // Non-admin staff (factory_staff) land on their own home — Orders — not the
+  // admin dashboard, which is admin-only (redirecting there would loop).
+  if (session.profile.role !== "admin") redirect("/admin/orders");
   return session;
 }
 

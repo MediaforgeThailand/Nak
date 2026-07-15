@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Icon } from "@/components/nak/icon";
 import { AdBadge, AdThumb, Avatar, PageHead, StatTile } from "@/components/nak/ui";
+import { requireAdmin } from "@/lib/auth";
 import { money } from "@/lib/format";
 import { getAdminBadgeCounts, getDebtors, getProductsWithInventory, getRecentOrders } from "@/lib/data/queries";
 
@@ -66,6 +67,9 @@ function ActionRow({
 }
 
 export default async function AdminDashboardPage() {
+  // Dashboard is admin-only (revenue/debt overview). Packing staff are bounced
+  // to /admin/orders by requireAdmin.
+  await requireAdmin();
   const [badges, debtors, products, recentOrders] = await Promise.all([
     getAdminBadgeCounts(),
     getDebtors(),

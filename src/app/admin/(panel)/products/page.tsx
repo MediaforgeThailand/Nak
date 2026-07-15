@@ -25,7 +25,10 @@ export default async function AdminProductsPage({
   searchParams: Promise<{ error?: string; notice?: string; q?: string }>;
 }) {
   const [params, { profile }] = await Promise.all([searchParams, requireStaff()]);
-  const canDelete = profile.role === "admin";
+  // Packing staff may add new products and browse the catalog, but editing,
+  // deleting, category management, the discount ladder, and starting stock stay
+  // admin-only.
+  const isAdmin = profile.role === "admin";
   const query = (params.q ?? "").trim();
   const normalizedQuery = query.toLowerCase();
   const [products, categories, priceTiers] = await Promise.all([
@@ -66,6 +69,9 @@ export default async function AdminProductsPage({
         </div>
       ) : null}
 
+      {/* Category management + discount ladder — admin only */}
+      {isAdmin ? (
+      <>
       {/* categories */}
       <details className="ad-card" style={{ padding: 16 }}>
         <summary style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", listStyle: "none" }}>
@@ -139,6 +145,8 @@ export default async function AdminProductsPage({
           </SubmitButton>
         </form>
       </details>
+      </>
+      ) : null}
 
       {/* add product */}
       <details className="ad-card" style={{ padding: 16 }}>
@@ -172,15 +180,21 @@ export default async function AdminProductsPage({
               ))}
             </Select>
           </NakField>
-          <NakField label="เพิ่มหมวดหมู่ใหม่">
-            <input className="ad-input" name="new_category_name" placeholder="เช่น เครื่องดื่ม" />
-          </NakField>
-          <NakField label="สต็อกตั้งต้น">
-            <input className="ad-input" name="quantity_available" type="number" inputMode="numeric" min="0" defaultValue="0" />
-          </NakField>
-          <NakField label="เตือนเมื่อเหลือ">
-            <input className="ad-input" name="low_stock_threshold" type="number" inputMode="numeric" min="0" defaultValue="5" />
-          </NakField>
+          {/* New category, starting stock, and low-stock threshold are admin-only —
+              staff-added products start at 0 stock (admin sets it via /admin/stock). */}
+          {isAdmin ? (
+            <>
+              <NakField label="เพิ่มหมวดหมู่ใหม่">
+                <input className="ad-input" name="new_category_name" placeholder="เช่น เครื่องดื่ม" />
+              </NakField>
+              <NakField label="สต็อกตั้งต้น">
+                <input className="ad-input" name="quantity_available" type="number" inputMode="numeric" min="0" defaultValue="0" />
+              </NakField>
+              <NakField label="เตือนเมื่อเหลือ">
+                <input className="ad-input" name="low_stock_threshold" type="number" inputMode="numeric" min="0" defaultValue="5" />
+              </NakField>
+            </>
+          ) : null}
           <div style={{ gridColumn: "1 / -1" }}>
             <NakField label="รูปสินค้า">
               <FileUploadPreview name="image" accept="image/*" capture="environment" />
@@ -222,6 +236,28 @@ export default async function AdminProductsPage({
           // (same fallback the stock board uses), so the list is never blank.
           const imageUrl =
             (product.image_path ? imageUrls.get(product.image_path) ?? null : null) ?? defaultProductImage(product.sku);
+          // Packing staff see a read-only row — no edit form, no delete.
+          if (!isAdmin) {
+            return (
+              <div
+                key={product.id}
+                style={{ display: "flex", alignItems: "center", gap: 12, padding: 10, borderBottom: i < filtered.length - 1 ? "1px solid var(--line)" : "none" }}
+              >
+                <AdThumb name={product.name} imageUrl={imageUrl} size={46} />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 13.5, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{product.name}</div>
+                  <div style={{ fontSize: 11.5, color: "var(--muted)", marginTop: 1 }}>
+                    {product.sku} · {product.category?.name ?? "ไม่ระบุ"}
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 5, flexWrap: "wrap" }}>
+                    <span style={{ fontSize: 14, fontWeight: 800 }}>{money(product.price)}</span>
+                    <AdBadge tone={qty === 0 ? "danger" : qty <= lowThreshold ? "warning" : "neutral"}>{qty === 0 ? "หมด" : `เหลือ ${qty}`}</AdBadge>
+                    <AdBadge tone={product.is_active ? "success" : "neutral"}>{product.is_active ? "เปิดขาย" : "ปิดขาย"}</AdBadge>
+                  </div>
+                </div>
+              </div>
+            );
+          }
           return (
             <details key={product.id} style={{ borderBottom: i < filtered.length - 1 ? "1px solid var(--line)" : "none" }}>
               <summary style={{ display: "flex", alignItems: "center", gap: 12, padding: 10, cursor: "pointer", listStyle: "none" }}>
@@ -285,7 +321,7 @@ export default async function AdminProductsPage({
                   </SubmitButton>
                 </div>
               </form>
-              {canDelete ? <DeleteProductConfirm productId={product.id} productName={product.name} /> : null}
+              <DeleteProductConfirm productId={product.id} productName={product.name} />
             </details>
           );
         })}

@@ -203,7 +203,10 @@ export async function deleteCategoryAction(formData: FormData) {
 }
 
 export async function createProductAction(formData: FormData) {
-  await requireAdmin();
+  // Packing staff may add new products, but their new products start at 0 stock
+  // — putting quantity on the shelf is admin-only (see addStockAction).
+  const { profile } = await requireStaff();
+  const isAdmin = profile.role === "admin";
   const supabase = await createSupabaseServerClient("admin");
   const sku = String(formData.get("sku") ?? "").trim();
   const categoryId = await resolveProductCategoryId(supabase, formData);
@@ -220,7 +223,7 @@ export async function createProductAction(formData: FormData) {
     name: String(formData.get("name") ?? "").trim(),
     price: Number(formData.get("price") ?? 0),
     unit: String(formData.get("unit") ?? "piece").trim(),
-    quantity_available: Number(formData.get("quantity_available") ?? 0),
+    quantity_available: isAdmin ? Number(formData.get("quantity_available") ?? 0) : 0,
     low_stock_threshold: Number(formData.get("low_stock_threshold") ?? 5),
     description: String(formData.get("description") ?? "").trim() || null,
     category_id: categoryId,

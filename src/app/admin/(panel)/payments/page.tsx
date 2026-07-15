@@ -4,7 +4,7 @@ import { AdBadge, AdminTabs, NakField } from "@/components/nak/ui";
 import { FileUploadPreview } from "@/components/ui/file-upload-preview";
 import { Select } from "@/components/ui/form";
 import { SubmitButton } from "@/components/ui/submit-button";
-import { requireStaff } from "@/lib/auth";
+import { requireAdmin } from "@/lib/auth";
 import { getPayments, getProfiles } from "@/lib/data/queries";
 import { dateTime, money } from "@/lib/format";
 import { signedUrls } from "@/lib/storage";
@@ -105,7 +105,8 @@ export default async function AdminPaymentsPage({
 }) {
   const params = await searchParams;
   const activeStage = normalizeStage(params.stage);
-  const [{ profile }, payments, profiles] = await Promise.all([requireStaff(), getPayments("admin"), getProfiles()]);
+  // Payments (slip review + manual entry) is admin-only; staff are redirected.
+  const [{ profile }, payments, profiles] = await Promise.all([requireAdmin(), getPayments("admin"), getProfiles()]);
   const isAdmin = profile.role === "admin";
   const approvedCustomers = profiles.filter((p) => p.role === "customer" && p.status === "approved");
   const slipPaths = payments
