@@ -13,7 +13,7 @@ import { Select } from "@/components/ui/form";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { money } from "@/lib/format";
 import { requireStaff } from "@/lib/auth";
-import { getPriceTiers, getProductCategories, getProductsWithInventory } from "@/lib/data/queries";
+import { getPriceTiers, getProductCategories, getProductCostMap, getProductsWithInventory } from "@/lib/data/queries";
 import { defaultProductImage } from "@/lib/product-images";
 import { signedUrls } from "@/lib/storage";
 
@@ -31,10 +31,11 @@ export default async function AdminProductsPage({
   const isAdmin = profile.role === "admin";
   const query = (params.q ?? "").trim();
   const normalizedQuery = query.toLowerCase();
-  const [products, categories, priceTiers] = await Promise.all([
+  const [products, categories, priceTiers, costMap] = await Promise.all([
     getProductsWithInventory(true, "admin"),
     getProductCategories("admin"),
     getPriceTiers("admin"),
+    getProductCostMap(),
   ]);
   const priceTiersText = priceTiers
     .map((tier) => `${tier.min_quantity}=${Number(tier.discount_amount)}`)
@@ -164,8 +165,11 @@ export default async function AdminProductsPage({
           <NakField label="ชื่อสินค้า">
             <input className="ad-input" name="name" required />
           </NakField>
-          <NakField label="ราคา">
+          <NakField label="ราคาขาย (ลูกค้าเห็น)">
             <input className="ad-input" name="price" inputMode="decimal" min="0" step="0.01" type="number" required />
+          </NakField>
+          <NakField label="ราคาต้นทุน (ทีมงานเห็นเท่านั้น)">
+            <input className="ad-input" name="cost_price" inputMode="decimal" min="0" step="0.01" type="number" defaultValue="0" />
           </NakField>
           <NakField label="หน่วย">
             <input className="ad-input" name="unit" defaultValue="ลัง" required />
@@ -236,6 +240,8 @@ export default async function AdminProductsPage({
           // (same fallback the stock board uses), so the list is never blank.
           const imageUrl =
             (product.image_path ? imageUrls.get(product.image_path) ?? null : null) ?? defaultProductImage(product.sku);
+          // Staff-only cost (fetched via getProductCostMap; customers never receive it).
+          const costPrice = costMap[product.id] ?? 0;
           // Packing staff see a read-only row — no edit form, no delete.
           if (!isAdmin) {
             return (
@@ -251,6 +257,7 @@ export default async function AdminProductsPage({
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 5, flexWrap: "wrap" }}>
                     <span style={{ fontSize: 14, fontWeight: 800 }}>{money(product.price)}</span>
+                    <span style={{ fontSize: 11.5, fontWeight: 700, color: "var(--muted)" }}>ทุน {money(costPrice)}</span>
                     <AdBadge tone={qty === 0 ? "danger" : qty <= lowThreshold ? "warning" : "neutral"}>{qty === 0 ? "หมด" : `เหลือ ${qty}`}</AdBadge>
                     <AdBadge tone={product.is_active ? "success" : "neutral"}>{product.is_active ? "เปิดขาย" : "ปิดขาย"}</AdBadge>
                   </div>
@@ -269,6 +276,7 @@ export default async function AdminProductsPage({
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 5, flexWrap: "wrap" }}>
                     <span style={{ fontSize: 14, fontWeight: 800 }}>{money(product.price)}</span>
+                    <span style={{ fontSize: 11.5, fontWeight: 700, color: "var(--muted)" }}>ทุน {money(costPrice)}</span>
                     <AdBadge tone={qty === 0 ? "danger" : qty <= lowThreshold ? "warning" : "neutral"}>{qty === 0 ? "หมด" : `เหลือ ${qty}`}</AdBadge>
                     <AdBadge tone={product.is_active ? "success" : "neutral"}>{product.is_active ? "เปิดขาย" : "ปิดขาย"}</AdBadge>
                   </div>
@@ -286,8 +294,11 @@ export default async function AdminProductsPage({
                 <NakField label="SKU">
                   <input className="ad-input" name="sku" required defaultValue={product.sku} />
                 </NakField>
-                <NakField label="ราคา">
+                <NakField label="ราคาขาย (ลูกค้าเห็น)">
                   <input className="ad-input" name="price" type="number" inputMode="decimal" step="0.01" min="0.01" required defaultValue={product.price} />
+                </NakField>
+                <NakField label="ราคาต้นทุน (ทีมงานเห็นเท่านั้น)">
+                  <input className="ad-input" name="cost_price" type="number" inputMode="decimal" step="0.01" min="0" defaultValue={costPrice} />
                 </NakField>
                 <NakField label="หน่วย">
                   <input className="ad-input" name="unit" defaultValue={product.unit} />

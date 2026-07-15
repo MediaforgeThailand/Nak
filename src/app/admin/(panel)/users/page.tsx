@@ -185,9 +185,9 @@ export default async function AdminUsersPage({
                   </form>
                 ) : null}
               </div>
-              {/* Permanent delete — owner-only, behind a confirm, never on the owner
-                  card. Replaces suspend as the way to remove a team account. */}
-              {currentProfile.is_owner && !s.is_owner ? (
+              {/* Permanent delete — any admin may remove a team account (owner is
+                  protected). Behind a confirm; replaces suspend. */}
+              {!s.is_owner ? (
                 <details style={{ marginTop: 2 }}>
                   <summary style={{ fontSize: 12.5, color: "#b42318", fontWeight: 700, cursor: "pointer" }}>
                     ลบบัญชีนี้ออกจากทีม

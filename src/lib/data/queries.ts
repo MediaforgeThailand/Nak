@@ -22,6 +22,17 @@ export async function getProductsWithInventory(
   return data ?? [];
 }
 
+// Staff-only cost prices as a product_id → cost map. Read on the admin scope;
+// product_costs RLS denies customers, so it's never exposed to the shop side.
+export async function getProductCostMap(): Promise<Record<string, number>> {
+  const supabase = await createSupabaseServerClient("admin");
+  const { data, error } = await supabase.from("product_costs").select("product_id, cost_price");
+  if (error) return {};
+  const map: Record<string, number> = {};
+  for (const row of data ?? []) map[row.product_id as string] = Number(row.cost_price);
+  return map;
+}
+
 export async function getProductCategories(scope: AuthScope = "customer") {
   const supabase = await createSupabaseServerClient(scope);
   const { data, error } = await supabase

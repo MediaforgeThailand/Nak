@@ -228,6 +228,7 @@ export async function createProductAction(formData: FormData) {
     description: String(formData.get("description") ?? "").trim() || null,
     category_id: categoryId,
     image_path: imagePath,
+    cost_price: Math.max(0, Number(formData.get("cost_price") ?? 0) || 0),
   });
 
   if (error) {
@@ -324,6 +325,15 @@ export async function updateProductAction(formData: FormData) {
     !oldImagePath.startsWith("https://")
   ) {
     await supabase.storage.from("product-images").remove([oldImagePath]);
+  }
+
+  // Staff-only cost price lives in its own table; upsert it when the form sends it.
+  const costRaw = formData.get("cost_price");
+  if (costRaw !== null) {
+    await supabase.from("product_costs").upsert(
+      { product_id: id, cost_price: Math.max(0, Number(costRaw) || 0), updated_at: new Date().toISOString() },
+      { onConflict: "product_id" },
+    );
   }
 
   revalidatePath("/admin/products");
@@ -1054,9 +1064,8 @@ export async function deleteUserAction(formData: FormData) {
   const returnTo = adminReturnPath(formData, "/admin/users");
   const userId = String(formData.get("user_id") ?? "");
 
-  if (!currentProfile.is_owner) {
-    redirect(`${returnTo}?error=${encodeURIComponent("เฉพาะเจ้าของร้านเท่านั้นที่ลบบัญชีได้")}`);
-  }
+  // Permission is enforced in delete_user: any admin may remove a TEAM account,
+  // but deleting a CUSTOMER (with its sales history) stays owner-only.
   if (!userId || userId === currentProfile.id) {
     redirect(`${returnTo}?error=${encodeURIComponent("ลบบัญชีที่กำลังใช้งานอยู่ไม่ได้")}`);
   }

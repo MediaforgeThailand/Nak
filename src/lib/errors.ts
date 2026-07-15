@@ -45,6 +45,8 @@ const exactMap: Record<string, string> = {
   "Cannot change the owner account": "แก้สิทธิ์บัญชีเจ้าของไม่ได้ — ต้องโอนสิทธิ์เจ้าของให้บัญชีอื่นก่อน",
   "Cannot delete your own account": "ลบบัญชีที่กำลังใช้งานอยู่ไม่ได้",
   "Cannot delete the shop owner": "ลบบัญชีเจ้าของไม่ได้",
+  "Only the owner can delete customer accounts": "เฉพาะเจ้าของร้านเท่านั้นที่ลบบัญชีลูกค้าได้",
+  "Account not found": "ไม่พบบัญชีนี้",
   "Not authenticated": "กรุณาเข้าสู่ระบบใหม่",
 };
 
