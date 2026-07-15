@@ -9,12 +9,30 @@ function callbackError(request: NextRequest, scope: AuthScope, message: string) 
   return NextResponse.redirect(url);
 }
 
+// THROWAWAY diagnostic — the web-OAuth twin of the LIFF beacon. Logs why the
+// iOS in-app/Safari OAuth bounce lands back on /login. Remove with _liff-debug.
+function logCb(data: Record<string, unknown>) {
+  console.log("[oauth-callback]", JSON.stringify(data));
+}
+
 export async function GET(request: NextRequest) {
   const requestUrl = new URL(request.url);
   const code = requestUrl.searchParams.get("code");
   const scope: AuthScope = requestUrl.searchParams.get("scope") === "admin" ? "admin" : "customer";
+  const ua = request.headers.get("user-agent") ?? "";
+  // The PKCE verifier cookie is what iOS tends to drop; seeing whether it is
+  // present at callback time tells us if that is the failure.
+  const cookieNames = request.cookies.getAll().map((c) => c.name);
 
   if (!code) {
+    logCb({
+      stage: "no-code",
+      scope,
+      ua,
+      cookieNames,
+      oauthError: requestUrl.searchParams.get("error"),
+      oauthErrorDesc: requestUrl.searchParams.get("error_description"),
+    });
     return callbackError(request, scope, "ไม่พบรหัสยืนยันการเข้าสู่ระบบ");
   }
 
@@ -22,6 +40,14 @@ export async function GET(request: NextRequest) {
   const { error } = await supabase.auth.exchangeCodeForSession(code);
 
   if (error) {
+    logCb({
+      stage: "exchange-failed",
+      scope,
+      ua,
+      cookieNames,
+      message: error.message,
+      status: (error as { status?: number }).status ?? null,
+    });
     return callbackError(request, scope, error.message);
   }
 
@@ -30,8 +56,11 @@ export async function GET(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   if (!user) {
+    logCb({ stage: "no-user-after-exchange", scope, ua, cookieNames });
     return callbackError(request, scope, "ไม่พบข้อมูลผู้ใช้งาน");
   }
+
+  logCb({ stage: "session-ok", scope, ua, userId: user.id });
 
   const { data: profile } = await supabase
     .from("profiles")
