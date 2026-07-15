@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { approveUserAction, deleteUserAction, setOwnerFlagAction, suspendUserAction } from "@/app/actions/admin";
+import { approveUserAction, deleteUserAction, setOwnerFlagAction } from "@/app/actions/admin";
 import { AdBadge, Avatar, PageHead } from "@/components/nak/ui";
 import { Select } from "@/components/ui/form";
 import { SubmitButton } from "@/components/ui/submit-button";
@@ -163,26 +163,17 @@ export default async function AdminUsersPage({
                 {/* The owner account can't have its role changed or be suspended
                     from here — ownership must be transferred first. */}
                 {!s.is_owner ? (
-                  <>
-                    <form action={approveUserAction} style={{ display: "grid", gap: 6, minWidth: 0 }}>
-                      <input type="hidden" name="user_id" value={s.id} />
-                      <input type="hidden" name="return_to" value="/admin/users" />
-                      <Select name="role" defaultValue={s.role}>
-                        <option value="factory_staff">ทีมจัดสินค้า</option>
-                        <option value="admin">ผู้ดูแลระบบ</option>
-                      </Select>
-                      <SubmitButton variant="secondary" pendingLabel="...">
-                        บันทึกสิทธิ์
-                      </SubmitButton>
-                    </form>
-                    <form action={suspendUserAction} style={{ display: "grid", alignItems: "end", minWidth: 0 }}>
-                      <input type="hidden" name="user_id" value={s.id} />
-                      <input type="hidden" name="return_to" value="/admin/users" />
-                      <SubmitButton variant="danger" pendingLabel="..." className="w-full">
-                        ระงับ
-                      </SubmitButton>
-                    </form>
-                  </>
+                  <form action={approveUserAction} style={{ display: "grid", gap: 6, minWidth: 0 }}>
+                    <input type="hidden" name="user_id" value={s.id} />
+                    <input type="hidden" name="return_to" value="/admin/users" />
+                    <Select name="role" defaultValue={s.role}>
+                      <option value="factory_staff">ทีมจัดสินค้า</option>
+                      <option value="admin">ผู้ดูแลระบบ</option>
+                    </Select>
+                    <SubmitButton variant="secondary" pendingLabel="...">
+                      บันทึกสิทธิ์
+                    </SubmitButton>
+                  </form>
                 ) : null}
                 {currentProfile.is_owner && s.role === "admin" && s.status === "approved" ? (
                   <form action={setOwnerFlagAction} style={{ display: "grid", alignItems: "end", minWidth: 0 }}>
@@ -194,17 +185,18 @@ export default async function AdminUsersPage({
                   </form>
                 ) : null}
               </div>
-              {/* Permanent delete — owner-only, behind a confirm, never on the owner card. */}
+              {/* Permanent delete — owner-only, behind a confirm, never on the owner
+                  card. Replaces suspend as the way to remove a team account. */}
               {currentProfile.is_owner && !s.is_owner ? (
                 <details style={{ marginTop: 2 }}>
-                  <summary style={{ fontSize: 12, color: "#b42318", fontWeight: 700, cursor: "pointer" }}>
-                    ลบบัญชีถาวร
+                  <summary style={{ fontSize: 12.5, color: "#b42318", fontWeight: 700, cursor: "pointer" }}>
+                    ลบบัญชีนี้ออกจากทีม
                   </summary>
                   <form action={deleteUserAction} style={{ marginTop: 8, display: "grid", gap: 7 }}>
                     <input type="hidden" name="user_id" value={s.id} />
                     <input type="hidden" name="return_to" value="/admin/users" />
                     <p style={{ margin: 0, fontSize: 11.5, color: "var(--muted)", lineHeight: 1.5 }}>
-                      ลบถาวร กู้คืนไม่ได้ — ออเดอร์และประวัติของบัญชีนี้จะถูกลบไปด้วย ใช้กับบัญชีทดสอบเท่านั้น
+                      ลบถาวร กู้คืนไม่ได้ — บัญชีนี้จะถูกลบออกจากระบบ (ออเดอร์และสลิปของลูกค้ายังอยู่ครบ เพียงแต่ไม่ผูกกับชื่อผู้ทำรายการนี้แล้ว) ใช้เมื่อพนักงานลาออกหรือเลิกใช้บัญชี
                     </p>
                     <SubmitButton variant="danger" pendingLabel="กำลังลบ...">
                       ยืนยันลบบัญชีนี้ถาวร
