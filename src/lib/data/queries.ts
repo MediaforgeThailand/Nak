@@ -58,9 +58,11 @@ export async function getPriceProgramStatus(): Promise<PriceProgramStatus> {
   return { ...fallback, ...(data as Partial<PriceProgramStatus>) };
 }
 
-// Per-product special discounts for the signed-in customer. Filter by the
-// caller's id explicitly: RLS also allows staff/admin to read every row, so an
-// admin browsing the customer side must not inherit other customers' discounts.
+// Per-customer special discounts (now granted by CATEGORY) for the signed-in
+// customer, expanded to a product_id → discount map so the catalog/cart keep
+// their existing shape. Filter by the caller's id explicitly: RLS also allows
+// staff/admin to read every row, so an admin browsing the customer side must
+// not inherit other customers' discounts.
 export async function getMyProductDiscounts() {
   const supabase = await createSupabaseServerClient("customer");
   const {
@@ -68,13 +70,20 @@ export async function getMyProductDiscounts() {
   } = await supabase.auth.getUser();
   if (!user) return {} as Record<string, number>;
 
-  const { data, error } = await supabase
-    .from("customer_product_discounts")
-    .select("product_id, discount_amount")
-    .eq("customer_id", user.id);
-  if (error) return {} as Record<string, number>;
+  const [catRes, prodRes] = await Promise.all([
+    supabase.from("customer_category_discounts").select("category_id, discount_amount").eq("customer_id", user.id),
+    supabase.from("products").select("id, category_id").eq("is_active", true),
+  ]);
+  if (catRes.error || prodRes.error) return {} as Record<string, number>;
+
+  const byCategory = new Map<string, number>();
+  for (const row of catRes.data ?? []) byCategory.set(row.category_id as string, Number(row.discount_amount));
+
   const map: Record<string, number> = {};
-  for (const row of data ?? []) map[row.product_id] = Number(row.discount_amount);
+  for (const product of prodRes.data ?? []) {
+    const discount = product.category_id ? byCategory.get(product.category_id as string) : undefined;
+    if (discount && discount > 0) map[product.id as string] = discount;
+  }
   return map;
 }
 
@@ -177,7 +186,7 @@ export async function getProfiles() {
 
 export async function getAdminCustomerDetail(customerId: string) {
   const supabase = await createSupabaseServerClient("admin");
-  const [profileResult, addressResult, ordersResult, paymentsResult, transactionsResult, productDiscountsResult, salesResult] = await Promise.all([
+  const [profileResult, addressResult, ordersResult, paymentsResult, transactionsResult, categoryDiscountsResult, salesResult] = await Promise.all([
     supabase
       .from("profiles")
       .select("*")
@@ -209,8 +218,8 @@ export async function getAdminCustomerDetail(customerId: string) {
       .order("created_at", { ascending: false })
       .limit(8),
     supabase
-      .from("customer_product_discounts")
-      .select("*, product:products(id, name, sku, unit)")
+      .from("customer_category_discounts")
+      .select("*, category:product_categories(id, name)")
       .eq("customer_id", customerId)
       .order("created_at", { ascending: false }),
     // Lifetime purchase total/count = all real sales (approved, not
@@ -229,7 +238,7 @@ export async function getAdminCustomerDetail(customerId: string) {
   if (ordersResult.error) throw ordersResult.error;
   if (paymentsResult.error) throw paymentsResult.error;
   if (transactionsResult.error) throw transactionsResult.error;
-  if (productDiscountsResult.error) throw productDiscountsResult.error;
+  if (categoryDiscountsResult.error) throw categoryDiscountsResult.error;
   if (salesResult.error) throw salesResult.error;
 
   const salesRows = salesResult.data ?? [];
@@ -241,7 +250,7 @@ export async function getAdminCustomerDetail(customerId: string) {
     orders: ordersResult.data ?? [],
     payments: paymentsResult.data ?? [],
     transactions: transactionsResult.data ?? [],
-    productDiscounts: productDiscountsResult.data ?? [],
+    categoryDiscounts: categoryDiscountsResult.data ?? [],
     salesTotal,
     salesCount: salesRows.length,
   };

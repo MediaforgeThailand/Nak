@@ -1,9 +1,10 @@
 import Image from "next/image";
-import { approveOrderAction, cancelOrderAction, rejectOrderAction, shipOrderWithPhotoAction } from "@/app/actions/admin";
+import Link from "next/link";
+import { approveOrderAction, cancelOrderAction, rejectOrderAction } from "@/app/actions/admin";
 import { HandoffList, type HandoffOrder } from "@/components/nak/handoff-list";
 import { Icon } from "@/components/nak/icon";
+import { PackForm } from "@/components/nak/pack-form";
 import { AdBadge, AdminTabs, Avatar } from "@/components/nak/ui";
-import { FileUploadPreview } from "@/components/ui/file-upload-preview";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { requireStaff } from "@/lib/auth";
 import { dateTime, money, shippingMethodLabel } from "@/lib/format";
@@ -208,18 +209,17 @@ function PackCard({ order, canCancel }: { order: AdminOrder; canCancel: boolean 
           <Icon name="pin" size={15} stroke={2.2} style={{ color: "var(--p-deep)", flexShrink: 0, marginTop: 1 }} /> {shippingAddress(order)}
         </div>
       </div>
-      <ItemsBox order={order} />
-      <form action={shipOrderWithPhotoAction} style={{ display: "grid", gap: 10 }}>
-        <input type="hidden" name="order_id" value={order.id} />
-        <FileUploadPreview name="photo" accept="image/*" required hint="ถ่าย/แนบรูปสินค้าที่แพ็คเสร็จ" />
-        <input className="ad-input" name="caption" placeholder="หมายเหตุรูป (ไม่บังคับ)" />
-        <SubmitButton pendingLabel="กำลังบันทึก..." className="w-full">
-          <Icon name="check" size={17} stroke={2.4} /> จัดสินค้าเสร็จแล้ว
-        </SubmitButton>
-        <p style={{ margin: 0, fontSize: 11.5, color: "var(--muted)", textAlign: "center" }}>
-          {isGrab ? "ออเดอร์ Grab จะข้ามไป “ส่งแล้ว” ทันที" : "ออเดอร์ Flash จะไปขั้น “จัดส่ง” เพื่อส่งให้ขนส่ง"}
-        </p>
-      </form>
+      <PackForm
+        orderId={order.id}
+        isGrab={isGrab}
+        items={(order.order_items ?? []).map((it: OrderItem) => ({
+          id: it.id,
+          name: it.product_name,
+          quantity: it.quantity,
+          unit: it.unit,
+          lineTotal: money(it.line_total),
+        }))}
+      />
       {canCancel ? <CancelOrderControl order={order} stage="pack" /> : null}
     </div>
   );
@@ -290,7 +290,7 @@ function ShippedCard({ order, photoUrls }: { order: AdminOrder; photoUrls: Map<s
 export default async function AdminOrdersPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string; stage?: string }>;
+  searchParams: Promise<{ error?: string; stage?: string; ok?: string }>;
 }) {
   const params = await searchParams;
   const activeStage = normalizeStage(params.stage);
@@ -349,13 +349,25 @@ export default async function AdminOrdersPage({
 
   return (
     <div style={{ display: "grid", gap: 14 }}>
-      <div>
-        <h2 style={{ margin: 0, fontSize: 23, fontWeight: 800, letterSpacing: "-.02em" }}>จัดการออเดอร์</h2>
-        <p style={{ margin: "4px 0 0", fontSize: 13.5, color: "var(--muted)" }}>ทำงานทีละขั้นจนถึงจัดส่ง</p>
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 10 }}>
+        <div>
+          <h2 style={{ margin: 0, fontSize: 23, fontWeight: 800, letterSpacing: "-.02em" }}>จัดการออเดอร์</h2>
+          <p style={{ margin: "4px 0 0", fontSize: 13.5, color: "var(--muted)" }}>ทำงานทีละขั้นจนถึงจัดส่ง</p>
+        </div>
+        {isAdmin ? (
+          <Link href="/admin/orders/new" className="ad-btn ad-btn-primary" style={{ width: "auto", padding: "9px 14px", flexShrink: 0, whiteSpace: "nowrap" }}>
+            <Icon name="plus" size={16} stroke={2.6} /> สั่งแทนลูกค้า
+          </Link>
+        ) : null}
       </div>
 
       <AdminTabs tabs={tabs} active={activeStage} />
 
+      {params.ok === "created" ? (
+        <div style={{ background: "#e7f4ec", border: "1px solid #bfe3cd", padding: "11px 12px", borderRadius: "var(--r-sm)", color: "#1b7a4b", fontSize: 12.5, display: "flex", alignItems: "center", gap: 7 }}>
+          <Icon name="checkCircle" size={15} stroke={2.4} /> สร้างออเดอร์ให้ลูกค้าแล้ว — รออนุมัติในแท็บ “อนุมัติ”
+        </div>
+      ) : null}
       {params.error ? (
         <div style={{ background: "#fbe6e3", border: "1px solid #f3c8c2", padding: "11px 12px", borderRadius: "var(--r-sm)", color: "#b42318", fontSize: 12.5 }}>
           {params.error}

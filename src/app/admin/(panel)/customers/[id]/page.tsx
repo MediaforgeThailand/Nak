@@ -1,24 +1,31 @@
 import { notFound } from "next/navigation";
 import {
   adjustCustomerDebtAction,
-  deleteCustomerProductDiscountAction,
+  deleteCustomerCategoryDiscountAction,
   deleteUserAction,
   setCustomerPriceLockAction,
   updateCustomerDiscountAction,
-  upsertCustomerProductDiscountAction,
+  upsertCustomerCategoryDiscountAction,
 } from "@/app/actions/admin";
 import { Icon } from "@/components/nak/icon";
 import { AdBadge, Avatar, BackHead, InfoRow, MiniStat, NakField, SectionCard } from "@/components/nak/ui";
 import { Input, Select, Textarea } from "@/components/ui/form";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { requireAdmin } from "@/lib/auth";
-import { getAdminCustomerDetail, getPriceTiers, getProductsWithInventory } from "@/lib/data/queries";
+import { getAdminCustomerDetail, getPriceTiers, getProductCategories } from "@/lib/data/queries";
 import { accountStatusLabel, compactDate, money, orderStatusLabel, paymentStatusLabel, transactionLabel } from "@/lib/format";
 import { levelForQty, sortedTiers } from "@/lib/pricing";
 
 export const dynamic = "force-dynamic";
 
 type CustomerDetail = Awaited<ReturnType<typeof getAdminCustomerDetail>>;
+
+// PostgREST can type a to-one embed as an array, so accept either shape.
+type CategoryDiscountRow = {
+  id: string;
+  discount_amount: number;
+  category: { id: string; name: string } | { id: string; name: string }[] | null;
+};
 
 function displayName(profile: NonNullable<CustomerDetail["profile"]>) {
   return profile.company_name || profile.full_name || profile.email || "ผู้ใช้ LINE";
@@ -32,14 +39,14 @@ export default async function AdminCustomerDetailPage({
   searchParams: Promise<{ error?: string }>;
 }) {
   const { id } = await params;
-  const [query, { profile: adminProfile }, allProducts, globalTiers, detail] = await Promise.all([
+  const [query, { profile: adminProfile }, categories, globalTiers, detail] = await Promise.all([
     searchParams,
     requireAdmin(),
-    getProductsWithInventory(true, "admin"),
+    getProductCategories("admin"),
     getPriceTiers("admin"),
     getAdminCustomerDetail(id),
   ]);
-  const { profile, addresses, orders, payments, transactions, productDiscounts, salesTotal, salesCount } = detail;
+  const { profile, addresses, orders, payments, transactions, categoryDiscounts, salesTotal, salesCount } = detail;
   if (!profile) notFound();
 
   const canAdjustDebt = adminProfile.is_owner;
@@ -169,11 +176,12 @@ export default async function AdminCustomerDetailPage({
           </form>
         </SectionCard>
 
-        <SectionCard title="ส่วนลดพิเศษรายสินค้า" icon="star">
-          {productDiscounts.length > 0 ? (
+        <SectionCard title="ส่วนลดพิเศษรายหมวดหมู่" icon="star">
+          {categoryDiscounts.length > 0 ? (
             <div style={{ display: "grid", gap: 6, marginTop: 2 }}>
-              {productDiscounts.map(
-                (row: { id: string; discount_amount: number; product: { name: string; sku: string; unit: string } | null }) => (
+              {categoryDiscounts.map((row: CategoryDiscountRow) => {
+                const category = Array.isArray(row.category) ? row.category[0] : row.category;
+                return (
                   <div
                     key={row.id}
                     style={{
@@ -188,14 +196,14 @@ export default async function AdminCustomerDetailPage({
                   >
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontSize: 13, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                        {row.product?.name ?? "สินค้าถูกลบ"}
+                        {category?.name ?? "หมวดหมู่ถูกลบ"}
                       </div>
-                      <div style={{ fontSize: 11, color: "var(--muted)" }}>{row.product?.sku ?? "—"}</div>
+                      <div style={{ fontSize: 11, color: "var(--muted)" }}>ทุกสินค้าในหมวดนี้</div>
                     </div>
                     <span style={{ fontSize: 13.5, fontWeight: 800, color: "#1b7a4b", whiteSpace: "nowrap" }}>
-                      -{money(row.discount_amount)}/{row.product?.unit ?? "ชิ้น"}
+                      -{money(row.discount_amount)}/ชิ้น
                     </span>
-                    <form action={deleteCustomerProductDiscountAction}>
+                    <form action={deleteCustomerCategoryDiscountAction}>
                       <input type="hidden" name="discount_id" value={row.id} />
                       <input type="hidden" name="return_to" value={returnTo} />
                       <button
@@ -217,31 +225,31 @@ export default async function AdminCustomerDetailPage({
                       </button>
                     </form>
                   </div>
-                ),
-              )}
+                );
+              })}
             </div>
           ) : (
-            <p style={{ fontSize: 12.5, color: "var(--muted)", margin: "4px 0" }}>ยังไม่มีส่วนลดรายสินค้า</p>
+            <p style={{ fontSize: 12.5, color: "var(--muted)", margin: "4px 0" }}>ยังไม่มีส่วนลดรายหมวดหมู่</p>
           )}
 
-          <form action={upsertCustomerProductDiscountAction} style={{ display: "grid", gap: 10, marginTop: 10 }}>
+          <form action={upsertCustomerCategoryDiscountAction} style={{ display: "grid", gap: 10, marginTop: 10 }}>
             <input type="hidden" name="customer_id" value={profile.id} />
             <input type="hidden" name="return_to" value={returnTo} />
-            <NakField label="สินค้า">
-              <Select name="product_id" required>
-                <option value="">เลือกสินค้า</option>
-                {allProducts.map((product) => (
-                  <option key={product.id} value={product.id}>
-                    {product.name} ({product.sku})
+            <NakField label="หมวดหมู่">
+              <Select name="category_id" required>
+                <option value="">เลือกหมวดหมู่</option>
+                {categories.map((category) => (
+                  <option key={category.id} value={category.id}>
+                    {category.name}
                   </option>
                 ))}
               </Select>
             </NakField>
-            <NakField label="ส่วนลดเพิ่มต่อชิ้น (บาท)" hint="ซ้อนเพิ่มจากส่วนลดขั้นบันไดและส่วนลดทุกสินค้า · ใส่สินค้าซ้ำ = แก้ยอดเดิม">
+            <NakField label="ส่วนลดเพิ่มต่อชิ้น (บาท)" hint="ลดเพิ่มทุกสินค้าในหมวดที่เลือก · ซ้อนกับส่วนลดขั้นบันไดและส่วนลดทุกสินค้า · เลือกหมวดซ้ำ = แก้ยอดเดิม">
               <Input name="discount_amount" type="number" inputMode="decimal" min="0" step="0.01" required />
             </NakField>
             <SubmitButton variant="secondary" pendingLabel="กำลังบันทึก...">
-              เพิ่ม / แก้ไขส่วนลดสินค้า
+              เพิ่ม / แก้ไขส่วนลดหมวดหมู่
             </SubmitButton>
           </form>
         </SectionCard>

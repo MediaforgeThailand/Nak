@@ -10,6 +10,8 @@ type FileUploadPreviewProps = {
   capture?: boolean | "user" | "environment";
   required?: boolean;
   hint?: string;
+  /** Small variant: short preview + no footer note (for dense forms like packing). */
+  compact?: boolean;
   onProcessingChange?: (processing: boolean) => void;
 };
 
@@ -53,8 +55,12 @@ export function FileUploadPreview({
   capture,
   required,
   hint,
+  compact = false,
   onProcessingChange,
 }: FileUploadPreviewProps) {
+  // Preview box height — much shorter in compact mode so the widget doesn't
+  // dominate a dense form.
+  const previewHeight = compact ? "h-24" : "h-48 sm:h-56";
   const inputId = useId();
   const inputRef = useRef<HTMLInputElement>(null);
   const [fileName, setFileName] = useState("");
@@ -120,11 +126,11 @@ export function FileUploadPreview({
       <div className="grid gap-3 rounded-[var(--r-sm)] border border-dashed border-[var(--line)] bg-[var(--surface)] p-3">
         {previewUrl ? (
           <div
-            className="h-48 rounded-[var(--r-sm)] bg-cover bg-center sm:h-56"
+            className={`${previewHeight} rounded-[var(--r-sm)] bg-cover bg-center`}
             style={{ backgroundImage: `url("${previewUrl}")` }}
           />
         ) : (
-          <div className="grid h-48 place-items-center rounded-[var(--r-sm)] bg-[var(--chip)] text-muted sm:h-56">
+          <div className={`grid ${previewHeight} place-items-center rounded-[var(--r-sm)] bg-[var(--chip)] text-muted`}>
             {processing ? <Loader2 className="h-8 w-8 animate-spin" /> : <FileImage className="h-8 w-8" />}
           </div>
         )}
@@ -174,10 +180,12 @@ export function FileUploadPreview({
         className="sr-only"
         onChange={handleChange}
       />
-      <p className="flex items-center gap-1 text-xs text-muted">
-        <Camera className="h-3.5 w-3.5" />
-        บนมือถือถ่ายรูปใหม่หรือเลือกจากเครื่องได้ · ระบบย่อขนาดรูปให้อัตโนมัติ
-      </p>
+      {compact ? null : (
+        <p className="flex items-center gap-1 text-xs text-muted">
+          <Camera className="h-3.5 w-3.5" />
+          บนมือถือถ่ายรูปใหม่หรือเลือกจากเครื่องได้ · ระบบย่อขนาดรูปให้อัตโนมัติ
+        </p>
+      )}
     </div>
   );
 }

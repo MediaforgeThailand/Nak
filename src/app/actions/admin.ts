@@ -671,6 +671,61 @@ export async function cancelOrderAction(formData: FormData) {
   revalidatePath("/home");
 }
 
+// Admin places an order ON BEHALF OF a customer (for phone/walk-in orders while
+// customers get used to self-service). Prices exactly like a customer order via
+// admin_create_order, and auto-attaches the customer's default shipping address.
+export async function createAdminOrderAction(formData: FormData) {
+  await requireAdmin();
+  const supabase = await createSupabaseServerClient("admin");
+  const customerId = String(formData.get("customer_id") ?? "");
+  const shippingMethod = formData.get("shipping_method") === "grab" ? "grab" : "flash";
+  const note = String(formData.get("customer_note") ?? "").trim() || null;
+
+  if (!customerId) {
+    redirect(`/admin/orders/new?error=${encodeURIComponent("กรุณาเลือกลูกค้า")}`);
+  }
+
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(String(formData.get("items") ?? "[]"));
+  } catch {
+    redirect(`/admin/orders/new?error=${encodeURIComponent("รายการสินค้าไม่ถูกต้อง กรุณาลองใหม่")}`);
+  }
+  const items = (Array.isArray(parsed) ? parsed : [])
+    .map((it) => ({ product_id: String((it as { product_id?: unknown }).product_id ?? ""), quantity: Math.floor(Number((it as { quantity?: unknown }).quantity ?? 0)) }))
+    .filter((it) => it.product_id && Number.isFinite(it.quantity) && it.quantity > 0);
+
+  if (items.length === 0) {
+    redirect(`/admin/orders/new?error=${encodeURIComponent("กรุณาเลือกสินค้าอย่างน้อย 1 รายการ")}`);
+  }
+
+  // Use the customer's default (or newest) address so packing/handoff has the
+  // delivery details; the RPC verifies the address belongs to this customer.
+  const { data: address } = await supabase
+    .from("customer_addresses")
+    .select("id")
+    .eq("customer_id", customerId)
+    .order("is_default", { ascending: false })
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle<{ id: string }>();
+
+  const { error } = await supabase.rpc("admin_create_order", {
+    target_customer_id: customerId,
+    items,
+    shipping_address_id: address?.id ?? null,
+    customer_note: note,
+    shipping_method: shippingMethod,
+  });
+
+  if (error) redirect(`/admin/orders/new?error=${encodeURIComponent(thaiDbError(error.message))}`);
+
+  revalidatePath("/admin/orders");
+  revalidatePath("/admin/home");
+  revalidatePath("/products");
+  redirect("/admin/orders?stage=approve&ok=created");
+}
+
 // Owner hands owner rights to (or removes them from) another approved admin.
 export async function setOwnerFlagAction(formData: FormData) {
   await requireOwner();
@@ -839,22 +894,22 @@ export async function recordManualPaymentAction(formData: FormData) {
   revalidatePath("/transactions");
 }
 
-export async function upsertCustomerProductDiscountAction(formData: FormData) {
+export async function upsertCustomerCategoryDiscountAction(formData: FormData) {
   await requireAdmin();
   const supabase = await createSupabaseServerClient("admin");
   const returnTo = customerReturnPath(formData);
   const customerId = String(formData.get("customer_id") ?? "");
-  const productId = String(formData.get("product_id") ?? "");
+  const categoryId = String(formData.get("category_id") ?? "");
   const amount = Number(formData.get("discount_amount") ?? 0);
 
-  if (!customerId || !productId) redirect(withError(returnTo, "กรุณาเลือกสินค้า"));
+  if (!customerId || !categoryId) redirect(withError(returnTo, "กรุณาเลือกหมวดหมู่"));
   if (!Number.isFinite(amount) || amount < 0) redirect(withError(returnTo, "ส่วนลดต้องเป็น 0 หรือมากกว่า"));
 
   const { error } = await supabase
-    .from("customer_product_discounts")
+    .from("customer_category_discounts")
     .upsert(
-      { customer_id: customerId, product_id: productId, discount_amount: amount },
-      { onConflict: "customer_id,product_id" },
+      { customer_id: customerId, category_id: categoryId, discount_amount: amount },
+      { onConflict: "customer_id,category_id" },
     );
 
   if (error) redirect(withError(returnTo, thaiDbError(error.message)));
@@ -864,7 +919,7 @@ export async function upsertCustomerProductDiscountAction(formData: FormData) {
   revalidatePath("/price-program");
 }
 
-export async function deleteCustomerProductDiscountAction(formData: FormData) {
+export async function deleteCustomerCategoryDiscountAction(formData: FormData) {
   await requireAdmin();
   const supabase = await createSupabaseServerClient("admin");
   const returnTo = customerReturnPath(formData);
@@ -872,7 +927,7 @@ export async function deleteCustomerProductDiscountAction(formData: FormData) {
 
   if (!discountId) redirect(withError(returnTo, "ไม่พบรายการส่วนลด"));
 
-  const { error } = await supabase.from("customer_product_discounts").delete().eq("id", discountId);
+  const { error } = await supabase.from("customer_category_discounts").delete().eq("id", discountId);
 
   if (error) redirect(withError(returnTo, thaiDbError(error.message)));
   revalidatePath(returnTo);
