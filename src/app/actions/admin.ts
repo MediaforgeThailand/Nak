@@ -671,6 +671,31 @@ export async function cancelOrderAction(formData: FormData) {
   revalidatePath("/home");
 }
 
+// Hard-delete a mis-keyed order that has NOT shipped: admin_delete_order restores
+// reserved stock, reverses any applied debt, and removes the order + its rows so
+// the mistake leaves no trace (unlike cancel, which keeps a 'cancelled' record).
+export async function deleteOrderAction(formData: FormData) {
+  await requireAdmin();
+  const supabase = await createSupabaseServerClient("admin");
+  const orderId = String(formData.get("order_id") ?? "");
+  const rawStage = String(formData.get("stage") ?? "approve");
+  const stage = ["approve", "pack", "handoff"].includes(rawStage) ? rawStage : "approve";
+
+  if (!orderId) {
+    redirect(`/admin/orders?stage=${stage}&error=${encodeURIComponent("ไม่พบออเดอร์ที่ต้องการลบ")}`);
+  }
+
+  const { error } = await supabase.rpc("admin_delete_order", { target_order_id: orderId });
+  if (error) redirect(`/admin/orders?stage=${stage}&error=${encodeURIComponent(thaiDbError(error.message))}`);
+
+  revalidatePath("/admin/orders");
+  revalidatePath("/admin/home");
+  revalidatePath("/admin/customers");
+  revalidatePath("/products");
+  revalidatePath("/home");
+  redirect(`/admin/orders?stage=${stage}&ok=deleted`);
+}
+
 // Admin places an order ON BEHALF OF a customer (for phone/walk-in orders while
 // customers get used to self-service). Prices exactly like a customer order via
 // admin_create_order, and auto-attaches the customer's default shipping address.

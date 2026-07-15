@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useState } from "react";
-import { cancelOrderAction, confirmHandoffAction } from "@/app/actions/admin";
+import { cancelOrderAction, confirmHandoffAction, deleteOrderAction } from "@/app/actions/admin";
 import { Icon } from "@/components/nak/icon";
 import { SubmitButton } from "@/components/ui/submit-button";
 
@@ -194,6 +194,25 @@ export function HandoffList({ orders, canCancel = false }: { orders: HandoffOrde
                         <input className="ad-input" name="reason" placeholder="เหตุผลการยกเลิก (จำเป็น)" required />
                         <SubmitButton variant="danger" pendingLabel="..." className="w-auto shrink-0 px-4">
                           ยืนยันยกเลิก
+                        </SubmitButton>
+                      </form>
+                    </details>
+                  ) : null}
+
+                  {/* Hard-delete a mis-keyed order (no cancelled record kept). */}
+                  {canCancel ? (
+                    <details>
+                      <summary style={{ fontSize: 12, color: "#b42318", fontWeight: 700, cursor: "pointer", textAlign: "center" }}>
+                        ลบออเดอร์นี้ทิ้ง (คีย์ผิด)
+                      </summary>
+                      <form action={deleteOrderAction} style={{ marginTop: 8, display: "grid", gap: 7 }}>
+                        <input type="hidden" name="order_id" value={order.id} />
+                        <input type="hidden" name="stage" value="handoff" />
+                        <p style={{ margin: 0, fontSize: 11.5, color: "var(--muted)", lineHeight: 1.5 }}>
+                          ลบออเดอร์นี้ออกจากระบบถาวร กู้คืนไม่ได้ — คืนสต็อก + คืนยอดหนี้ ใช้เมื่อคีย์ผิดเท่านั้น
+                        </p>
+                        <SubmitButton variant="danger" pendingLabel="กำลังลบ..." className="w-full">
+                          ยืนยันลบออเดอร์
                         </SubmitButton>
                       </form>
                     </details>

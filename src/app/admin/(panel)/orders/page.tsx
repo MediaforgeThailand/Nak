@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import { approveOrderAction, cancelOrderAction, rejectOrderAction } from "@/app/actions/admin";
+import { approveOrderAction, cancelOrderAction, deleteOrderAction, rejectOrderAction } from "@/app/actions/admin";
 import { HandoffList, type HandoffOrder } from "@/components/nak/handoff-list";
 import { Icon } from "@/components/nak/icon";
 import { PackForm } from "@/components/nak/pack-form";
@@ -153,6 +153,7 @@ function ApproveCard({ order, canAct }: { order: AdminOrder; canAct: boolean }) 
               <Icon name="x" size={17} stroke={2.6} />
             </SubmitButton>
           </form>
+          <DeleteOrderControl order={order} stage="approve" />
         </div>
       ) : (
         <p style={{ margin: 0, fontSize: 12.5, color: "var(--muted)", textAlign: "center" }}>
@@ -177,6 +178,28 @@ function CancelOrderControl({ order, stage }: { order: AdminOrder; stage: "pack"
         <input className="ad-input" name="reason" placeholder="เหตุผลการยกเลิก (จำเป็น)" required />
         <SubmitButton variant="danger" pendingLabel="..." className="w-auto shrink-0 px-4">
           ยืนยันยกเลิก
+        </SubmitButton>
+      </form>
+    </details>
+  );
+}
+
+// Admin-only: hard-delete a mis-keyed order (not yet shipped). Restores stock,
+// reverses any applied debt, and removes the order entirely — no cancelled record.
+function DeleteOrderControl({ order, stage }: { order: AdminOrder; stage: "approve" | "pack" | "handoff" }) {
+  return (
+    <details>
+      <summary style={{ fontSize: 12, color: "#b42318", fontWeight: 700, cursor: "pointer", textAlign: "center" }}>
+        ลบออเดอร์นี้ทิ้ง (คีย์ผิด)
+      </summary>
+      <form action={deleteOrderAction} style={{ marginTop: 8, display: "grid", gap: 7 }}>
+        <input type="hidden" name="order_id" value={order.id} />
+        <input type="hidden" name="stage" value={stage} />
+        <p style={{ margin: 0, fontSize: 11.5, color: "var(--muted)", lineHeight: 1.5 }}>
+          ลบออเดอร์นี้ออกจากระบบถาวร กู้คืนไม่ได้ — ระบบจะคืนสต็อกที่กันไว้ (และคืนยอดหนี้ถ้าอนุมัติแล้ว) ใช้เมื่อคีย์ออเดอร์ผิดเท่านั้น
+        </p>
+        <SubmitButton variant="danger" pendingLabel="กำลังลบ..." className="w-full">
+          ยืนยันลบออเดอร์
         </SubmitButton>
       </form>
     </details>
@@ -221,6 +244,7 @@ function PackCard({ order, canCancel }: { order: AdminOrder; canCancel: boolean 
         }))}
       />
       {canCancel ? <CancelOrderControl order={order} stage="pack" /> : null}
+      {canCancel ? <DeleteOrderControl order={order} stage="pack" /> : null}
     </div>
   );
 }
@@ -366,6 +390,11 @@ export default async function AdminOrdersPage({
       {params.ok === "created" ? (
         <div style={{ background: "#e7f4ec", border: "1px solid #bfe3cd", padding: "11px 12px", borderRadius: "var(--r-sm)", color: "#1b7a4b", fontSize: 12.5, display: "flex", alignItems: "center", gap: 7 }}>
           <Icon name="checkCircle" size={15} stroke={2.4} /> สร้างออเดอร์ให้ลูกค้าแล้ว — รออนุมัติในแท็บ “อนุมัติ”
+        </div>
+      ) : null}
+      {params.ok === "deleted" ? (
+        <div style={{ background: "#e7f4ec", border: "1px solid #bfe3cd", padding: "11px 12px", borderRadius: "var(--r-sm)", color: "#1b7a4b", fontSize: 12.5, display: "flex", alignItems: "center", gap: 7 }}>
+          <Icon name="checkCircle" size={15} stroke={2.4} /> ลบออเดอร์แล้ว — คืนสต็อก (และยอดหนี้ถ้าอนุมัติแล้ว) เรียบร้อย
         </div>
       ) : null}
       {params.error ? (

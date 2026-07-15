@@ -34,6 +34,7 @@ const exactMap: Record<string, string> = {
   "Cancellation reason is required": "กรุณาระบุเหตุผลการยกเลิกออเดอร์",
   "Only approved orders that have not shipped can be cancelled":
     "ยกเลิกได้เฉพาะออเดอร์ที่อนุมัติแล้วและยังไม่ได้จัดส่ง",
+  "Cannot delete an order that has already shipped": "ออเดอร์ที่จัดส่งแล้วลบไม่ได้ (เก็บไว้เป็นประวัติ)",
   "At least one price tier is required": "ต้องมีอย่างน้อย 1 ขั้นราคา (เช่น 1=0)",
   "Tier minimum quantity must be at least 1": "จำนวนขั้นต่ำของขั้นราคาต้องอย่างน้อย 1",
   "Tier discount must be zero or greater": "ส่วนลดของขั้นราคาต้องเป็น 0 หรือมากกว่า",
