@@ -1,6 +1,12 @@
 import Link from "next/link";
 import { Clock3, ShieldCheck } from "lucide-react";
-import { signOutAdminAction, signOutCustomerAction, updatePendingProfileAction } from "@/app/actions/auth";
+import {
+  signInWithLineAction,
+  signInWithLineAdminAction,
+  signOutAdminAction,
+  signOutCustomerAction,
+  updatePendingProfileAction,
+} from "@/app/actions/auth";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Field, Input } from "@/components/ui/form";
@@ -24,12 +30,62 @@ function metadataValue(metadata: Record<string, unknown> | undefined, keys: stri
 export default async function PendingPage({
   searchParams,
 }: {
-  searchParams: Promise<{ scope?: string; saved?: string; error?: string }>;
+  searchParams: Promise<{ scope?: string; saved?: string; error?: string; auth?: string }>;
 }) {
   const params = await searchParams;
   const scope = params.scope === "admin" ? "admin" : "customer";
   const { user, profile } = await getCurrentProfile(scope);
   const signOutAction = scope === "admin" ? signOutAdminAction : signOutCustomerAction;
+
+  // No session but we landed here anyway — LINE authenticated the user and the
+  // callback could not turn it into a session. Offer a one-tap retry instead of
+  // a dead end.
+  if (!user) {
+    const lineRetryAction = scope === "admin" ? signInWithLineAdminAction : signInWithLineAction;
+    const emailLoginPath = scope === "admin" ? "/admin/login" : "/login";
+    const incomplete = params.auth === "line-incomplete";
+
+    return (
+      <main className="motion-page grid min-h-screen place-items-center px-4 py-8">
+        <Card className="w-full max-w-lg p-6">
+          <div className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-[#fbeedd] text-[#a35a10]">
+            <Clock3 className="h-7 w-7" />
+          </div>
+
+          <div className="mt-5 text-center">
+            <p className="text-sm font-semibold text-accent">{scope === "admin" ? "NAK Admin" : "NAK Account"}</p>
+            <h1 className="mt-2 text-2xl font-bold">
+              {incomplete ? "ยืนยันการเข้าสู่ระบบอีกครั้ง" : "กรุณาเข้าสู่ระบบ"}
+            </h1>
+            <p className="mt-2 text-sm leading-6 text-muted">
+              {incomplete
+                ? "เข้าสู่ระบบด้วย LINE ยังไม่สมบูรณ์ — กดลองอีกครั้งได้เลย ไม่ต้องสมัครใหม่ ข้อมูลบัญชีของคุณยังอยู่ครบ"
+                : "เข้าสู่ระบบเพื่อดูสถานะบัญชีและการอนุมัติของคุณ"}
+            </p>
+          </div>
+
+          <form action={lineRetryAction} className="mt-5">
+            <SubmitButton
+              className="w-full text-white hover:brightness-[1.03]"
+              style={{ background: "#06c755", boxShadow: "0 10px 24px -8px rgba(6,199,85,0.5)" }}
+              pendingLabel="กำลังเปิด LINE..."
+            >
+              เข้าสู่ระบบด้วย LINE อีกครั้ง
+            </SubmitButton>
+          </form>
+
+          <p className="mt-3 text-center text-xs text-muted">เปิดผ่านแอป LINE จะเสถียรกว่าเปิดในเบราว์เซอร์</p>
+
+          <div className="mt-4 border-t border-[var(--line)] pt-4 text-center text-sm text-muted">
+            หรือเข้าสู่ระบบด้วย{" "}
+            <Link href={emailLoginPath} className="font-bold" style={{ color: "var(--p)" }}>
+              อีเมล
+            </Link>
+          </div>
+        </Card>
+      </main>
+    );
+  }
   const metadata = user?.user_metadata as Record<string, unknown> | undefined;
   const lineName = metadataValue(metadata, ["name", "display_name", "full_name"]);
   const defaultName = profile?.full_name || lineName;

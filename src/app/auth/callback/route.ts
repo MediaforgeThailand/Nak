@@ -9,12 +9,41 @@ function callbackError(request: NextRequest, scope: AuthScope, message: string) 
   return NextResponse.redirect(url);
 }
 
+// THROWAWAY diagnostic — the web-OAuth twin of the LIFF beacon. Reports why a
+// LINE sign-in that succeeded on LINE's side fails to become a session here.
+// Remove together with the liff-debug beacon.
+function logCb(data: Record<string, unknown>) {
+  console.log("[oauth-callback]", JSON.stringify(data));
+}
+
+// LINE authenticated the user, but we could not establish a session here.
+// Instead of dumping them on a raw /login error — which reads as "login
+// failed" — send them to the pending page, which offers a one-tap retry.
+function gracefulLanding(request: NextRequest, scope: AuthScope) {
+  const url = new URL("/pending", request.url);
+  url.searchParams.set("scope", scope);
+  url.searchParams.set("auth", "line-incomplete");
+  return NextResponse.redirect(url);
+}
+
 export async function GET(request: NextRequest) {
   const requestUrl = new URL(request.url);
   const code = requestUrl.searchParams.get("code");
   const scope: AuthScope = requestUrl.searchParams.get("scope") === "admin" ? "admin" : "customer";
+  const ua = request.headers.get("user-agent") ?? "";
+  // The PKCE verifier cookie is the usual suspect on iOS; whether it is present
+  // at callback time tells us if that is what broke.
+  const cookieNames = request.cookies.getAll().map((c) => c.name);
 
   if (!code) {
+    logCb({
+      stage: "no-code",
+      scope,
+      ua,
+      cookieNames,
+      oauthError: requestUrl.searchParams.get("error"),
+      oauthErrorDesc: requestUrl.searchParams.get("error_description"),
+    });
     return callbackError(request, scope, "ไม่พบรหัสยืนยันการเข้าสู่ระบบ");
   }
 
@@ -22,7 +51,15 @@ export async function GET(request: NextRequest) {
   const { error } = await supabase.auth.exchangeCodeForSession(code);
 
   if (error) {
-    return callbackError(request, scope, error.message);
+    logCb({
+      stage: "exchange-failed",
+      scope,
+      ua,
+      cookieNames,
+      message: error.message,
+      status: (error as { status?: number }).status ?? null,
+    });
+    return gracefulLanding(request, scope);
   }
 
   const {
@@ -30,8 +67,11 @@ export async function GET(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    return callbackError(request, scope, "ไม่พบข้อมูลผู้ใช้งาน");
+    logCb({ stage: "no-user-after-exchange", scope, ua, cookieNames });
+    return gracefulLanding(request, scope);
   }
+
+  logCb({ stage: "session-ok", scope, ua, userId: user.id });
 
   const { data: profile } = await supabase
     .from("profiles")
