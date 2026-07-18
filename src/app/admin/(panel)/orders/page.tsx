@@ -175,7 +175,7 @@ function CancelOrderControl({ order, stage }: { order: AdminOrder; stage: "pack"
       <form action={cancelOrderAction} style={{ marginTop: 8, display: "flex", gap: 8 }}>
         <input type="hidden" name="order_id" value={order.id} />
         <input type="hidden" name="stage" value={stage} />
-        <input className="ad-input" name="reason" placeholder="เหตุผลการยกเลิก (จำเป็น)" required />
+        <input className="ad-input" name="reason" placeholder="เหตุผลการยกเลิก (ไม่บังคับ)" />
         <SubmitButton variant="danger" pendingLabel="..." className="w-auto shrink-0 px-4">
           ยืนยันยกเลิก
         </SubmitButton>

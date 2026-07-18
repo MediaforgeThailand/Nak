@@ -659,12 +659,11 @@ export async function cancelOrderAction(formData: FormData) {
   await requireAdmin();
   const supabase = await createSupabaseServerClient("admin");
   const orderId = String(formData.get("order_id") ?? "");
-  const reason = String(formData.get("reason") ?? "").trim();
+  // Reason is optional — default it so one click always cancels. (The old
+  // required-field UI silently blocked the browser submit, so cancelling
+  // appeared to do nothing.)
+  const reason = String(formData.get("reason") ?? "").trim() || "ยกเลิกโดยแอดมิน";
   const stage = formData.get("stage") === "handoff" ? "handoff" : "pack";
-
-  if (!reason) {
-    redirect(`/admin/orders?stage=${stage}&error=${encodeURIComponent("กรุณาระบุเหตุผลการยกเลิกออเดอร์")}`);
-  }
 
   const { error } = await supabase.rpc("cancel_approved_order", {
     target_order_id: orderId,
