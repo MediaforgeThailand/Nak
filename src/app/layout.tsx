@@ -12,7 +12,7 @@ const anuphan = Anuphan({
 });
 
 export const metadata: Metadata = {
-  title: "NAK Wholesale",
+  title: "NRV Wholesale",
   description: "ขายส่งครบ จบในที่เดียว — สั่งสินค้า ติดตามออเดอร์ และจัดการเครดิตในที่เดียว",
 };
 

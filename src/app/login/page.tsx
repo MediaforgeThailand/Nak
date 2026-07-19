@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { signInAction, signInWithLineAction, signUpAction } from "@/app/actions/auth";
+import { BrandMark } from "@/components/nak/brand-mark";
 import { Icon } from "@/components/nak/icon";
 import { LiffAutoLogin } from "@/components/line/liff-auto-login";
 import { Card } from "@/components/ui/card";
@@ -22,17 +23,12 @@ export default async function LoginPage({
       <div className="mx-auto grid min-h-[calc(100vh-3rem)] w-full max-w-md place-items-center">
         <section className="w-full">
           <div className="mb-6 flex flex-col items-center gap-3 text-center">
-            <span
-              className="grid h-14 w-14 place-items-center rounded-2xl text-2xl font-extrabold text-white"
-              style={{ background: "var(--p)", boxShadow: "0 10px 24px -8px var(--p)" }}
-            >
-              N
-            </span>
+            <BrandMark size={56} />
             <div>
               <h1 className="text-xl font-extrabold tracking-tight">
-                NAK <span style={{ color: "var(--p)" }}>Wholesale</span>
+                NRV <span style={{ color: "var(--p)" }}>Wholesale</span>
               </h1>
-              <p className="text-xs text-muted">ขายส่งครบ จบในที่เดียว</p>
+              <p className="text-xs text-muted">Next Rama V · ขายส่งครบ จบในที่เดียว</p>
             </div>
           </div>
 

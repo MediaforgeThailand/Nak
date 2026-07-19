@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState, useSyncExternalStore } from "react";
+import { BrandMark } from "@/components/nak/brand-mark";
 import { Icon } from "@/components/nak/icon";
 
 const CART_KEY = "nak_cart";
@@ -59,25 +60,10 @@ function AppBar({ tab, count }: { tab: (typeof TABS)[number]["id"]; count: numbe
     return (
       <div className="nak-appbar">
         <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
-          <span
-            style={{
-              width: 34,
-              height: 34,
-              borderRadius: 10,
-              background: "var(--p)",
-              color: "#fff",
-              display: "grid",
-              placeItems: "center",
-              fontWeight: 800,
-              fontSize: 17,
-              letterSpacing: ".02em",
-            }}
-          >
-            N
-          </span>
+          <BrandMark size={34} radius={10} />
           <div style={{ lineHeight: 1.1 }}>
             <div style={{ fontSize: 16, fontWeight: 800, letterSpacing: "-.01em" }}>
-              NAK <span style={{ color: "var(--p)" }}>Wholesale</span>
+              NRV <span style={{ color: "var(--p)" }}>Wholesale</span>
             </div>
             <div style={{ fontSize: 10.5, color: "var(--muted)", fontWeight: 500 }}>ขายส่งครบ จบในที่เดียว</div>
           </div>

@@ -483,7 +483,7 @@ export async function testLineNotifyAction(formData: FormData) {
     kind === "daily"
       ? buildDailyBubble(await gatherDaily(client))
       : buildPeriodBubble(await gatherPeriod(client, kind));
-  const push = await pushLineFlex(groupId, "ตัวอย่างรายงาน NAK Wholesale", bubble);
+  const push = await pushLineFlex(groupId, "ตัวอย่างรายงาน NRV Wholesale", bubble);
   if (!push.ok) {
     redirect(`/admin/settings?error=${encodeURIComponent("ส่งไม่สำเร็จ กรุณาลองใหม่อีกครั้ง")}`);
   }

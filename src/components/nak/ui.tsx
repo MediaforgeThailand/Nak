@@ -146,7 +146,7 @@ export function ProductImage({
               opacity: 0.5,
             }}
           >
-            NAK
+            NRV
           </span>
         </>
       )}

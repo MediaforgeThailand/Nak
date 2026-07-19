@@ -42,7 +42,7 @@ export default async function ProfilePage({
   // LINE-only accounts get a synthetic internal email — never show it as the user's email.
   const isLineOnlyEmail = (profile.email ?? "").endsWith("@line.nak.local");
   const displayEmail = isLineOnlyEmail ? "เข้าสู่ระบบผ่าน LINE" : profile.email;
-  const displayName = profile.company_name || profile.full_name || (isLineOnlyEmail ? "ลูกค้า NAK" : profile.email);
+  const displayName = profile.company_name || profile.full_name || (isLineOnlyEmail ? "ลูกค้า NRV" : profile.email);
   const successMessage = params.paid
     ? "ส่งสลิปเรียบร้อย — แอดมินจะตรวจและตัดยอดให้เร็วที่สุด ดูสถานะได้ที่ประวัติแจ้งชำระด้านล่าง"
     : params.saved

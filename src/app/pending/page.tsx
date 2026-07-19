@@ -50,7 +50,7 @@ export default async function PendingPage({
           </div>
 
           <div className="mt-5 text-center">
-            <p className="text-sm font-semibold text-accent">NAK Admin</p>
+            <p className="text-sm font-semibold text-accent">NRV Admin</p>
             <h1 className="mt-2 text-2xl font-bold">คำขอเป็นทีมงานรออนุมัติ</h1>
             <p className="mt-2 text-sm leading-6 text-muted">
               คุณเข้าสู่ระบบหลังบ้านด้วย<b> บัญชีลูกค้า</b> — ระบบส่งคำขอเป็นทีมงานให้แอดมินแล้ว
@@ -92,7 +92,7 @@ export default async function PendingPage({
         </div>
 
         <div className="mt-5 text-center">
-          <p className="text-sm font-semibold text-accent">{scope === "admin" ? "NAK Admin" : "NAK Account"}</p>
+          <p className="text-sm font-semibold text-accent">{scope === "admin" ? "NRV Admin" : "NRV Account"}</p>
           <h1 className="mt-2 text-2xl font-bold">บัญชียังรออนุมัติ</h1>
           {scope === "admin" ? (
             <p className="mt-2 text-sm text-muted">กรอกชื่อเพื่อส่งคำขอเป็นทีมงาน รอแอดมินอนุมัติและกำหนดสิทธิ์</p>

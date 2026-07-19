@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { signOutAdminAction } from "@/app/actions/auth";
+import { BrandMark } from "@/components/nak/brand-mark";
 import { Icon } from "@/components/nak/icon";
 import { Avatar } from "@/components/nak/ui";
 
@@ -77,10 +78,10 @@ export function AdminShell({
           <Icon name="menu" size={21} stroke={2.2} />
         </button>
         <div style={{ display: "flex", alignItems: "center", gap: 8, flex: 1, minWidth: 0 }}>
-          <span className="adm-logo">N</span>
+          <BrandMark size={32} radius={9} />
           <div style={{ lineHeight: 1.1, minWidth: 0 }}>
             <div style={{ fontSize: 15, fontWeight: 800, letterSpacing: "-.01em", whiteSpace: "nowrap" }}>
-              NAK <span style={{ color: "var(--p)" }}>Admin</span>
+              NRV <span style={{ color: "var(--p)" }}>Admin</span>
             </div>
             <div style={{ fontSize: 10.5, color: "var(--muted)", fontWeight: 500, whiteSpace: "nowrap" }}>{current.label}</div>
           </div>
@@ -105,12 +106,10 @@ export function AdminShell({
         <aside className="adm-drawer-panel" onClick={(e) => e.stopPropagation()}>
           <div className="adm-drawer-head">
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              <span className="adm-logo" style={{ width: 36, height: 36, fontSize: 18 }}>
-                N
-              </span>
+              <BrandMark size={36} radius={10} />
               <div>
                 <div style={{ fontSize: 15, fontWeight: 800 }}>
-                  NAK <span style={{ color: "var(--p)" }}>Admin</span>
+                  NRV <span style={{ color: "var(--p)" }}>Admin</span>
                 </div>
                 <div style={{ fontSize: 10.5, color: "var(--muted)" }}>ระบบหลังบ้าน</div>
               </div>

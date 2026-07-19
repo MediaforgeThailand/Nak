@@ -246,7 +246,7 @@ function bubbleShell(title: string, subtitle: string, bodyContents: unknown[]) {
       backgroundColor: THEME.red,
       paddingAll: "16px",
       contents: [
-        { type: "text", text: "NAK Wholesale", size: "xxs", color: "#ffd7db", weight: "bold" },
+        { type: "text", text: "NRV Wholesale", size: "xxs", color: "#ffd7db", weight: "bold" },
         { type: "text", text: title, size: "lg", color: "#ffffff", weight: "bold", margin: "xs" },
         { type: "text", text: subtitle, size: "xs", color: "#ffe4e7", margin: "xs" },
       ],
@@ -388,7 +388,7 @@ export async function sendScheduledReports(
   if (wantMonthly) bubbles.push(buildPeriodBubble(await gatherPeriod(client, "monthly", now)));
 
   const contents = bubbles.length === 1 ? bubbles[0] : { type: "carousel", contents: bubbles };
-  const push = await pushLineFlex(groupId, "รายงาน NAK Wholesale", contents);
+  const push = await pushLineFlex(groupId, "รายงาน NRV Wholesale", contents);
   if (!push.ok) return { sent: false, note: push.error };
 
   if (!preview) {
