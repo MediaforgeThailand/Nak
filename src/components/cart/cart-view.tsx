@@ -310,7 +310,6 @@ export function CartView({
               onChange={(e) => setAddressId(e.target.value)}
               style={{ marginTop: 2 }}
             >
-              <option value="">ไม่ระบุ / ให้ทีมงานติดต่อกลับ</option>
               {addresses.map((a) => (
                 <option key={a.id} value={a.id}>
                   {a.label} · {a.recipient_name}
@@ -318,8 +317,18 @@ export function CartView({
               ))}
             </select>
           ) : (
-            <Link href="/profile" style={{ fontSize: 12.5, fontWeight: 700, color: "var(--p)" }}>
-              เพิ่มที่อยู่จัดส่ง →
+            <Link
+              href="/profile"
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 6,
+                fontSize: 12.5,
+                fontWeight: 700,
+                color: "var(--p)",
+              }}
+            >
+              <Icon name="plus" size={15} stroke={2.4} /> เพิ่มที่อยู่จัดส่ง (จำเป็น) →
             </Link>
           )}
           {selectedAddress && addressId ? (
@@ -332,7 +341,9 @@ export function CartView({
               <div>{[selectedAddress.district, selectedAddress.province, selectedAddress.postal_code].filter(Boolean).join(" ")}</div>
             </div>
           ) : (
-            <div style={{ fontSize: 12.5, color: "var(--muted)" }}>ไม่ระบุที่อยู่ ทีมงานจะติดต่อกลับเพื่อยืนยันการจัดส่ง</div>
+            <div style={{ fontSize: 12.5, color: "#b42318", fontWeight: 600 }}>
+              ต้องมีที่อยู่จัดส่งก่อนยืนยันออเดอร์ — กรุณาเพิ่มที่อยู่ในโปรไฟล์
+            </div>
           )}
         </div>
 
@@ -426,9 +437,9 @@ export function CartView({
           <span style={{ fontSize: 11, color: "var(--muted)" }}>ยอดสุทธิ</span>
           <span style={{ fontSize: 19, fontWeight: 800 }}>{money(subtotal)}</span>
         </div>
-        <SubmitButton disabled={orderableRows.length === 0} pendingLabel="กำลังส่งออเดอร์...">
+        <SubmitButton disabled={orderableRows.length === 0 || !addressId} pendingLabel="กำลังส่งออเดอร์...">
           <Icon name="check" size={18} stroke={2.4} />
-          ยืนยันออเดอร์
+          {addressId ? "ยืนยันออเดอร์" : "เลือกที่อยู่จัดส่งก่อน"}
         </SubmitButton>
       </div>
     </form>

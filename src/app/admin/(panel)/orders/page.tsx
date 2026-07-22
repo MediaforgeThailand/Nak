@@ -196,7 +196,7 @@ function DeleteOrderControl({ order, stage }: { order: AdminOrder; stage: "appro
         <input type="hidden" name="order_id" value={order.id} />
         <input type="hidden" name="stage" value={stage} />
         <p style={{ margin: 0, fontSize: 11.5, color: "var(--muted)", lineHeight: 1.5 }}>
-          ลบออเดอร์นี้ออกจากระบบถาวร กู้คืนไม่ได้ — ระบบจะคืนสต็อกที่กันไว้ (และคืนยอดหนี้ถ้าอนุมัติแล้ว) ใช้เมื่อคีย์ออเดอร์ผิดเท่านั้น
+          ลบออเดอร์นี้ออกจากระบบถาวร กู้คืนไม่ได้ — ระบบจะคืนสต็อกที่กันไว้ และล้างยอดหนี้ของออเดอร์นี้ (ลบได้แม้บันทึกชำระเงินไปแล้ว) ใช้เมื่อคีย์ออเดอร์ผิดเท่านั้น
         </p>
         <SubmitButton variant="danger" pendingLabel="กำลังลบ..." className="w-full">
           ยืนยันลบออเดอร์

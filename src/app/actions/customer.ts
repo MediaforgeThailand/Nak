@@ -31,9 +31,15 @@ export async function createOrderAction(formData: FormData) {
   const note = String(formData.get("customer_note") ?? "").trim();
   const shippingMethod = formData.get("shipping_method") === "grab" ? "grab" : "flash";
 
+  // A delivery address is required to place an order. The RPC enforces this too
+  // (defense in depth), but check here for an instant, friendly Thai message.
+  if (!shippingAddress) {
+    redirect(`/cart?error=${encodeURIComponent("กรุณาเลือกที่อยู่จัดส่งก่อนยืนยันออเดอร์")}`);
+  }
+
   const { data, error } = await supabase.rpc("create_order", {
     items,
-    shipping_address_id: shippingAddress || null,
+    shipping_address_id: shippingAddress,
     customer_note: note || null,
     shipping_method: shippingMethod,
   });

@@ -7,6 +7,7 @@ const exactMap: Record<string, string> = {
   "Only approved customers can submit payments": "บัญชีนี้ยังแจ้งชำระไม่ได้ (ต้องเป็นลูกค้าที่อนุมัติแล้ว)",
   "Order items are required": "ไม่มีสินค้าในตะกร้า",
   "Shipping address not found": "ไม่พบที่อยู่จัดส่ง กรุณาเลือกหรือเพิ่มที่อยู่ใหม่",
+  "Shipping address is required": "กรุณาเลือกที่อยู่จัดส่งก่อนยืนยันออเดอร์",
   "Invalid quantity": "จำนวนสินค้าไม่ถูกต้อง",
   "Product is not available": "มีสินค้าบางรายการปิดการขายแล้ว กรุณาลบออกจากตะกร้า",
   "Inventory record missing": "ข้อมูลสต็อกสินค้าไม่สมบูรณ์ กรุณาติดต่อร้าน",
